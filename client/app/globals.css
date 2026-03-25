@@ -1,26 +1,103 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* 
+  PLASMA DESIGN SYSTEM
+  Tailwind v4 CSS-first theme configuration.
+*/
+
+@theme {
+  /* Colors - accessible via bg-plasma-bg, text-plasma-primary, etc. */
+  --color-plasma-bg: #0D0B14;
+  --color-plasma-slate: #1A1726;
+  --color-plasma-slate-hover: #28243D;
+  --color-plasma-primary: #563895;
+  --color-plasma-secondary: #FF2A7A;
+  --color-plasma-text-primary: #F8F9FA;
+  --color-plasma-text-secondary: #8A869C;
+  --color-plasma-success: #2ECC71;
+  --color-plasma-warning: #F1C40F;
+  --color-plasma-error: #E74C3C;
+
+  /* Fonts - accessible via font-sans, font-display, font-mono */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui;
+  --font-display: var(--font-rajdhani), sans-serif;
+  --font-mono: var(--font-jetbrains-mono), monospace;
+
+  /* Gradients & Shadows */
+  --background-image-primary-gradient: linear-gradient(135deg, #563895, #FF2A7A);
+  --shadow-card-glow: 0 0 30px rgba(86, 56, 149, 0.25);
+
+  /* Radius */
+  --radius-button: 8px;
+  --radius-card: 12px;
+  --radius-modal: 16px;
+  --radius-input: 8px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer base {
+  body {
+    background-color: var(--color-plasma-bg);
+    color: var(--color-plasma-text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.5;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    line-height: 1.2;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* Glassmorphism Effect - Usage: className="glass" */
+  .glass {
+    background: rgba(26, 23, 38, 0.7);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(86, 56, 149, 0.2);
+  }
+
+  /* Card Glow Hover - Usage: className="card-glow-hover" */
+  .card-glow-hover {
+    transition: all 0.3s ease-in-out;
+  }
+  .card-glow-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-glow);
+  }
+
+  /* Live Pulse - Usage: <span className="live-dot" /> */
+  .live-dot {
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: 9999px;
+    background-color: var(--color-plasma-success);
+    position: relative;
+    display: inline-block;
+  }
+  .live-dot::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background-color: var(--color-plasma-success);
+    animation: live-pulse 1.5s infinite;
+  }
+}
+
+@keyframes live-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0; }
+}
+
+@layer utilities {
+  /* Gradient Text - Usage: className="text-gradient" */
+  .text-gradient {
+    background: var(--background-image-primary-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
 }
