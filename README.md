@@ -1,7 +1,8 @@
 # Plasma_Full-Stack_App
 Created by Wahaj, Saad, Ibrahim and I, Plasma acts as a specialized "Second Screen" web application that aggregates a user's entire gaming identity, both automatic (Steam) and manual (everything else), into a rich, community-focused social hub. 
 
-Tried integrating with Jira, weird process, have no idea what im doing
+## [Plasma Figma Design Link](https://www.figma.com/design/46jGV38kP26hGm0blEZoyh/Plasma?node-id=15-33&t=fR8LKhfQBYdGhBHZ-1)
+
 ## Environment Variables
 
 This project uses environment variables for configuration. Copy the example files and fill in your actual values:
