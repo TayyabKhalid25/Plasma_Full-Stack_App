@@ -16,12 +16,12 @@ From the **root** of the repository, run:
 npm run dev
 ```
 
-This will automatically install dependencies for the root, `client/`, and `Backend/` folders, then start both services in parallel using [`concurrently`](https://github.com/open-cli-tools/concurrently):
+This will automatically install dependencies for the root, `client/`, and `server/` folders, then start both services in parallel using [`concurrently`](https://github.com/open-cli-tools/concurrently):
 
 | Service | Command | Default URL |
 |---------|---------|-------------|
 | **Client** (Next.js) | `npm run dev --prefix client` | `http://localhost:3000` |
-| **Backend** (Node.js / nodemon) | `cd Backend && nodemon server.js` | `http://localhost:5000` |
+| **server** (Node.js / nodemon) | `cd server && nodemon server.js` | `http://localhost:5000` |
 
 > Make sure you've set up your `.env` files (see below) before running.
 

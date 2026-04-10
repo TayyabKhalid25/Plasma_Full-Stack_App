@@ -24,7 +24,7 @@ For detailed API documentation, please visit the following link:(SAAD INSERT POS
     ```
 4. Start the server:
     ```bash
-    nodemon
+    nodemon server.js
     ```
 
 ## Contributing
