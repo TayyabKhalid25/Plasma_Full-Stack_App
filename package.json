@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "concurrently \"npm run dev --prefix client\" \"node server/index.js\""
+    "dev": "concurrently \"npm run dev --prefix client\" \"cd Backend && nodemon server.js\""
   },
   "keywords": [],
   "author": "",
