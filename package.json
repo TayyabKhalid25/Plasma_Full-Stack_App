@@ -4,7 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "concurrently \"npm run dev --prefix client\" \"cd Backend && nodemon server.js\""
+    "install:client": "npm install --prefix client",
+    "install:server": "npm install --prefix Backend",
+    "install:all": "npm install && npm run install:client && npm run install:server",
+    "dev": "npm run install:all && concurrently \"npm run dev --prefix client\" \"cd Backend && nodemon server.js\""
   },
   "keywords": [],
   "author": "",

@@ -3,6 +3,30 @@ Created by Wahaj, Saad, Ibrahim and I, Plasma acts as a specialized "Second Scre
 
 ## [Plasma Figma Design Link](https://www.figma.com/design/46jGV38kP26hGm0blEZoyh/Plasma?node-id=15-33&t=fR8LKhfQBYdGhBHZ-1)
 
+## Getting Started
+
+### Prerequisites
+- Node.js installed
+
+### Running Locally
+
+From the **root** of the repository, run:
+
+```bash
+npm run dev
+```
+
+This will automatically install dependencies for the root, `client/`, and `Backend/` folders, then start both services in parallel using [`concurrently`](https://github.com/open-cli-tools/concurrently):
+
+| Service | Command | Default URL |
+|---------|---------|-------------|
+| **Client** (Next.js) | `npm run dev --prefix client` | `http://localhost:3000` |
+| **Backend** (Node.js / nodemon) | `cd Backend && nodemon server.js` | `http://localhost:5000` |
+
+> Make sure you've set up your `.env` files (see below) before running.
+
+---
+
 ## Environment Variables
 
 This project uses environment variables for configuration. Copy the example files and fill in your actual values:
