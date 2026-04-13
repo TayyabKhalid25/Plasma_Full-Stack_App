@@ -1,7 +1,6 @@
 const express = require('express');
 const { authenticateToken, jwt } = require('../middleware/authMiddleware');
-const { getUserBaseStats, isFriend, getFavMovieBg } = require('../utils/userDetails');
-const { processMoviesWithDirectors } = require('../utils/processMovies');
+const { isFriend } = require('../utils/userDetails');
 const { pool } = require('../config/dbConfig');
 const router = express.Router();
 

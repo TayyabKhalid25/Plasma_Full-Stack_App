@@ -4,10 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "install:client": "npm install --prefix client",
-    "install:server": "npm install --prefix server",
-    "install:all": "npm install && npm run install:client && npm run install:server",
-    "dev": "npm run install:all && concurrently \"npm run dev --prefix client\" \"cd server && nodemon server.js\""
+    "install:all": "npm install --prefix client && npm install --prefix server",
+    "update:all": "npm update && npm update --prefix client && npm update --prefix server",
+    "audit_fix:all": "npm audit fix --force && npm audit fix --force --prefix client && npm audit fix --force --prefix server",
+    "dev": "concurrently \"npm run dev --prefix client\" \"npm run dev --prefix server\""
   },
   "keywords": [],
   "author": "",

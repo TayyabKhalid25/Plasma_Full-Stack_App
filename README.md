@@ -10,18 +10,28 @@ Created by Wahaj, Saad, Ibrahim and I, Plasma acts as a specialized "Second Scre
 
 ### Running Locally
 
-From the **root** of the repository, run:
+From the **root** of the repository:
+
+**Step 1 — Install all dependencies** (run once, or after adding new packages):
+
+```bash
+npm run install:all
+```
+
+This installs dependencies for both the `client/` and `server/` folders.
+
+**Step 2 — Start both services:**
 
 ```bash
 npm run dev
 ```
 
-This will automatically install dependencies for the root, `client/`, and `server/` folders, then start both services in parallel using [`concurrently`](https://github.com/open-cli-tools/concurrently):
+This starts both the client and server in parallel using [`concurrently`](https://github.com/open-cli-tools/concurrently):
 
 | Service | Command | Default URL |
 |---------|---------|-------------|
 | **Client** (Next.js) | `npm run dev --prefix client` | `http://localhost:3000` |
-| **server** (Node.js / nodemon) | `cd server && nodemon server.js` | `http://localhost:5000` |
+| **Server** (Node.js / nodemon) | `npm run dev --prefix server` | `http://localhost:5000` |
 
 > Make sure you've set up your `.env` files (see below) before running.
 
