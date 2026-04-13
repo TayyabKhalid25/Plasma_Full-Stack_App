@@ -92,11 +92,11 @@ router.post('/accept/:notiID', authenticateToken, async (req, res) => {
             if (notification.NotificationType === 'AdminReq') {
                 await pool.query(`UPDATE users SET usertype = 'Admin' WHERE userid = $1`, [notification.SenderID]);
                 messageSender = `You have been promoted to Admin by user ${notification.ReceiverName}`;
-                adminMessage  = `User ${notification.SenderName} has been promoted to Admin!`;
+                adminMessage = `User ${notification.SenderName} has been promoted to Admin!`;
             } else if (notification.NotificationType === 'CriticReq') {
                 await pool.query(`UPDATE users SET usertype = 'Critic' WHERE userid = $1`, [notification.SenderID]);
                 messageSender = `You have been promoted to Critic by user ${notification.ReceiverName}`;
-                adminMessage  = `User ${notification.SenderName} has been promoted to Critic!`;
+                adminMessage = `User ${notification.SenderName} has been promoted to Critic!`;
             }
 
             // Notify all other admins
@@ -183,10 +183,10 @@ router.post('/reject/:notiID', authenticateToken, async (req, res) => {
 
             if (notification.NotificationType === 'AdminReq') {
                 messageSender = `You have been rejected the status of Admin by user ${notification.ReceiverName}`;
-                adminMessage  = `User ${notification.SenderName} has been rejected the status of Admin!`;
+                adminMessage = `User ${notification.SenderName} has been rejected the status of Admin!`;
             } else if (notification.NotificationType === 'CriticReq') {
                 messageSender = `You have been rejected the status of Critic by user ${notification.ReceiverName}`;
-                adminMessage  = `User ${notification.SenderName} has been rejected the status of Critic!`;
+                adminMessage = `User ${notification.SenderName} has been rejected the status of Critic!`;
             }
 
             // Notify all other admins
@@ -244,63 +244,6 @@ router.delete('/close/:notiID', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error('Unexpected error:', error);
         res.status(500).send({ success: false, message: 'Internal server error' });
-    }
-});
-
-// Get IsFriendReqPending
-router.get('/isFriendReq/:userId', authenticateToken, async (req, res) => {
-    const targetUserId   = parseInt(req.params.userId, 10);
-    const loggedInUserId = req.userId;
-
-    if (isNaN(targetUserId)) {
-        return res.status(400).json({ success: false, message: 'Invalid userId parameter' });
-    }
-
-    try {
-        const result = await pool.query(`
-            SELECT COUNT(*) AS count
-            FROM notifications
-            WHERE senderid = $1 AND receiverid = $2 AND notificationtype = 'FriendReq'
-        `, [loggedInUserId, targetUserId]);
-
-        res.json({ success: true, exists: parseInt(result.rows[0].count) > 0 });
-    } catch (error) {
-        console.error('Error checking pending friend request:', error.message);
-        res.status(500).json({ success: false, message: 'Internal server error' });
-    }
-});
-
-// Get pending admin requests for the authenticated user
-router.get('/isAdminReq', authenticateToken, async (req, res) => {
-    const loggedInUserId = req.userId;
-    try {
-        const result = await pool.query(`
-            SELECT COUNT(*) AS count
-            FROM notifications
-            WHERE senderid = $1 AND notificationtype = 'AdminReq'
-        `, [loggedInUserId]);
-
-        res.json({ success: true, exists: parseInt(result.rows[0].count) > 0 });
-    } catch (error) {
-        console.error('Error fetching admin requests:', error.message);
-        res.status(500).json({ success: false, message: 'Internal server error' });
-    }
-});
-
-// Get pending critic requests for the authenticated user
-router.get('/isCriticReq', authenticateToken, async (req, res) => {
-    const loggedInUserId = req.userId;
-    try {
-        const result = await pool.query(`
-            SELECT COUNT(*) AS count
-            FROM notifications
-            WHERE senderid = $1 AND notificationtype = 'CriticReq'
-        `, [loggedInUserId]);
-
-        res.json({ success: true, exists: parseInt(result.rows[0].count) > 0 });
-    } catch (error) {
-        console.error('Error fetching critic requests:', error.message);
-        res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
 

@@ -33,10 +33,10 @@ router.post('/signin', async (req, res) => {
                 const payload = { userId: result.rows[0].UserId };
                 const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '60d' });
                 const user = {
-                    userId:   result.rows[0].UserId,
+                    userId: result.rows[0].UserId,
                     userName: result.rows[0].Username,
                     userType: result.rows[0].UserType,
-                    privacy:  result.rows[0].Privacy
+                    privacy: result.rows[0].Privacy
                 };
                 res.json({ success: true, message: 'Authentication successful', token, user });
             } else {
@@ -135,10 +135,10 @@ router.post('/signup', async (req, res) => {
         const payload = { userId: insertResult.rows[0].UserId };
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '60d' });
         const user = {
-            userId:   insertResult.rows[0].UserId,
+            userId: insertResult.rows[0].UserId,
             userName: userName,
             userType: 'User',
-            privacy:  'Private'
+            privacy: 'Private'
         };
         res.json({ success: true, message: 'User registered successfully', token, user });
     } catch (err) {
