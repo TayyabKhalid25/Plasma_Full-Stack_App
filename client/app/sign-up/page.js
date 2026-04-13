@@ -1,0 +1,204 @@
+import Link from "next/link";
+import { CalendarIcon } from "lucide-react";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+
+const gridFields = [
+  [
+    { id: "username", label: "Username", placeholder: "pro_gamer", type: "text" },
+    { id: "email", label: "Email Address", placeholder: "name@example.com", type: "email" },
+  ],
+  [
+    { id: "password", label: "Password", placeholder: "........", type: "password" },
+    { id: "confirmPassword", label: "Confirm Password", placeholder: "........", type: "password" },
+  ],
+];
+
+const SectionLeftSideSubsection = () => {
+  return (
+    <div className="flex flex-col items-center justify-center px-6 py-12 flex-1 self-stretch grow z-[1] bg-[#0d0b14]">
+      <div className="flex flex-col max-w-[460px] w-full items-start">
+        {/* Logo area */}
+        <div className="inline-flex flex-col items-start pt-8 pb-0 px-0">
+          <div className="text-3xl font-bold text-white font-display tracking-[0.15em]">
+            PLASMA
+          </div>
+        </div>
+        
+        {/* Main content area */}
+        <div className="flex flex-col items-start justify-between pl-0 pr-10 py-10 self-stretch w-full gap-6">
+          {/* Heading section */}
+          <div className="pt-6 pb-0 px-0 flex flex-col items-start self-stretch w-full gap-1">
+            <h1 className="font-display font-bold text-[#e6e0ee] text-[32px] tracking-[0] leading-8 self-stretch">
+              Create Your Account
+            </h1>
+            <p className="font-sans font-medium text-[#cbc4d3] text-sm tracking-[0] leading-5 self-stretch">
+              Join the squad and sync your Steam library in seconds.
+            </p>
+          </div>
+          
+          {/* Form section */}
+          <form className="pt-6 pb-4 px-0 flex flex-col items-start self-stretch w-full">
+            <div className="flex flex-col gap-4 self-stretch w-full">
+              {/* Two-column grid rows */}
+              {gridFields.map((row, rowIndex) => (
+                <div key={rowIndex} className="grid grid-cols-2 gap-4 w-full">
+                  {row.map((field) => (
+                    <div key={field.id} className="flex flex-col gap-1.5 w-full">
+                      <Label
+                        htmlFor={field.id}
+                        className="font-sans font-medium text-[#cbc4d3] text-[13px] leading-[19.5px] whitespace-nowrap pl-1"
+                      >
+                        {field.label}
+                      </Label>
+                      <Input
+                        id={field.id}
+                        type={field.type}
+                        placeholder={field.type !== "password" ? field.placeholder : ""}
+                        className="bg-[#1A1726]/50 text-white rounded-xl border border-solid border-[#cbc4d340] font-sans font-normal text-sm leading-normal placeholder:text-[#cbc4d366] py-[11px] px-4 min-h-[44px] transition-all focus-visible:border-plasma-primary"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ))}
+              
+              {/* Date of Birth field */}
+              <div className="flex flex-col gap-1.5 w-full">
+                <Label
+                  htmlFor="dob"
+                  className="font-sans font-medium text-[#cbc4d3] text-[13px] leading-[19.5px] whitespace-nowrap pl-1"
+                >
+                  Date of Birth
+                </Label>
+                <div className="flex w-full items-center px-4 py-2 min-h-[44px] bg-[#1A1726]/50 rounded-xl overflow-hidden border border-solid border-[#cbc4d340] transition-all hover:border-plasma-primary/50 cursor-pointer">
+                  <div className="flex items-center flex-1 gap-1 select-none pointer-events-none">
+                    <span className="font-sans font-normal text-[#cbc4d366] text-sm leading-5">mm</span>
+                    <span className="font-sans font-normal text-[#cbc4d366] text-sm leading-5">/</span>
+                    <span className="font-sans font-normal text-[#cbc4d366] text-sm leading-5">dd</span>
+                    <span className="font-sans font-normal text-[#cbc4d366] text-sm leading-5">/</span>
+                    <span className="font-sans font-normal text-[#cbc4d366] text-sm leading-5">yyyy</span>
+                  </div>
+                  <CalendarIcon className="w-[18px] h-[18px] text-[#cbc4d399] shrink-0 pointer-events-none" />
+                </div>
+              </div>
+              
+              {/* Submit button */}
+              <Button className="relative flex items-center justify-center px-0 py-6 mt-4 self-stretch w-full rounded-[32px] bg-primary-gradient shadow-card-glow font-sans font-bold text-white text-base text-center leading-6 whitespace-nowrap h-auto border-0 focus-visible:ring-0 hover:opacity-90 transition-all hover:scale-[1.02]">
+                Create Account
+              </Button>
+            </div>
+            
+            {/* Footer */}
+            <footer className="flex flex-col items-center gap-3 pt-8 pb-0 px-0 self-stretch w-full bg-transparent">
+              <div className="flex flex-col items-center self-stretch w-full">
+                <Link
+                  href="/login"
+                  className="flex items-center justify-center font-sans font-normal text-[13px] text-center tracking-[0] leading-[19.5px] gap-1.5"
+                >
+                  <span className="text-[#cbc4d3]">Already have an account?</span>
+                  <span className="text-plasma-secondary hover:text-plasma-primary font-medium transition-colors">Sign In</span>
+                </Link>
+              </div>
+              <div className="flex flex-col max-w-[280px] w-full items-center opacity-60">
+                <p className="font-sans font-normal text-[#cbc4d3] text-[11px] text-center tracking-[0] leading-[17.9px]">
+                  <span>By joining, you agree to our </span>
+                  <span className="underline cursor-pointer hover:text-white transition-colors">Terms</span>
+                  <span> and </span>
+                  <span className="underline cursor-pointer hover:text-white transition-colors">Privacy Policy</span>
+                  <span>.</span>
+                </p>
+              </div>
+            </footer>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SectionRightSideSubsection = () => {
+  return (
+    <div className="hidden lg:flex flex-col items-center justify-center relative flex-1 self-stretch grow z-0 bg-plasma-slate overflow-hidden">
+      {/* Radial gradient background overlay */}
+      <div className="absolute w-full h-full top-0 left-0" style={{ background: "radial-gradient(50% 50% at 50% 50%, rgba(86,56,149,0.15) 0%, rgba(86,56,149,0) 70%)" }} />
+      
+      {/* Large background "P" letter */}
+      <div className="flex w-full h-full items-center justify-center absolute top-0 left-0 opacity-5 select-none pointer-events-none">
+        <div className="inline-flex flex-col items-start relative flex-[0_0_auto]">
+          <div className="flex items-center w-[318px] h-[900px] font-display font-bold text-plasma-primary text-[600px] tracking-[-0.05em] leading-[900px] whitespace-nowrap relative mt-[-1.00px] ml-[-120px]">
+            P
+          </div>
+        </div>
+      </div>
+      
+      {/* Bottom-right watermark */}
+      <div className="inline-flex flex-col items-start absolute right-8 bottom-8 opacity-20 pointer-events-none select-none">
+        <div className="flex items-center w-[196px] h-6 font-display font-bold text-[#f8f9fa4c] text-base tracking-[1.60px] leading-6 whitespace-nowrap relative mt-[-1.00px]">
+          NEON OBSERVATORY v2.4
+        </div>
+      </div>
+      
+      {/* Feature cards container */}
+      <div className="flex flex-col items-center gap-8 relative self-stretch w-full flex-[0_0_auto] z-10 scale-90 xl:scale-100 pb-16">
+        
+        {/* Card 1: Squad live activity */}
+        <div className="flex max-w-[280px] w-[280px] items-center gap-4 p-6 relative flex-[0_0_auto] bg-[#1a172699] rounded-2xl border border-solid border-white/10 backdrop-blur-md shadow-2xl transition-transform hover:-translate-y-1">
+          <div className="flex w-10 h-10 items-center justify-center relative bg-[#ffb1c133] rounded-full shrink-0">
+            <span className="text-xl leading-7 text-[#e6e0ee]">🎮</span>
+          </div>
+          <div className="inline-flex flex-col items-start relative flex-[0_0_auto]">
+            <p className="font-sans font-medium text-[#f8f9fa] text-sm tracking-[0] leading-[17.5px] relative mt-[-1.00px]">
+              See your squad&apos;s live
+              <br />
+              activity
+            </p>
+          </div>
+        </div>
+        
+        {/* Card 2: Schedule gaming sessions (offset right) */}
+        <div className="flex flex-col max-w-[328px] w-[328px] items-start pl-12 pr-0 py-0 relative flex-[0_0_auto]">
+          <div className="flex max-w-[280px] items-center gap-4 p-6 relative w-full flex-[0_0_auto] bg-[#1a172699] rounded-2xl border border-solid border-white/10 backdrop-blur-md shadow-2xl transition-transform hover:-translate-y-1">
+            <div className="bg-[#d1bcff33] flex w-10 h-10 items-center justify-center relative rounded-full shrink-0">
+              <span className="text-xl leading-7 text-[#e6e0ee]">📅</span>
+            </div>
+            <div className="inline-flex flex-col items-start relative flex-[0_0_auto]">
+              <p className="font-sans font-medium text-[#f8f9fa] text-sm tracking-[0] leading-[17.5px] relative mt-[-1.00px]">
+                Schedule gaming
+                <br />
+                sessions effortlessly
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Card 3: Track achievements (offset left) */}
+        <div className="relative max-w-[280px] w-[280px] h-[90px] -left-6">
+          <div className="flex max-w-[280px] w-full items-center gap-4 p-6 relative bg-[#1a172699] rounded-2xl border border-solid border-white/10 backdrop-blur-md shadow-2xl transition-transform hover:-translate-y-1">
+            <div className="bg-[#e4046833] flex w-10 h-10 items-center justify-center relative rounded-full shrink-0">
+              <span className="text-xl leading-7 text-[#e6e0ee]">🏆</span>
+            </div>
+            <div className="inline-flex flex-col items-start relative flex-[0_0_auto]">
+              <p className="font-sans font-medium text-[#f8f9fa] text-sm tracking-[0] leading-[17.5px] relative mt-[-1.00px]">
+                Track achievements
+                <br />
+                across all platforms
+              </p>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+  );
+};
+
+// Sign Up screen — /sign-up route
+export default function SignUpPage() {
+  return (
+    <main className="flex min-h-screen w-full flex-col lg:flex-row bg-[#0d0b14] overflow-hidden selection:bg-plasma-primary selection:text-white">
+      <SectionLeftSideSubsection />
+      <SectionRightSideSubsection />
+    </main>
+  );
+}

@@ -34,6 +34,62 @@
   --radius-input: 8px;
 }
 
+/*
+  SHADCN/UI SEMANTIC TOKENS → PLASMA PALETTE
+  These map shadcn component class names (bg-primary, bg-card, etc.)
+  to the Plasma design system colors.
+*/
+@layer base {
+  :root {
+    --background: #0D0B14;
+    --foreground: #F8F9FA;
+
+    --card: #1A1726;
+    --card-foreground: #F8F9FA;
+
+    --primary: #563895;
+    --primary-foreground: #F8F9FA;
+
+    --secondary: #FF2A7A;
+    --secondary-foreground: #F8F9FA;
+
+    --destructive: #E74C3C;
+    --destructive-foreground: #F8F9FA;
+
+    --muted: #28243D;
+    --muted-foreground: #8A869C;
+
+    --accent: #28243D;
+    --accent-foreground: #F8F9FA;
+
+    --border: rgba(86, 56, 149, 0.3);
+    --input: rgba(86, 56, 149, 0.3);
+    --ring: #563895;
+
+    --radius: 8px;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
 @layer base {
   body {
     background-color: var(--color-plasma-bg);
