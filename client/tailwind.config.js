@@ -36,7 +36,7 @@ module.exports = {
         /*
           TYPOGRAPHY
           Usage:
-          - font-display: For logos and large headings (Rajdhani)
+          - font-display: For large headings (Rajdhani)
           - font-sans: Standard body text (Inter)
           - font-mono: For XP numbers and technical data (JetBrains Mono)
         */

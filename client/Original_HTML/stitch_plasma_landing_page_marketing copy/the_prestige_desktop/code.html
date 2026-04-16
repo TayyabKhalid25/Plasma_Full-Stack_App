@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Prestige | NEON_OBSERVATORY</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Rajdhani:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "tertiary-fixed": "#e5dff8",
+              "outline": "#948e9c",
+              "primary-fixed": "#eaddff",
+              "inverse-surface": "#e6e0ee",
+              "inverse-primary": "#6a4daa",
+              "on-primary-container": "#c7aeff",
+              "on-primary-fixed-variant": "#523491",
+              "secondary-fixed": "#ffd9df",
+              "on-error": "#690005",
+              "on-secondary-fixed": "#3f0017",
+              "background": "#0D0B14",
+              "on-surface-variant": "#cbc4d3",
+              "on-secondary-container": "#fffbff",
+              "on-primary-fixed": "#24005b",
+              "secondary": "#ffb1c1",
+              "outline-variant": "#494551",
+              "on-secondary": "#66002a",
+              "tertiary-fixed-dim": "#c8c3db",
+              "on-primary": "#3b1979",
+              "on-tertiary-container": "#bcb7cf",
+              "surface-container-highest": "#36333e",
+              "primary-fixed-dim": "#d1bcff",
+              "on-tertiary-fixed": "#1c192b",
+              "surface": "#14121b",
+              "on-error-container": "#ffdad6",
+              "inverse-on-surface": "#322f39",
+              "secondary-container": "#e40468",
+              "tertiary": "#c8c3db",
+              "surface-container-lowest": "#0f0d16",
+              "surface-container": "#211e28",
+              "on-tertiary": "#312e41",
+              "surface-dim": "#14121b",
+              "primary-container": "#563895",
+              "error": "#ffb4ab",
+              "tertiary-container": "#4b485c",
+              "surface-container-low": "#1c1a24",
+              "primary": "#d1bcff",
+              "secondary-fixed-dim": "#ffb1c1",
+              "surface-container-high": "#2b2933",
+              "surface-tint": "#d1bcff",
+              "error-container": "#93000a",
+              "on-tertiary-fixed-variant": "#474458",
+              "surface-variant": "#36333e",
+              "surface-bright": "#3b3842",
+              "on-secondary-fixed-variant": "#90003e",
+              "on-surface": "#F8F9FA",
+              "on-background": "#F8F9FA"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Inter"],
+              "label": ["Inter"],
+              "rajdhani": ["Rajdhani"],
+              "mono": ["JetBrains Mono"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .glass-panel {
+        background: rgba(26, 23, 38, 0.6);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(248, 249, 250, 0.1);
+      }
+      .legendary-glow {
+        box-shadow: 0 0 15px rgba(255, 42, 122, 0.4);
+      }
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #563895;
+        border-radius: 10px;
+      }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-secondary-container selection:text-white antialiased custom-scrollbar">
+<!-- TopNavBar Shell -->
+<header class="fixed top-0 w-full h-16 flex items-center justify-between px-8 bg-[#0D0B14]/80 backdrop-blur-xl border-b border-white/10 z-50 shadow-[0_0_20px_rgba(86,56,149,0.1)]">
+<div class="flex items-center gap-8">
+<span class="text-2xl font-bold bg-gradient-to-r from-[#563895] to-[#FF2A7A] bg-clip-text text-transparent font-headline tracking-tight">NEON_OBSERVATORY</span>
+<div class="hidden md:flex items-center gap-2 bg-white/5 px-4 py-1.5 rounded-full border border-white/5">
+<span class="material-symbols-outlined text-outline text-sm">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm text-on-surface placeholder:text-outline w-64" placeholder="Search systems..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<button class="text-outline hover:text-white transition-all duration-300 transform active:scale-95">
+<span class="material-symbols-outlined">track_changes</span>
+</button>
+<button class="text-outline hover:text-white transition-all duration-300 transform active:scale-95 relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-[#FF2A7A] rounded-full"></span>
+</button>
+<div class="flex items-center gap-3 pl-4 border-l border-white/10">
+<div class="text-right hidden sm:block">
+<p class="text-xs font-bold font-rajdhani text-white uppercase tracking-wider">Wahaj</p>
+<p class="text-[10px] text-outline uppercase tracking-tighter">Elite Tier</p>
+</div>
+<img alt="Profile" class="w-8 h-8 rounded-full ring-2 ring-[#563895]" data-alt="User profile avatar with purple ring" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXoaNq_jzQD0gCkJKrD1ugdQEk0VA_LcxSbN7chEOZ6w_sMTV5b-24gZxn8DibDNhDrn71r03AmC4t9O7jKayN8_CCVe3U34IBAiTaZdLL2edkO0q0Zvc-lXedudVAHH9sYPml3-oCSP3VWNA3bQH4aCG1a-Rs9NZ1WGfdOIucAIRT7UqOgdr1nHjqNJ8z7mDe0V6FV5U5BOJ29k2Fbr6oTp6uWQcqdzcQKAOGTp2PtD5yoYblC8MTph0iXfP2f8mP3xxYGKIsvWWl"/>
+</div>
+</div>
+</header>
+<!-- SideNavBar Shell -->
+<aside class="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 bg-[#1A1726]/60 backdrop-blur-lg border-r border-white/5 flex flex-col py-6 z-40">
+<div class="px-6 mb-8">
+<div class="flex items-center gap-3 p-3 rounded-xl bg-white/5">
+<div class="w-10 h-10 rounded-lg bg-gradient-to-br from-[#563895] to-[#FF2A7A] flex items-center justify-center">
+<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">military_tech</span>
+</div>
+<div>
+<h3 class="font-rajdhani font-semibold text-white tracking-wider uppercase text-sm">COMMAND_CENTER</h3>
+<p class="text-[10px] text-outline uppercase tracking-widest font-semibold">Elite Tier</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 px-4 space-y-2">
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-[#8A869C] font-rajdhani uppercase font-semibold tracking-wider hover:bg-white/5 hover:text-white transition-all duration-200 group" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">sensors</span>
+<span>Pulse</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-[#8A869C] font-rajdhani uppercase font-semibold tracking-wider hover:bg-white/5 hover:text-white transition-all duration-200 group" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">groups</span>
+<span>Rally</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-[#8A869C] font-rajdhani uppercase font-semibold tracking-wider hover:bg-white/5 hover:text-white transition-all duration-200 group" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">grid_view</span>
+<span>Library</span>
+</a>
+<!-- Active State -->
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-white font-rajdhani uppercase font-semibold tracking-wider bg-gradient-to-r from-[#563895]/20 to-transparent border-r-2 border-[#FF2A7A]" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">military_tech</span>
+<span>Prestige</span>
+</a>
+</nav>
+<div class="px-6 mt-auto">
+<div class="p-4 rounded-2xl bg-[#563895]/10 border border-[#563895]/20">
+<p class="text-[10px] text-outline uppercase font-bold tracking-widest mb-2">Next Rank</p>
+<div class="h-1.5 w-full bg-white/5 rounded-full overflow-hidden mb-2">
+<div class="h-full bg-gradient-to-r from-[#563895] to-[#FF2A7A]" style="width: 72%"></div>
+</div>
+<div class="flex justify-between text-[10px] font-mono text-outline">
+<span>Lvl 42</span>
+<span>72%</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-64 pt-16 min-h-screen">
+<div class="max-w-[1440px] mx-auto p-8 flex gap-8">
+<!-- LEFT SECTION (65%) -->
+<div class="w-[65%] space-y-8">
+<!-- Header Row -->
+<div class="flex items-end justify-between">
+<h1 class="font-rajdhani font-bold text-[32px] text-white leading-none">The Prestige</h1>
+<div class="flex items-center gap-6">
+<div class="text-right">
+<span class="block text-[40px] font-mono font-bold bg-gradient-to-r from-[#563895] to-[#FF2A7A] bg-clip-text text-transparent leading-none">12,450</span>
+<span class="text-[11px] font-bold text-[#8A869C] tracking-widest uppercase mt-1 block">PLASMA XP</span>
+</div>
+<div class="px-4 py-2 bg-[#1A1726] border border-[#563895] rounded-full">
+<span class="text-[#563895] font-bold font-rajdhani text-sm">Global Rank: #42</span>
+</div>
+</div>
+</div>
+<!-- HALL OF FAME -->
+<section class="mt-6">
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-[11px] font-bold text-[#8A869C] tracking-[0.2em] uppercase">HALL OF FAME ⭐</h2>
+<a class="text-[#563895] text-sm font-semibold hover:text-[#FF2A7A] transition-colors" href="#">Edit Hall of Fame</a>
+</div>
+<div class="flex gap-[20px]">
+<!-- Achievement 1: Legendary -->
+<div class="flex flex-col items-center gap-3 w-[96px]">
+<div class="w-[96px] h-[96px] rounded-full border-[3px] border-[#FF2A7A] legendary-glow flex items-center justify-center bg-white/5 backdrop-blur-sm group cursor-pointer hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[48px] text-[#FF2A7A]" style="font-variation-settings: 'FILL' 1;">trophy</span>
+</div>
+<div class="text-center">
+<p class="text-[11px] font-bold text-white whitespace-nowrap">The Immortal</p>
+<p class="text-[12px] font-mono text-[#FF2A7A]">+500 XP</p>
+</div>
+</div>
+<!-- Achievement 2: Epic -->
+<div class="flex flex-col items-center gap-3 w-[96px]">
+<div class="w-[96px] h-[96px] rounded-full border-[3px] border-[#563895] flex items-center justify-center bg-white/5 backdrop-blur-sm group cursor-pointer hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[48px] text-[#563895]">swords</span>
+</div>
+<div class="text-center">
+<p class="text-[11px] font-bold text-white whitespace-nowrap">Ace Master</p>
+<p class="text-[12px] font-mono text-[#563895]">+250 XP</p>
+</div>
+</div>
+<!-- Achievement 3: Rare -->
+<div class="flex flex-col items-center gap-3 w-[96px]">
+<div class="w-[96px] h-[96px] rounded-full border-[3px] border-[#3498DB] flex items-center justify-center bg-white/5 backdrop-blur-sm group cursor-pointer hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[48px] text-[#3498DB]">shield</span>
+</div>
+<div class="text-center">
+<p class="text-[11px] font-bold text-white whitespace-nowrap">Iron Wall</p>
+<p class="text-[12px] font-mono text-[#3498DB]">+100 XP</p>
+</div>
+</div>
+<!-- Achievement 4: Epic -->
+<div class="flex flex-col items-center gap-3 w-[96px]">
+<div class="w-[96px] h-[96px] rounded-full border-[3px] border-[#563895] flex items-center justify-center bg-white/5 backdrop-blur-sm group cursor-pointer hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[48px] text-[#563895]">target</span>
+</div>
+<div class="text-center">
+<p class="text-[11px] font-bold text-white whitespace-nowrap">Sharpshooter</p>
+<p class="text-[12px] font-mono text-[#563895]">+200 XP</p>
+</div>
+</div>
+<!-- Achievement 5: Uncommon -->
+<div class="flex flex-col items-center gap-3 w-[96px]">
+<div class="w-[96px] h-[96px] rounded-full border-[3px] border-[#2ECC71] flex items-center justify-center bg-white/5 backdrop-blur-sm group cursor-pointer hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[48px] text-[#2ECC71]">military_tech</span>
+</div>
+<div class="text-center">
+<p class="text-[11px] font-bold text-white whitespace-nowrap">First Blood</p>
+<p class="text-[12px] font-mono text-[#2ECC71]">+50 XP</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Achievement Tabs -->
+<div class="mt-8 border-b border-white/5">
+<div class="flex gap-8">
+<button class="pb-3 px-1 border-b-2 border-[#563895] text-[#F8F9FA] text-sm font-semibold">Steam Trophies</button>
+<button class="pb-3 px-1 border-b-2 border-transparent text-[#8A869C] text-sm font-semibold hover:text-white transition-colors">Manual Milestones</button>
+<button class="pb-3 px-1 border-b-2 border-transparent text-[#8A869C] text-sm font-semibold hover:text-white transition-colors">All</button>
+</div>
+</div>
+<!-- Achievement Grid -->
+<div class="space-y-10 py-6">
+<!-- Game Group: Counter-Strike 2 -->
+<div>
+<h3 class="text-[11px] font-bold text-[#8A869C] tracking-[0.2em] uppercase mb-4">COUNTER-STRIKE 2</h3>
+<div class="flex flex-wrap gap-[32px]">
+<!-- Unlocked -->
+<div class="flex flex-col items-center gap-2 w-[72px] text-center">
+<div class="w-[72px] h-[72px] rounded-full border-2 border-[#FF2A7A] flex items-center justify-center bg-white/5">
+<span class="material-symbols-outlined text-3xl text-[#FF2A7A]">skull</span>
+</div>
+<p class="text-[10px] text-white font-medium truncate w-full">Global Elite</p>
+<p class="text-[9px] font-mono text-[#FF2A7A]">100 XP</p>
+</div>
+<div class="flex flex-col items-center gap-2 w-[72px] text-center">
+<div class="w-[72px] h-[72px] rounded-full border-2 border-[#563895] flex items-center justify-center bg-white/5">
+<span class="material-symbols-outlined text-3xl text-[#563895]">explosion</span>
+</div>
+<p class="text-[10px] text-white font-medium truncate w-full">Demolitions</p>
+<p class="text-[9px] font-mono text-[#563895]">50 XP</p>
+</div>
+<div class="flex flex-col items-center gap-2 w-[72px] text-center">
+<div class="w-[72px] h-[72px] rounded-full border-2 border-[#3498DB] flex items-center justify-center bg-white/5">
+<span class="material-symbols-outlined text-3xl text-[#3498DB]">local_fire_department</span>
+</div>
+<p class="text-[10px] text-white font-medium truncate w-full">Win Streak</p>
+<p class="text-[9px] font-mono text-[#3498DB]">25 XP</p>
+</div>
+<div class="flex flex-col items-center gap-2 w-[72px] text-center">
+<div class="w-[72px] h-[72px] rounded-full border-2 border-[#2ECC71] flex items-center justify-center bg-white/5">
+<span class="material-symbols-outlined text-3xl text-[#2ECC71]">group</span>
+</div>
+<p class="text-[10px] text-white font-medium truncate w-full">Support Role</p>
+<p class="text-[9px] font-mono text-[#2ECC71]">10 XP</p>
+</div>
+<!-- Locked -->
+<div class="flex flex-col items-center gap-2 w-[72px] text-center opacity-50 grayscale">
+<div class="w-[72px] h-[72px] rounded-full border-2 border-outline flex items-center justify-center bg-white/5 relative">
+<span class="material-symbols-outlined text-3xl text-outline">lock</span>
+</div>
+<p class="text-[10px] text-outline font-medium truncate w-full">Clutch King</p>
+<p class="text-[9px] font-mono text-outline">50 XP</p>
+</div>
+<div class="flex flex-col items-center gap-2 w-[72px] text-center opacity-50 grayscale">
+<div class="w-[72px] h-[72px] rounded-full border-2 border-outline flex items-center justify-center bg-white/5 relative">
+<span class="material-symbols-outlined text-3xl text-outline">lock</span>
+</div>
+<p class="text-[10px] text-outline font-medium truncate w-full">Knife Master</p>
+<p class="text-[9px] font-mono text-outline">75 XP</p>
+</div>
+</div>
+</div>
+<!-- Game Group: Elden Ring -->
+<div>
+<h3 class="text-[11px] font-bold text-[#8A869C] tracking-[0.2em] uppercase mb-4">ELDEN RING</h3>
+<div class="flex flex-wrap gap-[32px]">
+<div class="flex flex-col items-center gap-2 w-[72px] text-center">
+<div class="w-[72px] h-[72px] rounded-full border-2 border-[#FF2A7A] flex items-center justify-center bg-white/5">
+<span class="material-symbols-outlined text-3xl text-[#FF2A7A]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</div>
+<p class="text-[10px] text-white font-medium truncate w-full">Elden Lord</p>
+<p class="text-[9px] font-mono text-[#FF2A7A]">500 XP</p>
+</div>
+<div class="flex flex-col items-center gap-2 w-[72px] text-center">
+<div class="w-[72px] h-[72px] rounded-full border-2 border-[#563895] flex items-center justify-center bg-white/5">
+<span class="material-symbols-outlined text-3xl text-[#563895]">potted_plant</span>
+</div>
+<p class="text-[10px] text-white font-medium truncate w-full">Erdtree Bloom</p>
+<p class="text-[9px] font-mono text-[#563895]">200 XP</p>
+</div>
+<div class="flex flex-col items-center gap-2 w-[72px] text-center">
+<div class="w-[72px] h-[72px] rounded-full border-2 border-[#563895] flex items-center justify-center bg-white/5">
+<span class="material-symbols-outlined text-3xl text-[#563895]">mountain_flag</span>
+</div>
+<p class="text-[10px] text-white font-medium truncate w-full">God-Slayer</p>
+<p class="text-[9px] font-mono text-[#563895]">150 XP</p>
+</div>
+<div class="flex flex-col items-center gap-2 w-[72px] text-center opacity-50 grayscale">
+<div class="w-[72px] h-[72px] rounded-full border-2 border-outline flex items-center justify-center bg-white/5">
+<span class="material-symbols-outlined text-3xl text-outline">lock</span>
+</div>
+<p class="text-[10px] text-outline font-medium truncate w-full">All Bosses</p>
+<p class="text-[9px] font-mono text-outline">1000 XP</p>
+</div>
+<div class="flex flex-col items-center gap-2 w-[72px] text-center opacity-50 grayscale">
+<div class="w-[72px] h-[72px] rounded-full border-2 border-outline flex items-center justify-center bg-white/5">
+<span class="material-symbols-outlined text-3xl text-outline">lock</span>
+</div>
+<p class="text-[10px] text-outline font-medium truncate w-full">Ranni Ending</p>
+<p class="text-[9px] font-mono text-outline">400 XP</p>
+</div>
+</div>
+</div>
+<!-- Game Group: Valorant -->
+<div>
+<h3 class="text-[11px] font-bold text-[#8A869C] tracking-[0.2em] uppercase mb-4">VALORANT</h3>
+<div class="flex flex-wrap gap-[32px]">
+<div class="flex flex-col items-center gap-2 w-[72px] text-center">
+<div class="w-[72px] h-[72px] rounded-full border-2 border-[#563895] flex items-center justify-center bg-white/5">
+<span class="material-symbols-outlined text-3xl text-[#563895]">diamond</span>
+</div>
+<p class="text-[10px] text-white font-medium truncate w-full">Radiant</p>
+<p class="text-[9px] font-mono text-[#563895]">300 XP</p>
+</div>
+<div class="flex flex-col items-center gap-2 w-[72px] text-center">
+<div class="w-[72px] h-[72px] rounded-full border-2 border-[#563895] flex items-center justify-center bg-white/5">
+<span class="material-symbols-outlined text-3xl text-[#563895]">bolt</span>
+</div>
+<p class="text-[10px] text-white font-medium truncate w-full">Entry Fragger</p>
+<p class="text-[9px] font-mono text-[#563895]">40 XP</p>
+</div>
+<div class="flex flex-col items-center gap-2 w-[72px] text-center">
+<div class="w-[72px] h-[72px] rounded-full border-2 border-[#3498DB] flex items-center justify-center bg-white/5">
+<span class="material-symbols-outlined text-3xl text-[#3498DB]">security</span>
+</div>
+<p class="text-[10px] text-white font-medium truncate w-full">Anchor</p>
+<p class="text-[9px] font-mono text-[#3498DB]">30 XP</p>
+</div>
+<div class="flex flex-col items-center gap-2 w-[72px] text-center">
+<div class="w-[72px] h-[72px] rounded-full border-2 border-[#2ECC71] flex items-center justify-center bg-white/5">
+<span class="material-symbols-outlined text-3xl text-[#2ECC71]">healing</span>
+</div>
+<p class="text-[10px] text-white font-medium truncate w-full">Pocket Sage</p>
+<p class="text-[9px] font-mono text-[#2ECC71]">20 XP</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- RIGHT PANEL (35%) -->
+<div class="w-[35%] relative">
+<div class="sticky top-24 bg-[#1A1726] rounded-xl p-6 border border-white/5">
+<div class="flex items-center justify-between mb-6">
+<h2 class="font-rajdhani font-semibold text-lg text-white">FRIENDS LEADERBOARD</h2>
+</div>
+<!-- Ranking Tabs -->
+<div class="flex gap-6 border-b border-white/5 mb-4">
+<button class="pb-2 px-1 border-b-2 border-[#563895] text-sm text-white font-medium">Friends</button>
+<button class="pb-2 px-1 border-b-2 border-transparent text-sm text-[#8A869C] font-medium hover:text-white transition-colors">Global</button>
+</div>
+<!-- Leaderboard Rows -->
+<div class="space-y-1">
+<!-- Row 1 -->
+<div class="flex items-center gap-3 p-2.5 border-b border-[#28243D] hover:bg-white/5 transition-colors">
+<span class="text-lg w-6">🥇</span>
+<div class="relative">
+<img alt="Ahmed" class="w-8 h-8 rounded-full border-2 border-red-500" data-alt="Avatar of Ahmed with red border" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAY2CuG4XuOzfIgZbfbqq-tIqd8lZjNUwAn_5T1xYe3cdngXe2Vdc7gS6PmARefmPq_ymggzeYpUImK1LpXLh4OW_--EvfYd1SVetDn9iqDODWvy0GASkj7kZMc8w9uqHRN6GccHit9lBZ6xh3ZKJp7FgEZU8A4570ty51OvcFNsgfZSS8zIwO_G9R07zALAUHHKXxuL8iZRym1jlAnMlIAGXgLlAhiN5zzosdUhkLj54sqn9fmI9P9E13-jqe1nR_k5256bCo65a64"/>
+</div>
+<span class="flex-1 text-white font-medium text-sm">Ahmed</span>
+<span class="font-mono text-sm text-[#FF2A7A]">15,200 XP</span>
+</div>
+<!-- Row 2 -->
+<div class="flex items-center gap-3 p-2.5 border-b border-[#28243D] hover:bg-white/5 transition-colors">
+<span class="text-lg w-6">🥈</span>
+<div class="relative">
+<img alt="Sarah" class="w-8 h-8 rounded-full border-2 border-red-500" data-alt="Avatar of Sarah with red border" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAHYc3S_31lyaeNmK3tQbCxHJpt1sDPynkM0eesFTMAiOsaXKGBRhSpnuZZhgkF2pE78KAE8XIcDB7ybvTLRRRWIF12NsCUTqzIFESesrqH-9XF-d6hFLJxuy9wcjFCbjuMKMzA4-OLYe56p0ed_tgMYV889a_R5O0-mExRBe0j71sJZWDqdzMXpv7H2BHFtRcqTMjx2qQQdbhuM4rjIxZUlTogMQbsJ0plUWle38ptsnIFylgMU2SwPHTLtzA5lHRB9mToKczsZTFE"/>
+</div>
+<span class="flex-1 text-white font-medium text-sm">Sarah</span>
+<span class="font-mono text-sm text-white">14,800 XP</span>
+</div>
+<!-- Row 3 (Current User) -->
+<div class="flex items-center gap-3 p-2.5 border-b border-[#28243D] bg-[#28243D] rounded-lg">
+<span class="text-lg w-6">🥉</span>
+<div class="relative">
+<img alt="Wahaj" class="w-8 h-8 rounded-full border-2 border-[#563895]" data-alt="Avatar of Wahaj with purple border" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDO7ggrwZZD5Eh6yLbYBj6SDyttbNA9dyJLDZCr2i-vkpajCjOOmtwagJxeB9sEDIuJRWN51x87v95J2qbqAIW-ogLYHvmPVxidAmy1POqVwIXxvbOs5Fy4h-prkTX2kGJP-RyWTiev1N1wcwRvdeD7TbyyzatQW6wR9-yH9w4LQGh_uztDDNqd-ql4Utp8cw81VC4_bfn8DH_HaenQa6XW94pkQxaWhNvRRV5U-p8wM1QtM5Y2LnWwvLMkP_bQPGLiClFQR52ZRUtM"/>
+</div>
+<span class="flex-1 text-[#FF2A7A] font-bold text-sm">Wahaj</span>
+<span class="font-mono text-sm text-[#FF2A7A]">12,450 XP</span>
+</div>
+<!-- Rows 4-8 -->
+<div class="flex items-center gap-3 p-2.5 border-b border-[#28243D] hover:bg-white/5 transition-colors">
+<span class="w-6 text-sm text-[#8A869C] text-center font-mono">4</span>
+<img alt="Player" class="w-8 h-8 rounded-full opacity-80" data-alt="Abstract player avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCNzrcfOJ6ZB7qFpzfmPxlFrIr5nml6uQCmrVp_CS7yLU8TZTS6tkgvXDPlGfQtkKZOGTB0wW7yhQHIeVNJklEWb3gnTV94UxgrpEXAfs_HQ7pfQd_HH5LBJR7jhgmzCkUK3RkKsxDHN3IoyYYvFeV5WbnbBdSQ-lvVDHzHqd9o3sFhzTZR0SyAXjbgvfP4Iux--ZjzvgjAWl98OK0Qo_7KK8rCHHTYrnxGit0vL-zaWj5MZvqklBn5-4QBV9uJ0hHxFodg1YTzldro"/>
+<span class="flex-1 text-[#8A869C] text-sm">Katarina</span>
+<span class="font-mono text-sm text-[#8A869C]">9,800 XP</span>
+</div>
+<div class="flex items-center gap-3 p-2.5 border-b border-[#28243D] hover:bg-white/5 transition-colors">
+<span class="w-6 text-sm text-[#8A869C] text-center font-mono">5</span>
+<img alt="Player" class="w-8 h-8 rounded-full opacity-80" data-alt="Abstract player avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6vvF282M0IpcU_rkolDH1KQnOAN3tpuxn30BujUQ7utTjDeMZFUhBorhSpEmy-_seoD8yFudyjcabEP99Oh21_2a5q_sxFkz4wtuhGf8Thodd7qugs1nAPWYHE2wFa-Cxhw7S4YhHTCspNV0saR6-CVf9HNvQuKNqagI17RyMXOWN41GfWuEAQzwA2LGuoaqZy-RERujPmpRBIAs11hCSBrDJLnynlzSrg1QYMr2wIGgTjgq-QdMhUoouFEWmzBU4U0HvXqYXZOcw"/>
+<span class="flex-1 text-[#8A869C] text-sm">Liam_X</span>
+<span class="font-mono text-sm text-[#8A869C]">8,450 XP</span>
+</div>
+<div class="flex items-center gap-3 p-2.5 border-b border-[#28243D] hover:bg-white/5 transition-colors">
+<span class="w-6 text-sm text-[#8A869C] text-center font-mono">6</span>
+<img alt="Player" class="w-8 h-8 rounded-full opacity-80" data-alt="Abstract player avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCu3P00StcH489K9mrBeC6uZASHEI2ttNgLS6_y8JlnJbc5k83v7KhrmLYAtTxoWYOUIw_cRv78s1au7TDj6V0BB-IwU8Bj4fgWp4gpnEbVajStA_MGLFnkkmqqX41Hm_SeFlai18uNq6YdbU-xxM9EZnoVjG6yevTI5KBE_eMQXT539nXMHPOTmbUJr9bY-_ZVE1SkLopqMcO__lRJ6ZYHBlXV3eKpA1jGwSNSP6iFMGkmgyEA9tSK7BXRzlYwYkJQJ6gucEkKknYc"/>
+<span class="flex-1 text-[#8A869C] text-sm">NoobSlayer</span>
+<span class="font-mono text-sm text-[#8A869C]">7,200 XP</span>
+</div>
+<div class="flex items-center gap-3 p-2.5 border-b border-[#28243D] hover:bg-white/5 transition-colors">
+<span class="w-6 text-sm text-[#8A869C] text-center font-mono">7</span>
+<img alt="Player" class="w-8 h-8 rounded-full opacity-80" data-alt="Abstract player avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpOe4uFnrsZIm0SXvYh5biVkSabfP6gnAPq4IIir5IQsljTWPxxiICAfYdoRXe1mKQNbkhPyk6TRjInoGtyweHa4PWYdP0iW1YsVY3uCvBfFuuMyedof4AYvvRharllqeOYyAfeIV1ukt5V-OjTXB-8dSNVqM46Crmqbfn0mzXuf1Ewlwh5HetHYcBGX-iQv1W-kmYahoxPdXISQfqY5GWbYkLeA2BmPyVnLpZMnxmJdirijnutrnqNzboD1qyomasL7IFR0-cylmO"/>
+<span class="flex-1 text-[#8A869C] text-sm">PixelWiz</span>
+<span class="font-mono text-sm text-[#8A869C]">6,900 XP</span>
+</div>
+<div class="flex items-center gap-3 p-2.5 border-b border-[#28243D] hover:bg-white/5 transition-colors">
+<span class="w-6 text-sm text-[#8A869C] text-center font-mono">8</span>
+<img alt="Player" class="w-8 h-8 rounded-full opacity-80" data-alt="Abstract player avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCa_qXWNXfn_4rGAGWSYSw1n-INbGrvo2KBddB4fRan6lDAieIJR0ExlucWC2Yw_vGrmn9700vposTLwgSZzO63UKE1Tz_Oc2IXvevQ9fwFW48g83sEYM5cye8jL4OPUBooaqsM1owByWssM9r8fiUaQp9W5vf81IWehShohyTH0a3Gwvp-QGCv6q2Jc9PwQB7HEgvLL_icOwJwA_FfQQ9hp2cAtzBhhlgNT2KPDcCIXey6459hTwvwGBnf5ZfqjC9XQMklKkUISaSC"/>
+<span class="flex-1 text-[#8A869C] text-sm">Ghost_77</span>
+<span class="font-mono text-sm text-[#8A869C]">5,100 XP</span>
+</div>
+</div>
+<!-- Bottom CTA -->
+<button class="w-full mt-6 py-3 rounded-full bg-gradient-to-r from-[#563895] to-[#FF2A7A] text-white font-bold text-sm tracking-widest uppercase hover:shadow-[0_0_20px_rgba(255,42,122,0.3)] transition-all">
+                        Invite Friends
+                    </button>
+</div>
+</div>
+</div>
+</main>
+<!-- FAB (Suppressed on Prestige screen as per rules, but showing design system component knowledge) -->
+<!-- Suppressed for context: Task-Focused Screen -->
+</body></html>

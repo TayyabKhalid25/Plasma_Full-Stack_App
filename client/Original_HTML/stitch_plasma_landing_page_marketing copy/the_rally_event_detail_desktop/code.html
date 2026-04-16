@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600;700&amp;family=Rajdhani:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-bright": "#3b3842",
+            "on-error-container": "#ffdad6",
+            "surface-container-low": "#1c1a24",
+            "inverse-on-surface": "#322f39",
+            "tertiary-fixed": "#e5dff8",
+            "surface-container-lowest": "#0f0d16",
+            "secondary-fixed-dim": "#ffb1c1",
+            "on-tertiary-fixed-variant": "#474458",
+            "on-primary-container": "#c7aeff",
+            "on-secondary-fixed-variant": "#90003e",
+            "on-primary": "#3b1979",
+            "on-error": "#690005",
+            "tertiary-fixed-dim": "#c8c3db",
+            "secondary-fixed": "#ffd9df",
+            "on-tertiary-container": "#bcb7cf",
+            "primary": "#d1bcff",
+            "on-tertiary-fixed": "#1c192b",
+            "on-surface-variant": "#cbc4d3",
+            "secondary-container": "#e40468",
+            "tertiary": "#c8c3db",
+            "primary-fixed": "#eaddff",
+            "surface": "#14121b",
+            "inverse-surface": "#e6e0ee",
+            "on-background": "#e6e0ee",
+            "surface-dim": "#14121b",
+            "background": "#14121b",
+            "on-primary-fixed-variant": "#523491",
+            "surface-container": "#211e28",
+            "on-secondary": "#66002a",
+            "error": "#ffb4ab",
+            "error-container": "#93000a",
+            "on-primary-fixed": "#24005b",
+            "surface-tint": "#d1bcff",
+            "primary-container": "#563895",
+            "outline": "#948e9c",
+            "on-surface": "#e6e0ee",
+            "on-secondary-fixed": "#3f0017",
+            "secondary": "#ffb1c1",
+            "surface-container-high": "#2b2933",
+            "on-tertiary": "#312e41",
+            "primary-fixed-dim": "#d1bcff",
+            "surface-container-highest": "#36333e",
+            "surface-variant": "#36333e",
+            "tertiary-container": "#4b485c",
+            "on-secondary-container": "#fffbff",
+            "outline-variant": "#494551",
+            "inverse-primary": "#6a4daa"
+          },
+          fontFamily: {
+            "headline": ["Rajdhani", "sans-serif"],
+            "body": ["Inter", "sans-serif"],
+            "label": ["Inter", "sans-serif"],
+            "space": ["Space Grotesk", "sans-serif"]
+          },
+          borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .glass-card {
+      background: rgba(26, 23, 38, 0.6);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(248, 249, 250, 0.1);
+    }
+    .text-gradient {
+      background: linear-gradient(45deg, #563895, #FF2A7A);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .bg-gradient-primary {
+      background: linear-gradient(45deg, #563895, #FF2A7A);
+    }
+    .ambient-glow-pink {
+      box-shadow: 0 0 40px rgba(255, 42, 122, 0.15);
+    }
+    body {
+      background-color: #0D0B14;
+      color: #F8F9FA;
+    }
+  </style>
+</head>
+<body class="font-body selection:bg-secondary/30">
+<!-- TopNavBar (Shared Component) -->
+<nav class="fixed top-0 w-full flex justify-between items-center px-6 h-16 bg-[#0D0B14] dark:bg-[#0D0B14]/80 backdrop-blur-xl border-b border-[#F8F9FA]/10 z-50 shadow-[0_0_20px_rgba(86,56,149,0.1)]">
+<div class="flex items-center gap-8">
+<span class="font-space text-2xl font-bold tracking-tighter text-[#F8F9FA]">RALLY</span>
+<div class="hidden md:flex items-center gap-6 font-space tracking-tight text-sm">
+<a class="text-[#8A869C] hover:text-[#F8F9FA] transition-all duration-200" href="#">Pulse</a>
+<a class="text-[#FF2A7A] font-bold" href="#">Rally</a>
+<a class="text-[#8A869C] hover:text-[#F8F9FA] transition-all duration-200" href="#">Library</a>
+<a class="text-[#8A869C] hover:text-[#F8F9FA] transition-all duration-200" href="#">Prestige</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative group">
+<span class="material-symbols-outlined text-[#8A869C] p-2 rounded-full hover:bg-[#1A1726] cursor-pointer">notifications</span>
+<div class="absolute top-2 right-2 w-2 h-2 bg-[#FF2A7A] rounded-full"></div>
+</div>
+<span class="material-symbols-outlined text-[#8A869C] p-2 rounded-full hover:bg-[#1A1726] cursor-pointer">settings</span>
+<img alt="User profile avatar" class="w-8 h-8 rounded-full border border-primary/30" data-alt="Cyberpunk themed gaming profile picture avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAhkGw2e8Bq08CeGhFzMEzrD3t3poogsByJ9vAnUE-BSDTPjzy8ErVnyeIwjuypT3EtGH4uJXdEZTgbHZLO5Eecv02DMX07N91cESEP9eFp-xAvO4PTHi9mxpxuc_HiSpAglJzSgtIhGBoCHjVQuOEX10IZ8Dl4LBh1qVdyOA0bwQW1x-YzxTgCSt9PY4o6JWOc5ayCJa4brxcmi0KTF-KJ1yQrHzs5LEH2Qzw_4Vlz7ayTP_CvJjWxm40S0Km6jwRVTKtQTR-X3NY3"/>
+</div>
+</nav>
+<!-- SideNavBar (Shared Component) -->
+<aside class="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 bg-[#1A1726] dark:bg-[#1A1726]/90 backdrop-blur-md border-r border-[#F8F9FA]/5 py-8 flex flex-col z-40 hidden md:flex shadow-2xl">
+<div class="px-6 mb-8 flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center ambient-glow-pink">
+<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">visibility</span>
+</div>
+<div>
+<p class="font-space uppercase text-[10px] font-bold tracking-widest text-[#8A869C]">The Observatory</p>
+<p class="font-space text-sm font-bold text-[#F8F9FA]">Elite Tier</p>
+</div>
+</div>
+<div class="flex-1 space-y-1">
+<a class="group flex items-center gap-4 px-6 py-3 text-[#8A869C] hover:text-[#F8F9FA] hover:bg-[#F8F9FA]/5 transition-all duration-300" href="#">
+<span class="material-symbols-outlined">sensors</span>
+<span class="font-space uppercase text-xs font-bold tracking-widest">Pulse</span>
+</a>
+<a class="group flex items-center gap-4 px-6 py-3 bg-gradient-to-r from-[#563895]/20 to-transparent border-l-4 border-[#FF2A7A] text-[#F8F9FA] transition-all duration-300" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">groups</span>
+<span class="font-space uppercase text-xs font-bold tracking-widest">Rally</span>
+</a>
+<a class="group flex items-center gap-4 px-6 py-3 text-[#8A869C] hover:text-[#F8F9FA] hover:bg-[#F8F9FA]/5 transition-all duration-300" href="#">
+<span class="material-symbols-outlined">apps</span>
+<span class="font-space uppercase text-xs font-bold tracking-widest">Library</span>
+</a>
+<a class="group flex items-center gap-4 px-6 py-3 text-[#8A869C] hover:text-[#F8F9FA] hover:bg-[#F8F9FA]/5 transition-all duration-300" href="#">
+<span class="material-symbols-outlined">military_tech</span>
+<span class="font-space uppercase text-xs font-bold tracking-widest">Prestige</span>
+</a>
+</div>
+<div class="px-6 mb-6">
+<button class="w-full py-3 rounded-full bg-gradient-primary text-white font-space uppercase text-[10px] font-extrabold tracking-widest hover:shadow-[0_0_20px_rgba(255,42,122,0.3)] transition-all">
+        START PARTY
+      </button>
+</div>
+<div class="mt-auto border-t border-[#F8F9FA]/5 pt-4">
+<a class="group flex items-center gap-4 px-6 py-3 text-[#8A869C] hover:text-[#F8F9FA] transition-all" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-space uppercase text-xs font-bold tracking-widest">Support</span>
+</a>
+<a class="group flex items-center gap-4 px-6 py-3 text-[#8A869C] hover:text-error transition-all" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-space uppercase text-xs font-bold tracking-widest">Exit</span>
+</a>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="md:ml-64 pt-24 px-6 pb-12">
+<!-- Breadcrumb -->
+<nav class="mb-6 flex items-center gap-2 text-sm font-medium text-[#8A869C]">
+<span>The Rally</span>
+<span class="material-symbols-outlined text-xs">chevron_right</span>
+<span class="text-on-surface">Friday Night Ranked</span>
+</nav>
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+<!-- Left & Center Column: Event Content -->
+<div class="xl:col-span-8 space-y-8">
+<!-- Hero Section Card -->
+<section class="bg-[#1A1726] rounded-xl overflow-hidden glass-card ambient-glow-pink">
+<div class="flex flex-col md:flex-row p-6 gap-8">
+<div class="relative flex-shrink-0">
+<img alt="Valorant Poster" class="w-[160px] h-[213px] rounded-lg shadow-xl object-cover ring-1 ring-white/10" data-alt="Modern minimalist artistic Valorant gaming poster art" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB56uqSNg0vDpPy9KNVlBNklpCMHKC-uNlHKBJpGAg3THTc1xMLpOHWNzlaYTkTrdRcOoMazl4ivFirtC04GYh0jba_kb9-dmY9spy5uGZUDfSCB7g1Hym8KKGqydU_GPK5fFhfzlpIDCeDFCRWG3IEyGvYHWplHR7zUC3jzYe_5M4MnMH_QkhkkUzsEI_7V6z-TsVHNjJ_ov_IIldKqH2NnwB6EoJxCapwhPofVb-3i3zorokln5VPERqV_zA5NFTpfV4vBU_KEixl"/>
+<div class="absolute -bottom-2 -right-2 bg-secondary text-white px-2 py-1 rounded text-[10px] font-bold tracking-tighter uppercase">COMP</div>
+</div>
+<div class="flex-1 flex flex-col justify-between">
+<div>
+<h1 class="font-headline text-4xl font-bold text-[#F8F9FA] leading-none mb-1">Friday Night Ranked</h1>
+<p class="text-secondary font-headline text-xl font-medium tracking-wide">Valorant</p>
+<div class="mt-6 flex flex-wrap gap-6 items-center">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">calendar_today</span>
+<span class="text-sm font-medium">Saturday, March 22, 2026</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">schedule</span>
+<span class="text-sm font-medium">9:00 PM EST</span>
+</div>
+</div>
+<div class="mt-6 flex items-center gap-3">
+<div class="relative">
+<img alt="Host Avatar" class="w-10 h-10 rounded-full border-2 border-primary" data-alt="Professional gamer avatar with neon lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAucSvIKEUQGRY16W3OFs42NRVmiLEH6E3wEEfewiUGqUY3JRv0178pv0BjZpTnJtO2tdljk5-nuVAVWtFWh0p6Ha2Wk8yfLmiLnZZVRi3O4f2ME8_gN1MSA4GRugjTvdU-JmIlT5rF80LEhIwZV0s2SuvWk_o4eb7VW2YzW7ujMM_YjzBFVwuE9nEk35UGN4B0KAY6QAyuQSH5_BopmChfM8E6WFKBX-sKPbwb-ZWnMC5jNublp2CNp63YPjRry6C9gr_WuY86O_r1"/>
+<span class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-[#1A1726] rounded-full"></span>
+</div>
+<div>
+<p class="text-xs text-[#8A869C] uppercase font-bold tracking-widest">Hosted By</p>
+<p class="text-sm font-bold text-[#F8F9FA]">Wahaj</p>
+</div>
+</div>
+</div>
+<div class="mt-8 flex flex-wrap items-center gap-4">
+<button class="px-10 py-3 rounded-full bg-gradient-primary text-white font-headline text-lg font-bold hover:scale-105 transition-transform ambient-glow-pink">RSVP</button>
+<div class="flex flex-col">
+<span class="text-xs font-bold text-[#8A869C] uppercase tracking-widest">Availability</span>
+<span class="text-sm font-bold text-[#F8F9FA]">4 / 6 Slots Filled</span>
+</div>
+<button class="ml-auto p-3 rounded-full bg-surface-container-high border border-outline-variant hover:bg-surface-bright transition-colors">
+<span class="material-symbols-outlined text-[#F8F9FA]">link</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Description & Role Roster -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="md:col-span-1 glass-card p-6 rounded-xl flex flex-col gap-4">
+<h3 class="font-headline text-lg font-bold uppercase tracking-widest text-[#8A869C]">Objective</h3>
+<p class="text-on-surface-variant text-sm leading-relaxed italic border-l-2 border-primary/40 pl-4">
+              "Ranked grind with the squad. Diamond push tonight — bring your A game."
+            </p>
+</div>
+<div class="md:col-span-2 glass-card p-6 rounded-xl">
+<h3 class="font-headline text-lg font-bold uppercase tracking-widest text-[#8A869C] mb-6">Role Roster</h3>
+<div class="grid grid-cols-3 gap-4">
+<!-- DPS -->
+<div class="space-y-4">
+<div class="flex justify-between items-center px-1">
+<span class="text-[10px] font-bold uppercase text-secondary">DPS</span>
+<span class="text-[10px] font-bold text-[#8A869C]">2/3</span>
+</div>
+<div class="flex -space-x-2">
+<img class="w-10 h-10 rounded-full border-2 border-surface shadow-lg" data-alt="Gamer avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCFHtDJ-Bjbs-o4JavWQkpcPGMO5kUyXi_TpIqac3ggFgnjibSCQoY9t0Jd7GdpXTTWo_1VAJUfxCE6DNRrPucd4dMvKuvU4xxHNXl1UA4k2DlCs8pVOly2nEWLQ7tt9COoWCDHEGn8pU58E2GELvFxWuLQxahDDZj6PG1Dzlm8jvISysX85qWYwqtLVYcyf_3gSgHmbB0xzygQSORmyDYFaeWeteUpvWgyWxIotYVYCmqIjSiYign27xogF1NLzaUy3HLtbq_Vkc72"/>
+<img class="w-10 h-10 rounded-full border-2 border-surface shadow-lg" data-alt="Gamer avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDWt6eKmBQGMxUdLcgaDxenQvELsW_ELh2x6x0SU5LLvZLARPhGd_v_-MeSUgxpeFdchH8GFdepSurGa_5UFiUT6oP758jUSrLBW3wRbJEUC0tQ7Zy721BeHS0HhauhARHKzdTIU_342HWtWPOFa5cnzxjlkZQWQn8bLoLN_-VOZXrIRxNBqtlcXh9ji_1ETQJn8EmgNlz_rI5EftImsv11wXtt9hvcvfwbpsriI3Y1ZvQ28izFjtWuHBELDYNm-RaapDAlDJ_bUuGa"/>
+<div class="w-10 h-10 rounded-full border-2 border-dashed border-outline-variant flex items-center justify-center bg-surface-container-low">
+<span class="material-symbols-outlined text-outline-variant text-sm">add</span>
+</div>
+</div>
+</div>
+<!-- Sentinel -->
+<div class="space-y-4">
+<div class="flex justify-between items-center px-1">
+<span class="text-[10px] font-bold uppercase text-primary">Sentinel</span>
+<span class="text-[10px] font-bold text-[#8A869C]">1/2</span>
+</div>
+<div class="flex -space-x-2">
+<img class="w-10 h-10 rounded-full border-2 border-surface shadow-lg" data-alt="Gamer avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8gokmEASwfam6QJ3hD5rmzyJWe3eQEKpdxyEEIrWbKxphuwQuXMDFR5czdi1lyq9GOnwwXeM-kn5N77Wy3_CtZv5z4hGpxlgq2P1anYz-q8zZK1L3Z3Bbv9n2fr93B0oPao5zUGYUs4g_ysJMnw7PknYE6UYqiwZB7hW2bc3llOknq6KbbO5q5V3IVXuedB3A-pC92kC6QVqsT0TVDBMe4kMunwDHVIynqaMjQNPbyU0-TyNHir9gM6EdYFCEKeuDfWPzznHINlRu"/>
+<div class="w-10 h-10 rounded-full border-2 border-dashed border-outline-variant flex items-center justify-center bg-surface-container-low">
+<span class="material-symbols-outlined text-outline-variant text-sm">add</span>
+</div>
+</div>
+</div>
+<!-- Support -->
+<div class="space-y-4">
+<div class="flex justify-between items-center px-1">
+<span class="text-[10px] font-bold uppercase text-emerald-400">Support</span>
+<span class="text-[10px] font-bold text-[#8A869C]">0/1</span>
+</div>
+<div class="flex">
+<div class="w-10 h-10 rounded-full border-2 border-dashed border-outline-variant flex items-center justify-center bg-surface-container-low">
+<span class="material-symbols-outlined text-outline-variant text-sm">add</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Event Chat -->
+<section class="glass-card rounded-xl flex flex-col h-[400px]">
+<div class="p-4 border-b border-white/5 flex items-center gap-3">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">chat_bubble</span>
+<h3 class="font-headline text-sm font-bold uppercase tracking-widest text-[#F8F9FA]">Rally Intel</h3>
+</div>
+<div class="flex-1 overflow-y-auto p-6 space-y-6">
+<!-- Message 1 -->
+<div class="flex gap-4 items-start">
+<img class="w-8 h-8 rounded-full" data-alt="Wahaj avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDsw6padbG_q-it51qEukmscWcsY-N2B2ZqNkZubN4DvfaDV4aPvnbgQE397oAiQ0gu9tKViBAcBVp2ppSz3p-wU-rHw97djxe-1EtUMua3dN-dZ9Lc1lxTcrG16EnvA3m7uS-zEakRv8Iz2_pjheP2C11OVNCKpIg4w2z3nIlZkppopa7lEGXKkA4EwJOInp3_DyJbuLT0-mWdNQbNCCcn61U273D23WyuNk0-zzehByamdb2iD3q3g57tIvx7v8Bmt58KbWa5RRNM"/>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="text-sm font-bold text-primary">Wahaj</span>
+<span class="text-[10px] text-[#8A869C]">8:12 PM</span>
+</div>
+<p class="text-sm text-on-surface-variant bg-surface-container-low p-3 rounded-tr-xl rounded-br-xl rounded-bl-xl border border-white/5">Anyone jumping on for a warm-up match at 8:30?</p>
+</div>
+</div>
+<!-- Message 2 -->
+<div class="flex gap-4 items-start">
+<img class="w-8 h-8 rounded-full" data-alt="Kael avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCzGfkGK-fgOjzLDrMfvMiBJHyubjGtrZi0E9fpzt8bN6dV9A_Kbt16thZaxg8zMynwJcUoXF2MehOsy8lLxYan0BJUpfp_lF4lrRKQFikq3UTey-YgAndEp4Kjbr_cWQ5I5-4rDp18GN2U70Dmw-rEvuWui3nRWl-CL3-Y2IrYjXAvaX4GGX9tZtmL8VAFbfUvLstXDBv01wzSCp-qeBmEvh7EB46uqrUXsr7VrJvF8DJGZdzoo7f-rnD6-YvZpN3rx5mRg8lDU__d"/>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="text-sm font-bold text-secondary">Kael</span>
+<span class="text-[10px] text-[#8A869C]">8:14 PM</span>
+</div>
+<p class="text-sm text-on-surface-variant bg-surface-container-low p-3 rounded-tr-xl rounded-br-xl rounded-bl-xl border border-white/5">I'm down. Locking Jett tonight.</p>
+</div>
+</div>
+<!-- Message 3 -->
+<div class="flex gap-4 items-start">
+<img class="w-8 h-8 rounded-full" data-alt="Sova avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA3llE9PiEUhppQvtCT2gQD6c2X9Wg8NAwy1DLcoHxTAMuugqN9eQzJ_9BAZoe2Jsw30pucwo1DDuZpXv9P5nViVQCzz6JdYCUaH0N2fcDgVpDRdbeSH2VYkGGTMN3B9T3KGYucUP2Nhm8hd9gNdezQah0cKtNAbu9WaJI7TjFWnAkk3tGwo3n3Ymajk4ZA0AJSq_PYfWzBZVC6rnsZHPA1xQ4QJofyGBQz-duoT0CO4zqaSADyxzcz1ed__OuC3FhvyhWCm-Xh2zkO"/>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="text-sm font-bold text-[#F8F9FA]">Nova</span>
+<span class="text-[10px] text-[#8A869C]">8:15 PM</span>
+</div>
+<p class="text-sm text-on-surface-variant bg-surface-container-low p-3 rounded-tr-xl rounded-br-xl rounded-bl-xl border border-white/5">Need a Sage? I can fill Support if needed.</p>
+</div>
+</div>
+<!-- Message 4 -->
+<div class="flex gap-4 items-start">
+<img class="w-8 h-8 rounded-full" data-alt="Wahaj avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCt86I1gOPlDf8DeElFTu90qFGwOkrfYizptDSTZ-l0UseBnK9h1DBNZ8fjBMFJggTySSK-VHE0a3QzOkWrG5Dz8h6gPFjy3RGCBdOgS1foRwObtYbWwVRFH-cw0Tsqs3t0GpscecX9A3fc-fHyE7JEWD4qWwP1XYXlY2kbWbeIqOEyISlwzLQspM9VC-mtJL3uxjJe0w2iB6yhsUKxzG8MV6oszYW1PD90PckdiGbXe128mng-IVKucOMNnc2pQ8Afm8SeO32Lixfc"/>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="text-sm font-bold text-primary">Wahaj</span>
+<span class="text-[10px] text-[#8A869C]">8:16 PM</span>
+</div>
+<p class="text-sm text-on-surface-variant bg-surface-container-low p-3 rounded-tr-xl rounded-br-xl rounded-bl-xl border border-white/5">Definitely Nova. We need that sustain for the long matches.</p>
+</div>
+</div>
+</div>
+<div class="p-4 bg-surface-container-low">
+<div class="relative">
+<input class="w-full bg-[#0D0B14] border-none rounded-full py-3 px-6 text-sm focus:ring-2 focus:ring-primary/50 text-on-surface" placeholder="Send a message to the squad..." type="text"/>
+<button class="absolute right-2 top-1.5 p-1.5 rounded-full bg-primary text-[#3b1979] hover:bg-secondary transition-colors">
+<span class="material-symbols-outlined text-sm">send</span>
+</button>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column: Attendees -->
+<div class="xl:col-span-4 space-y-6">
+<aside class="glass-card rounded-xl overflow-hidden">
+<div class="p-6 border-b border-white/5 flex justify-between items-center">
+<h3 class="font-headline text-lg font-bold uppercase tracking-widest text-[#F8F9FA]">Attendees <span class="text-primary">(4)</span></h3>
+<span class="material-symbols-outlined text-[#8A869C]">group</span>
+</div>
+<div class="p-4 space-y-4">
+<!-- Attendee 1 -->
+<div class="group flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition-all">
+<div class="flex items-center gap-3">
+<div class="relative">
+<img class="w-10 h-10 rounded-full ring-2 ring-primary/40" data-alt="Wahaj" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBz9HNDEP-5tYIAjW5YmRrqa5678lcauGbxDeWEgm8wtBT7dSAMjYupFDV1q9BvqVSyrqqb-ng0wQuW6B1VYeQgQnkAkh56lodHwF5U8zXqyibqMMxdvXbZeTnECBNbQx-zMAikOp-KWkKkSD1zxfoncYF01QqWQax-w60vOjcmyhkeIve7noCrpPmOPj6UZCuQufg8bOdemNT2w3cpT09PVxKLu59Qpw6-2dhzXKxId47ybbjpr3b6GzN6YEoFDiSmBTLDQ9MFzFX8"/>
+<span class="absolute -bottom-1 -right-1 w-4 h-4 bg-primary text-[8px] flex items-center justify-center rounded-full font-bold">★</span>
+</div>
+<div>
+<p class="text-sm font-bold text-[#F8F9FA]">Wahaj</p>
+<p class="text-[10px] font-bold text-primary uppercase tracking-tighter">Sentinel · Lead</p>
+</div>
+</div>
+<div class="px-2 py-1 rounded bg-primary/10 border border-primary/20 text-[9px] font-extrabold text-primary uppercase">IN-GAME</div>
+</div>
+<!-- Attendee 2 -->
+<div class="group flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition-all">
+<div class="flex items-center gap-3">
+<img class="w-10 h-10 rounded-full grayscale group-hover:grayscale-0 transition-all" data-alt="Kael" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1HzeovnDsFzAyK6L3ReuxzaPIreUe3HT7noLOd1CExGExkZhf6fx-QNwlHBAnrFvdR1eVNN92rFcFbBCrqQk6e3srKnrl3Aimhr4U93s60vOqCCNIwZAUzLGrS-rvcLUX4V48sEOqSu_aHx-gvkMI59VmW_GgXI9MJMqZLWAkJbkN5_QVK11ntW2V8UFyBX11ZMlTeXsW-9xbR-OP1M8udTXmyk30Jz2JYdzGC6rTslFScftpSNsGgk38tMioZ8eWbWnVLGeFV7sW"/>
+<div>
+<p class="text-sm font-bold text-[#F8F9FA]">Kael</p>
+<p class="text-[10px] font-bold text-secondary uppercase tracking-tighter">Duelist</p>
+</div>
+</div>
+<div class="px-2 py-1 rounded bg-secondary/10 border border-secondary/20 text-[9px] font-extrabold text-secondary uppercase">READY</div>
+</div>
+<!-- Attendee 3 -->
+<div class="group flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition-all">
+<div class="flex items-center gap-3">
+<img class="w-10 h-10 rounded-full" data-alt="Nova" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAmGpbgWWQbiH8suNVZK-t-FMOIwu_FJ5-EqfxI5T8Y4kj-eLoNrfJirvycX3aAnWznAAgMkqHbw6xNMw8ZY42MlVLsgkupt9epV3e_-TU0apeFAzxhn1XFcdtVJ9wFp152wneda_IsLfCaivW3i5-35FIEyFs4y3JfFyoIVMv_RT_LK7vELuFxiVJMB5WreSpsTCInW-l0jhdaFjsWQPC6NV47kSSAypmRweDqLwXkpshIq13vTjscBtSxoSoQJtsLezYMIkMbMMPX"/>
+<div>
+<p class="text-sm font-bold text-[#F8F9FA]">Nova</p>
+<p class="text-[10px] font-bold text-emerald-400 uppercase tracking-tighter">Support</p>
+</div>
+</div>
+<div class="px-2 py-1 rounded bg-emerald-400/10 border border-emerald-400/20 text-[9px] font-extrabold text-emerald-400 uppercase">READY</div>
+</div>
+<!-- Attendee 4 -->
+<div class="group flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition-all">
+<div class="flex items-center gap-3">
+<img class="w-10 h-10 rounded-full grayscale" data-alt="Aero" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC5ZT9MTMydPZpfvyF1--1vCk4lo1T4ScHc1Lc5glphw-3F90znmGWfIA9Tv4WhrCy7YEF9E9zVnJNpVOc7583xJyYX3rTzpV7KboBv91CvY4BGsABksQ_jGPxtx0bmLh6ZmuZUStng5T-DEzqxYevx0CA5wLgdOJ22QrZyXNQ3NWRq7DrsVknsRCQXPmzVCVs1KDSJnfoxEpwO4gvgd4Ch5Z1SnpYyo-JfoT-ilK4JFA39PQAxSeGn_00cXOZtaRRfEAvFkWbCSjC-"/>
+<div>
+<p class="text-sm font-bold text-[#F8F9FA]">Aero</p>
+<p class="text-[10px] font-bold text-primary uppercase tracking-tighter">Initiator</p>
+</div>
+</div>
+<div class="px-2 py-1 rounded bg-surface-container-high border border-outline-variant text-[9px] font-extrabold text-[#8A869C] uppercase">AFK</div>
+</div>
+<!-- Invite Button -->
+<button class="w-full mt-4 flex items-center justify-center gap-2 py-4 border-2 border-dashed border-outline-variant rounded-xl hover:bg-white/5 hover:border-primary transition-all group">
+<span class="material-symbols-outlined text-outline group-hover:text-primary">person_add</span>
+<span class="text-xs font-bold uppercase tracking-widest text-[#8A869C] group-hover:text-primary">Invite a Friend</span>
+</button>
+</div>
+</aside>
+<!-- Stats Card -->
+<div class="glass-card p-6 rounded-xl relative overflow-hidden group">
+<div class="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
+<span class="material-symbols-outlined text-9xl">trending_up</span>
+</div>
+<h4 class="font-headline text-xs font-bold uppercase tracking-widest text-primary mb-4">Live Performance Hub</h4>
+<div class="space-y-4">
+<div class="flex justify-between items-end">
+<span class="text-xs text-[#8A869C]">Avg. Win Rate</span>
+<span class="text-2xl font-headline font-bold text-[#F8F9FA]">64%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-low rounded-full">
+<div class="h-full bg-primary rounded-full" style="width: 64%"></div>
+</div>
+<p class="text-[10px] text-[#8A869C] leading-tight">Your party win rate is 12% higher than average for this map pool.</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Mobile Bottom Nav -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full bg-[#1A1726]/90 backdrop-blur-xl border-t border-white/10 flex justify-around items-center py-4 z-50">
+<span class="material-symbols-outlined text-primary">sensors</span>
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">groups</span>
+<span class="material-symbols-outlined text-[#8A869C]">apps</span>
+<span class="material-symbols-outlined text-[#8A869C]">military_tech</span>
+</nav>
+</body></html>

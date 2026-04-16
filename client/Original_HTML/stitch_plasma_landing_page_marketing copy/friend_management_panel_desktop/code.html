@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Rajdhani:wght@600;700&amp;family=Space+Grotesk:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-surface": "#e6e0ee",
+              "on-background": "#e6e0ee",
+              "on-secondary-fixed-variant": "#90003e",
+              "surface-bright": "#3b3842",
+              "surface-variant": "#36333e",
+              "on-tertiary-fixed-variant": "#474458",
+              "error-container": "#93000a",
+              "surface-tint": "#d1bcff",
+              "surface-container-high": "#2b2933",
+              "secondary-fixed-dim": "#ffb1c1",
+              "surface-container-low": "#1c1a24",
+              "primary": "#d1bcff",
+              "tertiary-container": "#4b485c",
+              "error": "#ffb4ab",
+              "primary-container": "#563895",
+              "surface-dim": "#14121b",
+              "surface-container-lowest": "#0f0d16",
+              "surface-container": "#211e28",
+              "on-tertiary": "#312e41",
+              "tertiary": "#c8c3db",
+              "secondary-container": "#e40468",
+              "surface": "#14121b",
+              "on-error-container": "#ffdad6",
+              "inverse-on-surface": "#322f39",
+              "primary-fixed-dim": "#d1bcff",
+              "on-tertiary-fixed": "#1c192b",
+              "surface-container-highest": "#36333e",
+              "on-tertiary-container": "#bcb7cf",
+              "tertiary-fixed-dim": "#c8c3db",
+              "on-primary": "#3b1979",
+              "on-secondary": "#66002a",
+              "secondary": "#ffb1c1",
+              "outline-variant": "#494551",
+              "on-primary-fixed": "#24005b",
+              "on-secondary-container": "#fffbff",
+              "on-surface-variant": "#cbc4d3",
+              "background": "#14121b",
+              "on-secondary-fixed": "#3f0017",
+              "on-error": "#690005",
+              "secondary-fixed": "#ffd9df",
+              "on-primary-fixed-variant": "#523491",
+              "on-primary-container": "#c7aeff",
+              "inverse-primary": "#6a4daa",
+              "primary-fixed": "#eaddff",
+              "inverse-surface": "#e6e0ee",
+              "outline": "#948e9c",
+              "tertiary-fixed": "#e5dff8"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Inter"],
+              "label": ["Inter"],
+              "rajdhani": ["Rajdhani"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .glass-panel {
+        background: rgba(26, 23, 38, 0.6);
+        backdrop-filter: blur(16px);
+        border-left: 1px solid rgba(248, 249, 250, 0.1);
+      }
+      .intent-chill { border: 2px solid #4ade80; }
+      .intent-comp { border: 2px solid #f87171; }
+      .intent-lfg { border: 2px solid #fbbf24; }
+      .intent-away { border: 2px solid #94a3b8; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body min-h-screen overflow-hidden">
+<!-- TopNavBar (Shared Component) -->
+<nav class="fixed top-0 w-full z-50 bg-[#0D0B14]/60 backdrop-blur-xl border-b border-white/10 shadow-[0_0_20px_rgba(86,56,149,0.1)] flex justify-between items-center px-6 h-16 w-full">
+<div class="flex items-center gap-8">
+<span class="text-2xl font-black italic tracking-tighter text-white uppercase font-headline">Plasma</span>
+<div class="hidden md:flex gap-6">
+<a class="font-['Space_Grotesk'] font-bold text-sm tracking-tight text-[#8A869C] hover:text-white transition-all duration-300" href="#">Pulse</a>
+<a class="font-['Space_Grotesk'] font-bold text-sm tracking-tight text-white border-b-2 border-[#FF2A7A]" href="#">Rally</a>
+<a class="font-['Space_Grotesk'] font-bold text-sm tracking-tight text-[#8A869C] hover:text-white transition-all duration-300" href="#">Library</a>
+<a class="font-['Space_Grotesk'] font-bold text-sm tracking-tight text-[#8A869C] hover:text-white transition-all duration-300" href="#">Prestige</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-[#8A869C] hover:text-white active:scale-95 transition-transform" data-icon="notifications">notifications</button>
+<button class="material-symbols-outlined text-[#8A869C] hover:text-white active:scale-95 transition-transform" data-icon="settings">settings</button>
+<button class="bg-primary-container text-on-primary-container px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all">Go Live</button>
+<div class="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-secondary p-0.5">
+<img alt="User avatar with purple glow" class="w-full h-full rounded-full bg-surface" data-alt="User avatar with a purple glowing border" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8kIXI1f8wrZykoD_QTUBFWIeG8ezTL36gOLMdyAEH2Df-piA9dvKy6BTRETbF1dcom7cvAcIq6zXEze4hs7ZOQ70Ln097r1ScLYOEKpD5gvSSHOdjbbSR8rsJnxTNP5RvAlF5MIsPaT7B69hbA1HvhHgLR3V644lk8YtpVKTXzI0db6poywvZHEzFjQa9c89BR5oaXIKPCHwE_Lk-jGJ3nYdUhPXDIUVCXPNiLNYefGrXZ2CjFFHc-T28mJWznGSBnPxaexeM3coJ"/>
+</div>
+</div>
+</nav>
+<!-- Main Content Canvas (Mockup Background) -->
+<main class="pt-16 pr-[400px] h-screen flex items-center justify-center relative overflow-hidden">
+<div class="absolute inset-0 opacity-20 pointer-events-none">
+<div class="absolute top-1/4 left-1/4 w-96 h-96 bg-primary rounded-full blur-[120px]"></div>
+<div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary rounded-full blur-[120px]"></div>
+</div>
+<div class="text-center z-10">
+<h1 class="font-headline text-6xl font-black italic tracking-tighter text-white mb-4 uppercase">Neon Foundry</h1>
+<p class="text-on-surface-variant max-w-md mx-auto">Your tactical command center is active. Friends and squad members are ready for deployment.</p>
+</div>
+</main>
+<!-- Friends Panel (Right Side Slide-in) -->
+<aside class="fixed top-16 right-0 w-[400px] h-[calc(100vh-64px)] z-40 glass-panel flex flex-col">
+<!-- Panel Header -->
+<div class="p-6 pb-2">
+<div class="flex items-center justify-between mb-6">
+<h2 class="font-rajdhani font-semibold text-[20px] text-white tracking-wide uppercase">Friends</h2>
+<div class="flex gap-2">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-white" data-icon="person_add">person_add</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-white" data-icon="search">search</button>
+</div>
+</div>
+<!-- Tabs -->
+<div class="flex gap-4 border-b border-white/5">
+<button class="pb-3 text-sm font-medium text-white border-b-2 border-secondary px-1">Online (8)</button>
+<button class="pb-3 text-sm font-medium text-on-surface-variant hover:text-white px-1 transition-colors">All (24)</button>
+<button class="pb-3 text-sm font-medium text-on-surface-variant hover:text-white px-1 transition-colors relative">
+                    Requests (2)
+                    <span class="absolute -top-1 -right-2 w-2 h-2 bg-secondary rounded-full"></span>
+</button>
+</div>
+</div>
+<!-- Scrollable List Content -->
+<div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-1">
+<!-- Online Section -->
+<div class="mb-4">
+<p class="px-2 py-2 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Active Members</p>
+<!-- Online Friend Rows -->
+<!-- Chill (Green) -->
+<div class="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-all group cursor-pointer">
+<div class="relative">
+<img class="w-10 h-10 rounded-full intent-chill bg-surface-container-highest" data-alt="Pixel art avatar with green chill border" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDM11_grDdTNrFQ_UgQ-n1nTnIxfZrLPzXczuydu26FE5QQryrJUc9OHbYFXMifCKdNAUeeEcQ_l5qA0vNdgsSe6ONtbLUgJFv6WhHU5hxf6S3jGTAEKqhVtiSsUGZWaNE8K9wF4UafMYVd3mFlJQ11HjHeS0uiEqDmENXdCXh5wInopaLD0P_op1GruyR-u5XrJFLeB4aYayjHK9Dtg1C_0VpqpkUgfeU4WO6QX3ycaj9hO7FUk0PNvDMMtPn_JPzkDMBwb9GWkmQ3"/>
+<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-[#1A1726] rounded-full"></div>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-[14px] font-medium text-[#F8F9FA] truncate">ViperX</p>
+<p class="text-[12px] italic text-[#8A869C] truncate">Playing Valorant</p>
+</div>
+<button class="material-symbols-outlined text-[#8A869C] opacity-0 group-hover:opacity-100 transition-opacity" data-icon="more_vert">more_vert</button>
+</div>
+<!-- Competitive (Red) -->
+<div class="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-all group cursor-pointer">
+<div class="relative">
+<img class="w-10 h-10 rounded-full intent-comp bg-surface-container-highest" data-alt="Pixel art avatar with red competitive border" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDRF9Pt040ioBzwTvS0-T3PMcxKGd-adENqwl8seTscgzEKwMx_jr4ARcVhB4OWyjgg33QjftdQQ50-AsG2Ao3peYabe9yNeK7pBDWRCFcCJqVQYmpg-Us6gLMRqJjWPhdSNLQ60T1MdJOhkcl9c5KxJGWsxxKHhsmYjWm7sWZWMydEtXvjEzgjLWBvhSJ5fRTaEfwxBQB1jXf44iIkOkp5qqOEDxnfikbwkVDVRdjP4JkWGp4l9D3AbCrVyW1-eQ8UHrTLC3Kl80Q1"/>
+<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-[#1A1726] rounded-full"></div>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-[14px] font-medium text-[#F8F9FA] truncate">CrimsonKing</p>
+<p class="text-[12px] italic text-[#8A869C] truncate">In a Rally</p>
+</div>
+<button class="material-symbols-outlined text-[#8A869C] opacity-0 group-hover:opacity-100 transition-opacity" data-icon="more_vert">more_vert</button>
+</div>
+<!-- LFG (Yellow) -->
+<div class="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-all group cursor-pointer">
+<div class="relative">
+<img class="w-10 h-10 rounded-full intent-lfg bg-surface-container-highest" data-alt="Pixel art avatar with yellow LFG border" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDNqenfdbfdJ87O4HaZeI9D-o7_6fRlRtaac3WpFHgxYKHFep7iubq_85vhInIZ4CAlxMSW7XW_ybQhkd9zQZHPT4f2ThuN811NAGroZQK7vXi_p3kkuQe6xU5YOMenk9pl5ayy4XL8nLDjs3vDjSlQ4KGyJHLRmKIkrCflZZf5ANmgwSY0ts34PVpnEDUB0Dr8YfHgSJpLCu8piY4-hcI88Os78Vr7UR8kJwMhACnxqtKgCYt49IknhlsDgTslWDp9vPVtvpZrMmxG"/>
+<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-[#1A1726] rounded-full"></div>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-[14px] font-medium text-[#F8F9FA] truncate">NeonSpark</p>
+<p class="text-[12px] italic text-[#8A869C] truncate">Lobby • Ready</p>
+</div>
+<button class="material-symbols-outlined text-[#8A869C] opacity-0 group-hover:opacity-100 transition-opacity" data-icon="more_vert">more_vert</button>
+</div>
+<!-- Away (Gray) -->
+<div class="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-all group cursor-pointer">
+<div class="relative">
+<img class="w-10 h-10 rounded-full intent-away bg-surface-container-highest grayscale" data-alt="Pixel art avatar with gray away border" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCFrUnYyBVA7mzYVZrRBrKnuRe-av5ilpogz9jeRjDJGet7Z2VBw_d6CoMzUT0Bqf85i4_T79PN1oQszuYmEpOEf5m62z88BaU-sMfNFoS0D6w8eDEYqa103UIeiK8ztg6DQ_RJkkjNGgLiHzjscrZePV7VvWlpWIMVX-PxoKpe07E52uFA2WReLX_0ioLJ7sTESi4VPfuHpUvCtjSTkZqcXJ_nmiyIKwjRjr7CNJ2mpCYJwOSbIQI90Mcx5De4Xr2tHI6WAD6PF_Bo"/>
+<div class="absolute bottom-0 right-0 w-3 h-3 bg-surface-variant border-2 border-[#1A1726] rounded-full"></div>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-[14px] font-medium text-[#8A869C] truncate">LunarVoid</p>
+<p class="text-[12px] italic text-[#8A869C] truncate">AFK • 15m</p>
+</div>
+<button class="material-symbols-outlined text-[#8A869C] opacity-0 group-hover:opacity-100 transition-opacity" data-icon="more_vert">more_vert</button>
+</div>
+</div>
+<!-- Requests Preview Section (Integrated into same panel for demo) -->
+<div class="pt-4 border-t border-white/5">
+<p class="px-2 py-2 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Pending Requests</p>
+<!-- Incoming -->
+<div class="flex items-center gap-3 p-2 mb-2">
+<img class="w-10 h-10 rounded-full bg-surface-container-highest" data-alt="Pixel art avatar for friend request" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAR4jJdm-ySnPYfxcak7Q6_IAnB2LsZ06b4MFJUDt5ETyrFJRmpck6IyN-uIpVc5W_DN90YKe3EpTIso2gbftZBgd9F7u0sHQvaIGav8fhAUtMw6J9qQ0hvf2VUFo2UZ_Naixvi0o6NmU_nAV1WnLUdZLbgxXLFRhkZe5w3RuoNgLS5xb-N7aKwENBPTrx1BWW22s6EQXVddVe-OGz3EhZMbbgzo9Wtb_SBkxyKQ53lVIDEjQjyG7N7phuBDpXfF5hl4j9V8iEuj5cm"/>
+<div class="flex-1 min-w-0">
+<p class="text-[14px] font-medium text-white truncate">Alex</p>
+<p class="text-[11px] text-[#8A869C]">2 mutual friends</p>
+</div>
+<div class="flex gap-2">
+<button class="bg-primary-container hover:bg-primary text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter transition-all">Accept</button>
+<button class="text-[#8A869C] hover:text-white text-[10px] font-bold px-1 transition-all uppercase">Decline</button>
+</div>
+</div>
+<div class="flex items-center gap-3 p-2 mb-4">
+<img class="w-10 h-10 rounded-full bg-surface-container-highest" data-alt="Pixel art avatar for friend request" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAExliU8UdarR9QNRFEr11MRMArjjGnTsYBUd2JIz6MwMnNr7gDvs7vOd0aHFnhs2iJXw4TIEeqC7715qzcnEXCsscYGuvbshhyZBTy9gqyNDcyqCTt6OUJbgj2_9DFF0Gx2_yZ6k12u7oPtIcs2Z-10GxK25jKYJp6hXgu1XV8cKhLTK5aDYgr5gPQG6p1OGBzwTHNMvK17d-0E7J-xexC3lbRkyo-dp89fSB1V0pamQA3cqbnE8AkGTwmwcFMy1kVGD4PJnufmGAB"/>
+<div class="flex-1 min-w-0">
+<p class="text-[14px] font-medium text-white truncate">Jordan</p>
+<p class="text-[11px] text-[#8A869C]">5 mutual friends</p>
+</div>
+<div class="flex gap-2">
+<button class="bg-primary-container hover:bg-primary text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter transition-all">Accept</button>
+<button class="text-[#8A869C] hover:text-white text-[10px] font-bold px-1 transition-all uppercase">Decline</button>
+</div>
+</div>
+<!-- Pending Sent -->
+<div class="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
+<div class="flex items-center gap-2">
+<span class="text-[13px] font-medium text-[#8A869C]">MikeGamer</span>
+</div>
+<span class="text-[9px] font-bold bg-[#28243D] text-[#8A869C] px-2 py-0.5 rounded-full uppercase">Pending</span>
+</div>
+</div>
+</div>
+<!-- Panel Footer -->
+<div class="p-6 bg-surface-container-lowest/50 border-t border-white/5">
+<button class="w-full bg-gradient-to-r from-primary-container to-secondary-container text-white py-3 rounded-xl font-bold text-xs uppercase tracking-[0.2em] shadow-lg shadow-secondary/10 hover:brightness-110 active:scale-95 transition-all">
+                Find Squad
+            </button>
+</div>
+</aside>
+<!-- SideNavBar (Shared Component - Minimized State for Screen Width) -->
+<aside class="fixed left-0 top-16 h-[calc(100vh-64px)] w-20 z-40 bg-[#1A1726]/40 backdrop-blur-lg border-r border-white/5 shadow-[10px_0_30px_rgba(0,0,0,0.5)] flex flex-col items-center py-8 gap-8">
+<div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-white" data-icon="sensors" data-weight="fill">sensors</span>
+</div>
+<div class="flex flex-col gap-6">
+<button class="material-symbols-outlined text-[#FF2A7A] p-3 rounded-xl bg-white/5" data-icon="groups">groups</button>
+<button class="material-symbols-outlined text-[#8A869C] hover:text-white transition-colors p-3" data-icon="grid_view">grid_view</button>
+<button class="material-symbols-outlined text-[#8A869C] hover:text-white transition-colors p-3" data-icon="military_tech">military_tech</button>
+</div>
+<div class="mt-auto flex flex-col gap-6">
+<button class="material-symbols-outlined text-[#8A869C] hover:text-white transition-colors" data-icon="person_play">person_play</button>
+<button class="material-symbols-outlined text-[#8A869C] hover:text-white transition-colors" data-icon="settings">settings</button>
+</div>
+</aside>
+</body></html>

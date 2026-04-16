@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Rally | Event Calendar</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Rajdhani:wght@500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-error-container": "#ffdad6",
+                        "on-secondary": "#66002a",
+                        "error-container": "#93000a",
+                        "inverse-surface": "#e6e0ee",
+                        "primary-fixed-dim": "#d1bcff",
+                        "tertiary-fixed-dim": "#c8c3db",
+                        "surface": "#0D0B14",
+                        "surface-container-lowest": "#0f0d16",
+                        "on-surface": "#e6e0ee",
+                        "on-secondary-fixed": "#3f0017",
+                        "on-tertiary-container": "#bcb7cf",
+                        "on-surface-variant": "#cbc4d3",
+                        "surface-dim": "#14121b",
+                        "outline-variant": "#494551",
+                        "secondary": "#ffb1c1",
+                        "on-tertiary": "#312e41",
+                        "on-primary-fixed-variant": "#523491",
+                        "on-secondary-container": "#fffbff",
+                        "surface-container-high": "#2b2933",
+                        "on-tertiary-fixed": "#1c192b",
+                        "tertiary-container": "#4b485c",
+                        "surface-container": "#211e28",
+                        "secondary-container": "#e40468",
+                        "surface-container-low": "#1c1a24",
+                        "surface-container-highest": "#36333e",
+                        "tertiary": "#c8c3db",
+                        "on-secondary-fixed-variant": "#90003e",
+                        "inverse-on-surface": "#322f39",
+                        "surface-variant": "#36333e",
+                        "primary-fixed": "#eaddff",
+                        "surface-bright": "#3b3842",
+                        "secondary-fixed": "#ffd9df",
+                        "tertiary-fixed": "#e5dff8",
+                        "on-primary-fixed": "#24005b",
+                        "error": "#ffb4ab",
+                        "primary-container": "#563895",
+                        "inverse-primary": "#6a4daa",
+                        "outline": "#948e9c",
+                        "background": "#0D0B14",
+                        "surface-tint": "#d1bcff",
+                        "on-primary-container": "#c7aeff",
+                        "primary": "#d1bcff",
+                        "secondary-fixed-dim": "#ffb1c1",
+                        "on-primary": "#3b1979",
+                        "on-tertiary-fixed-variant": "#474458",
+                        "on-background": "#e6e0ee",
+                        "on-error": "#690005"
+                    },
+                    fontFamily: {
+                        "headline": ["Rajdhani", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"],
+                        "brand": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .glass-panel {
+            background: rgba(26, 23, 38, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(248, 249, 250, 0.1);
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 120px);
+        }
+        .calendar-cell {
+            width: 120px;
+            height: 100px;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-secondary/30 selection:text-secondary">
+<!-- TopNavBar -->
+<nav class="fixed top-0 z-50 w-full px-6 py-4 flex justify-between items-center bg-[#0D0B14] backdrop-blur-lg bg-opacity-60 shadow-[0_0_20px_rgba(86,56,149,0.1)]">
+<div class="flex items-center gap-8">
+<span class="text-2xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-pink-500 font-brand">PLASMA</span>
+<div class="relative group">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline">search</span>
+<input class="bg-surface-container-low border-none rounded-full pl-10 pr-4 py-2 w-64 focus:ring-1 focus:ring-primary/50 text-sm" placeholder="Search events..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<!-- Intent Toggle -->
+<div class="flex items-center bg-surface-container-highest rounded-full p-1 border border-white/5">
+<button class="px-4 py-1.5 rounded-full text-xs font-bold transition-all bg-gradient-to-r from-primary-container to-secondary-container text-white shadow-lg shadow-primary-container/20">CHILL</button>
+<button class="px-4 py-1.5 rounded-full text-xs font-bold text-outline hover:text-on-surface transition-all">COMP</button>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-slate-400 hover:text-pink-400 transition-colors duration-300 active:scale-90 transform">
+<span class="material-symbols-outlined" data-icon="track_changes">track_changes</span>
+</button>
+<button class="text-slate-400 hover:text-pink-400 transition-colors duration-300 active:scale-90 transform relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-secondary rounded-full"></span>
+</button>
+<div class="w-10 h-10 rounded-full border-2 border-green-500 p-0.5">
+<img alt="User Profile Avatar" class="w-full h-full rounded-full object-cover" data-alt="User profile avatar with green border" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZqLVXl91w39CEG1TFBdn_gTWbLnKJLWj2hiJcSAlMFp0S27wFqjEOOdjrVpDoUZL75ovtPs2Jcfvsk0yeDwnEvjo1T6Lmn3Wj9DOIF-OlE9yUn_edXtvxYeOKDS1GML4xDMZLqEekQNNtq_aKG5HzNljgykHx5DoeHgRtXiYgAjf8_K7KiYxeyQrk5pzvqtrwqT3yVwB13PPHzbIGIOBuMXLdtqMKcOxioDmufZoNtLwD-VLOwDcCw3FrtIH0NSmQk6lAAfa1CUeW"/>
+</div>
+</div>
+</div>
+</nav>
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-full w-64 bg-[#1A1726] border-r border-white/10 pt-24 flex flex-col shadow-2xl shadow-pink-500/5">
+<div class="px-6 mb-8">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+<div>
+<h3 class="text-sm font-bold font-brand text-on-surface">Online Squad</h3>
+<p class="text-xs text-outline">4 Friends Active</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 text-slate-400 py-3 px-6 hover:bg-white/5 hover:text-purple-300 transition-all hover:translate-x-1" href="#">
+<span class="material-symbols-outlined" data-icon="sensors">sensors</span>
+<span class="text-sm font-medium">Pulse</span>
+</a>
+<a class="flex items-center gap-3 bg-gradient-to-r from-purple-900/40 to-pink-900/20 text-white rounded-r-full py-3 px-6 border-l-4 border-[#563895] transition-all translate-x-1" href="#">
+<span class="material-symbols-outlined text-purple-400" data-icon="calendar_month">calendar_month</span>
+<span class="text-sm font-bold">Rally</span>
+</a>
+<a class="flex items-center gap-3 text-slate-400 py-3 px-6 hover:bg-white/5 hover:text-purple-300 transition-all hover:translate-x-1" href="#">
+<span class="material-symbols-outlined" data-icon="library_books">library_books</span>
+<span class="text-sm font-medium">Library</span>
+</a>
+<a class="flex items-center gap-3 text-slate-400 py-3 px-6 hover:bg-white/5 hover:text-purple-300 transition-all hover:translate-x-1" href="#">
+<span class="material-symbols-outlined" data-icon="military_tech">military_tech</span>
+<span class="text-sm font-medium">Prestige</span>
+</a>
+</nav>
+<!-- Squad List -->
+<div class="px-6 py-6 border-t border-white/5">
+<h4 class="text-[10px] uppercase tracking-widest text-outline mb-4 font-bold">Squad Online</h4>
+<div class="space-y-4">
+<div class="flex items-center gap-3 group cursor-pointer">
+<div class="relative">
+<img alt="Friend 1" class="w-8 h-8 rounded-full border border-primary-container" data-alt="Gaming friend avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAkyRdjV_O5K1h6JFjz3AUnTBqI-QZ9cRZM6a5uLgI7kxfnELSLHakNdKaQ3XiKPxsdUFLxwOW8y_q062mzkIiFL1Zhx3vCDTr9SSd3duzLhBFI_o2i918kwZB2dKoJpO3BrEbEJucoVv6o4Ieou5TNrL94-lcX7aY0aA90a8Pp69c0It2epKkUto_3AMSnclWYOhsOHY0MdDeRGPYHOEBL3CCPcsYqKJctqJOUNS6HhrhFrJbslGVHJhSj-9L5F1Cd__166dxXCdbz"/>
+<span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-[#1A1726] rounded-full"></span>
+</div>
+<span class="text-xs font-medium text-outline group-hover:text-on-surface transition-colors">Viper_Main</span>
+</div>
+<div class="flex items-center gap-3 group cursor-pointer">
+<div class="relative">
+<img alt="Friend 2" class="w-8 h-8 rounded-full border border-primary-container" data-alt="Gaming friend avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAK3jA3AGQhPNW-Kda7sIvUgVNnvnLtNbcZWzQddTMZML7EfMHqGpa__dPFLFcTDFXTzIE3i-L3SLehqWfXblK83mEPCzk4l_fiA_WaSWk1y5AUfHB3cJa-6I2t_Yz2Si1tWJmE5faiPt5h-PgCre3IoGyi1b5hiD59ws-D6UdANiVVfkla9Z_fkU_UC02dDou6pSyuWQF1YOAiI0sVYUtIV_PXKIhdHjdSFFw5h2Ee8sxJtYGO0XeD_TKa2Qc59L2LiVrlO1uoG52u"/>
+<span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-[#1A1726] rounded-full"></span>
+</div>
+<span class="text-xs font-medium text-outline group-hover:text-on-surface transition-colors">Ghost_Pixel</span>
+</div>
+<div class="flex items-center gap-3 group cursor-pointer">
+<div class="relative">
+<img alt="Friend 3" class="w-8 h-8 rounded-full border border-primary-container" data-alt="Gaming friend avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAanE6DEcvQ3c4tfnGkBhn60OPolRO5TGJdilgdn4nirwiZfb92q2Bt-CbrS4nPXsesZ5F2smmarfBmZXeYkLjAnjpMaqo1AgJJYXrPJIzmN92m4qWuNr--kZ_HVmU7F3UHFJ0TuDTEkYzhY_TEz2ZAYPX1p4InMH61efe9X-dN2YoUYIKbgFaLO_oQ_Ucv6uvaGzpvSZ2vqLmpsaDrQ2M9hVppXdx6dAfTry6VbHw97ZER6ilIcd5Puop7AZ74I9F7ccMEzilt0Wra"/>
+<span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-[#1A1726] rounded-full"></span>
+</div>
+<span class="text-xs font-medium text-outline group-hover:text-on-surface transition-colors">LFG_Hero</span>
+</div>
+<div class="flex items-center gap-3 group cursor-pointer">
+<div class="relative">
+<img alt="Friend 4" class="w-8 h-8 rounded-full border border-primary-container" data-alt="Gaming friend avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJc9mW67bXLi4UXW2DQbTrJ_XmeELIoEv4o8DHRCBKfTCwz-a2Ar-9DfX1wM27lEfIi_NG9zMYm0NSc98xds3qY4W7zxdIYRh0cESgrLh9H750JAk63bSKKlsvPeUFuilZqG9UlWAIF8K54sOsbYSeg-9RLhpow7SjiKXId_fPvyrciMaU2-x2cTpFWUxYD_mJcbe88zVOUQLCQ6yYqC3frlKdglQYYYyy4q0h8HXOy0b60d3R8KsyajEJP8P_D05ShGEp6ltnYoxs"/>
+<span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-[#1A1726] rounded-full"></span>
+</div>
+<span class="text-xs font-medium text-outline group-hover:text-on-surface transition-colors">Neon_Pulse</span>
+</div>
+<div class="flex items-center gap-3 group cursor-pointer">
+<div class="relative">
+<img alt="Friend 5" class="w-8 h-8 rounded-full border border-primary-container" data-alt="Gaming friend avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAW4NxPW9HdL6Yb7JpuWHFdO66DVCVGl10xgH13gx-yoU6E31FNwoowICajEBXUnFGQI-ENVDytY9tb9KZvIwsL6CmdouPJHadOlA45W-T3kOHuPgVM-Q3rRB-zeaa6mlRL6-9UFqAWgXMLJutmg3wNtU3TQx5Dk535eoW003ILuvHZPxxpH4CztZUpa3sSq5hsi-09GWhtk7K3HRuOiozemLHnegAEDgx28wFwTLlULWu-xQVb0H16vR8Bl6mhXrz00bt-udGcUvrc"/>
+<span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-orange-500 border-2 border-[#1A1726] rounded-full"></span>
+</div>
+<span class="text-xs font-medium text-outline group-hover:text-on-surface transition-colors">Afk_King</span>
+</div>
+</div>
+</div>
+<div class="p-6 mt-auto">
+<button class="w-full py-3 bg-gradient-to-r from-[#563895] to-[#FF2A7A] rounded-full text-xs font-bold text-white shadow-lg shadow-secondary/20 hover:scale-105 active:scale-95 transition-all">LFG Mode</button>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="ml-64 pt-24 px-10 pb-20 max-w-[1440px]">
+<!-- Header Section -->
+<header class="flex justify-between items-end mb-10">
+<div>
+<nav class="flex gap-2 text-xs font-bold text-outline mb-2">
+<span class="hover:text-primary cursor-pointer transition-colors">EVENTS</span>
+<span>/</span>
+<span class="text-on-surface">CALENDAR</span>
+</nav>
+<h1 class="text-4xl font-headline font-bold text-on-surface tracking-tight">The Rally</h1>
+</div>
+<button class="px-8 py-3 bg-gradient-to-r from-primary-container to-secondary-container rounded-full text-sm font-bold text-white shadow-xl shadow-primary-container/20 flex items-center gap-2 hover:brightness-110 transition-all">
+<span class="material-symbols-outlined text-sm">add_circle</span>
+                Create Rally
+            </button>
+</header>
+<!-- Controls Row -->
+<div class="flex justify-between items-center mb-8">
+<div class="flex bg-surface-container-low rounded-full p-1.5 gap-1">
+<button class="px-6 py-2 rounded-full text-xs font-bold bg-surface-container-highest text-on-surface shadow-sm">Calendar</button>
+<button class="px-6 py-2 rounded-full text-xs font-bold text-outline hover:text-on-surface transition-all">List</button>
+</div>
+<div class="relative">
+<button class="flex items-center gap-3 px-5 py-2.5 bg-surface-container-low rounded-full border border-white/5 text-sm font-medium hover:bg-surface-container-high transition-colors">
+<span>All Intents</span>
+<span class="material-symbols-outlined text-outline">expand_more</span>
+</button>
+</div>
+</div>
+<div class="flex gap-10 items-start">
+<!-- Calendar Grid Container -->
+<div class="flex-shrink-0">
+<div class="flex justify-between items-center mb-6 px-4">
+<h2 class="font-headline text-2xl font-bold tracking-wider">MARCH 2026</h2>
+<div class="flex gap-4">
+<button class="p-1 hover:text-primary transition-colors"><span class="material-symbols-outlined">chevron_left</span></button>
+<button class="p-1 hover:text-primary transition-colors"><span class="material-symbols-outlined">chevron_right</span></button>
+</div>
+</div>
+<div class="calendar-grid text-center text-[10px] font-bold text-outline mb-4">
+<div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div><div>SUN</div>
+</div>
+<div class="calendar-grid border-l border-t border-[#28243D]">
+<!-- Row 1 (Empty start) -->
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3 text-outline/30">23</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3 text-outline/30">24</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3 text-outline/30">25</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3 text-outline/30">26</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3 text-outline/30">27</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3 text-outline/30">28</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3 flex flex-col justify-between">
+<span class="font-medium">1</span>
+</div>
+<!-- Row 2 -->
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3">2</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3">3</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3">4</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3">5</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3">6</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3">7</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3">8</div>
+<!-- Row 3 -->
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3">9</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3">10</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3">11</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3">12</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3">13</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3">14</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3 relative flex flex-col items-center justify-center opacity-40">
+<span class="absolute top-3 left-3">15</span>
+<div class="w-1.5 h-1.5 bg-on-surface rounded-full"></div>
+</div>
+<!-- Row 4 -->
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3">16</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3">17</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3">18</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3">19</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3">20</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3 relative flex items-center justify-center">
+<span class="absolute top-3 left-3 font-bold text-primary">21</span>
+<div class="absolute inset-0 bg-primary/10 shadow-[inset_0_0_15px_rgba(86,56,149,0.5)]"></div>
+</div>
+<div class="calendar-cell bg-[#28243D] border-r border-b border-[#563895] p-3 relative flex items-center justify-center">
+<span class="absolute top-3 left-3 font-bold">22</span>
+<div class="flex gap-1.5 mt-4">
+<div class="w-2 h-2 bg-primary rounded-full"></div>
+<div class="w-2 h-2 bg-secondary-container rounded-full"></div>
+</div>
+</div>
+<!-- Row 5 -->
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3">23</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3">24</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3 relative flex items-center justify-center">
+<span class="absolute top-3 left-3">25</span>
+<div class="w-2 h-2 bg-green-500 rounded-full mt-4"></div>
+</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3">26</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3">27</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3 relative flex items-center justify-center">
+<span class="absolute top-3 left-3">28</span>
+<div class="w-2 h-2 bg-yellow-500 rounded-full mt-4"></div>
+</div>
+<div class="calendar-cell bg-[#1A1726] border-r border-b border-[#28243D] p-3">29</div>
+</div>
+</div>
+<!-- Details Panel -->
+<div class="flex-1 space-y-6">
+<div class="flex justify-between items-center mb-2">
+<h3 class="text-lg font-headline font-bold text-on-surface">March 22 — 2 Events</h3>
+<span class="text-xs font-bold text-outline bg-surface-container-low px-3 py-1 rounded-full">TODAY IS MAR 21</span>
+</div>
+<!-- Rally Card 1: Valorant -->
+<div class="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-4">
+<span class="bg-secondary-container text-white text-[10px] font-bold px-3 py-1 rounded-full animate-pulse">TOMORROW</span>
+</div>
+<div class="flex gap-6">
+<div class="w-32 h-40 rounded-lg overflow-hidden flex-shrink-0 relative">
+<img class="w-full h-full object-cover" data-alt="Valorant game art featured thumbnail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-T9TCOoewCfcSxHcQPH7J13dr-UZdFg_dBZrD9qwHagpTN2Qb0U4Sh2acaX5GsYlgcDIQWHh63Lffb4qh0mwzyLa7q2rLk2tf-JHHU9ygj0afK_ZiBFnVE_vUdfBw5ygeN9BE5MgLRtRlEVCjQ_AEC_xpHHLIbdROdR4VOsQkspOKmO6QeXi3tz9uL7bPv5Rh2xW8WoQPTMpyT-r7Tc46f_5X6mntwJIdaSusT1HeTSL2bi9t-Ia0cltMVklYG8P16weDSsk0xoqu"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface to-transparent"></div>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-3 mb-1">
+<span class="text-[10px] font-bold text-error border border-error/30 px-2 py-0.5 rounded">COMP</span>
+<span class="text-xs font-medium text-outline">9:00 PM</span>
+</div>
+<h4 class="text-xl font-headline font-bold mb-4">Friday Night Ranked</h4>
+<div class="space-y-3 mb-6">
+<div>
+<div class="flex justify-between text-[10px] font-bold mb-1">
+<span class="text-outline uppercase">DPS (2/3)</span>
+</div>
+<div class="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[66%] shadow-[0_0_8px_rgba(86,56,149,0.8)]"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-[10px] font-bold mb-1">
+<span class="text-outline uppercase">Sentinel (1/2)</span>
+</div>
+<div class="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[50%] shadow-[0_0_8px_rgba(86,56,149,0.8)]"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-[10px] font-bold mb-1">
+<span class="text-outline uppercase">Support (0/1)</span>
+</div>
+<div class="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-0"></div>
+</div>
+</div>
+</div>
+<div class="flex justify-between items-center">
+<div class="flex -space-x-2">
+<img alt="Player 1" class="w-7 h-7 rounded-full border-2 border-[#1A1726]" data-alt="Player profile circle" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBPB2YMzKR_FhsGcde4V7unNl8xHT77_11gvPECN8mfTriC0FK_HLS68OWe6DavlsV3mBvYq_fasommFyToRGwwOI13g7vNjW_uu7Z09iBBT_vQAysVxsTXqYzI5QwnooCssMHRhI7QvabpW_lssU6MfSaP_YYYAf35-Jrm-00-linyOJ2DO5-eS08d6Q-3751CXC69qSJm_GHWfEUD73I50SG460DgsvJZRy0mwbcDyN2QDbsIptf3uUJkWlVvFCZLJSvVqOoJQuO0"/>
+<img alt="Player 2" class="w-7 h-7 rounded-full border-2 border-[#1A1726]" data-alt="Player profile circle" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA_9bc5MZ85QFmz3D7hkhWeuNHCDy3oSX3mig_OuRNhi8Ku3LNxNwvrZ_lNpB9oVF83ObtSGm5J8ZSuGd8xp-SIP7X4HzwrvOLcvKQndqtYOVaNRvoxpPxRf3t52tPcGEDBLsbl5MsIh4SMDIXnnb4HvT_jJOvod2HPY3enpWVzDqhgDH9-CE49JZN0SF1sN7GCHQ0Jh7tKhW79bsyQaRWyHP25CsFzWyc-OjqL_mii-lZw5tX_-guQhbbk3D8dM3zLKF9MsIw_9X3J"/>
+<img alt="Player 3" class="w-7 h-7 rounded-full border-2 border-[#1A1726]" data-alt="Player profile circle" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFmcgrtz4OOxF8imNsOm3nHWDPyIcPIsQPrnkLAvu1o6On7Yy08DGg-lMkNS9EqHDep9lHUSxk7mcSH_7-nOCTL44qUiveiBFrJkNvd8ZizwctaAYEteQb4yUPeKMJUlB6AKCDV5BqpavwLn9b1b40O8s8KEy9iAV0awByXN7HrUrhIMY9r7mk1NekrdDoFOUlVLei2ZVE0uwrQabroZZg5GfCxmCBMMSS-ACpeRn5rKhj7ebNI1FCzf2zwLOnASkJGulYFvYMN3i9"/>
+<div class="w-7 h-7 rounded-full border-2 border-[#1A1726] bg-surface-container-high flex items-center justify-center text-[8px] font-bold">+2</div>
+</div>
+<button class="px-6 py-2 bg-gradient-to-r from-[#563895] to-[#FF2A7A] rounded-full text-xs font-bold text-white shadow-lg shadow-secondary/20 hover:scale-105 active:scale-95 transition-all">RSVP Now</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Rally Card 2: Fortnite -->
+<div class="glass-panel rounded-2xl p-6 relative group border-white/5 bg-surface-container-low">
+<div class="flex gap-6">
+<div class="w-32 h-32 rounded-lg overflow-hidden flex-shrink-0 relative">
+<img class="w-full h-full object-cover" data-alt="Fortnite game landscape thumbnail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC5pk4zZLQtLawXsMumMFnv67ccgbevQ3InssaOLfO9YHzck5EZL6JRZh1hIL9oT_RmZGMy1Kg1sAlfCxWESEAomEI8i-Cbs7uVwUDa2bfBUALKaoQolRivBH29Jcgfx4sy0cTw-3KDOwvzooEGAACwJ5VDpb3_kNHhgLlE6GqRLFF7fcVdkaIXTUNudBw-UuEkDud9OHBxkyfzc-_hSWvOe-kuLaXtT7D5b64W2MELEe7o9dojffRPigGXWqrta4G1a5Qe2ZBPCf-C"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface to-transparent"></div>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-3 mb-1">
+<span class="text-[10px] font-bold text-primary border border-primary/30 px-2 py-0.5 rounded uppercase">Chill</span>
+<span class="text-xs font-medium text-outline">3:00 PM</span>
+</div>
+<h4 class="text-xl font-headline font-bold mb-4">Sunday Chill Custom Games</h4>
+<div class="flex justify-between items-center">
+<div class="space-y-1">
+<span class="text-[10px] font-bold text-outline uppercase">Any Roles (3/10)</span>
+<div class="flex -space-x-2">
+<img alt="Player 4" class="w-7 h-7 rounded-full border-2 border-[#1A1726]" data-alt="Player profile circle" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsOKIzWTWiySslYzKh3VsFVV5DqWClQ2O9GA6rf1nQgUEcfCR9P9n3JjIDjDIBNQYuQCP1mQ65IqtKjQ7nlRC1DBQoUdDGWH9dHrpAE9pT6PcStcblvdaPU74tWvjov33eQt82ke1oEnCYdd6zuUClupgYf2yXWZNdOHRDfkKqTB87-xUwDmmyMQz5rrJ-VNGlQlj3q0KqjoIFBiyTXUIljh-i-n1-j568pIAHjSqUjjKkcOXEIxqLUZNOW6JAFaneBu24dsKr0KBx"/>
+<img alt="Player 5" class="w-7 h-7 rounded-full border-2 border-[#1A1726]" data-alt="Player profile circle" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA97Y1GtwgDIAOmFRS9--QroqEL4A8utMUKX1N16bk__Hxq-xYABVAsFLNGPG8bzLnAuORvbZLic63_3nI8Hvr3SrP-mtj4ws2xneQ4rp0sYc_BQnAGlkc-4p6DpOsCftnDsH44CM7AtbEDzeYfFRSZ6fDzGDHFVz6ylDMY1gWqnxT-cf8jMlvStDwnqgzSyUmPlcXzO1I-twT7t3X3H0mmh9RTz1qVmqmk4Ham1FhIXJfZtSFvP-tLstugzkPv-HTzVLckpQ6UnctD"/>
+<img alt="Player 6" class="w-7 h-7 rounded-full border-2 border-[#1A1726]" data-alt="Player profile circle" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWkCh4vPKlkntwTQbfpcJR3DsZIPvPBOAKpFl34nf3cleGxnyrif80X4i6acYLii9y_f1c9RmoAfKPNEn85BwmF3xxFlVZmRldU8rpOkeU6VteP1msHD6uZZLD19Iz_hJmOz4l8QBeyf2sqPS__U8KngGDK0I-KkS6SZIA5snX1ZeQQco0QDzsDHTPwVd4aW7a5E2Pr1cJPPusUkL1OW_iQC4InzgKoG3YJa20V2neXGtKoP0wR-akHmPUxcCCsi4EDDxxY_xWZm_H"/>
+</div>
+</div>
+<button class="px-6 py-2 border border-secondary text-secondary rounded-full text-xs font-bold hover:bg-secondary/10 active:scale-95 transition-all">Join Lobby</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- FAB Suppression for Event/Details focused screen as per guidelines -->
+</body></html>

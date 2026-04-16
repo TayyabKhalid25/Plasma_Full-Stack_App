@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Rajdhani:wght@600;700&amp;family=Space+Grotesk:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-surface": "#e6e0ee",
+              "on-background": "#e6e0ee",
+              "on-secondary-fixed-variant": "#90003e",
+              "surface-bright": "#3b3842",
+              "surface-variant": "#36333e",
+              "on-tertiary-fixed-variant": "#474458",
+              "error-container": "#93000a",
+              "surface-tint": "#d1bcff",
+              "surface-container-high": "#2b2933",
+              "secondary-fixed-dim": "#ffb1c1",
+              "surface-container-low": "#1c1a24",
+              "primary": "#d1bcff",
+              "tertiary-container": "#4b485c",
+              "error": "#ffb4ab",
+              "primary-container": "#563895",
+              "surface-dim": "#14121b",
+              "surface-container-lowest": "#0f0d16",
+              "surface-container": "#211e28",
+              "on-tertiary": "#312e41",
+              "tertiary": "#c8c3db",
+              "secondary-container": "#e40468",
+              "surface": "#14121b",
+              "on-error-container": "#ffdad6",
+              "inverse-on-surface": "#322f39",
+              "primary-fixed-dim": "#d1bcff",
+              "on-tertiary-fixed": "#1c192b",
+              "surface-container-highest": "#36333e",
+              "on-tertiary-container": "#bcb7cf",
+              "tertiary-fixed-dim": "#c8c3db",
+              "on-primary": "#3b1979",
+              "on-secondary": "#66002a",
+              "secondary": "#ffb1c1",
+              "outline-variant": "#494551",
+              "on-primary-fixed": "#24005b",
+              "on-secondary-container": "#fffbff",
+              "on-surface-variant": "#cbc4d3",
+              "background": "#14121b",
+              "on-secondary-fixed": "#3f0017",
+              "on-error": "#690005",
+              "secondary-fixed": "#ffd9df",
+              "on-primary-fixed-variant": "#523491",
+              "on-primary-container": "#c7aeff",
+              "inverse-primary": "#6a4daa",
+              "primary-fixed": "#eaddff",
+              "inverse-surface": "#e6e0ee",
+              "outline": "#948e9c",
+              "tertiary-fixed": "#e5dff8"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Inter"],
+              "label": ["Inter"],
+              "technical": ["Rajdhani"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(26, 23, 38, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(248, 249, 250, 0.1);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #494551;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body min-h-screen flex items-center justify-center p-4">
+<!-- Modal Backdrop -->
+<div class="fixed inset-0 bg-[#0D0B14]/70 backdrop-blur-sm z-[60] flex items-center justify-center">
+<!-- Edit Profile Modal -->
+<div class="glass-panel w-full max-w-[480px] rounded-[16px] p-8 shadow-[0_0_40px_rgba(86,56,149,0.15)] flex flex-col relative max-h-[921px]">
+<!-- Header -->
+<div class="flex justify-between items-center mb-8">
+<h1 class="font-technical font-[600] text-[24px] tracking-wide text-on-surface uppercase">Edit Profile</h1>
+<button class="text-on-surface-variant hover:text-white transition-colors">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</div>
+<!-- Scrollable Content -->
+<div class="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-8">
+<!-- Avatar Section -->
+<div class="flex flex-col items-center">
+<div class="relative group cursor-pointer w-24 h-24 rounded-full overflow-hidden border-2 border-primary/20 shadow-[0_0_15px_rgba(86,56,149,0.3)]">
+<img alt="Profile avatar" class="w-full h-full object-cover" data-alt="Gamer profile avatar with purple neon lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC5rWfXbi7FMlJMYK9LYJGWP8nHusAr8F_Jkj3hYObZ6VVyzlkCJl3FPRkVAbK2KpOa5YbcnXRCc6hIpbB933FR25vOYhWhfII2isp8UFJ_gbXTHA-vhBUjlEhruMRtLJfqL7HU_4YrGk3ZRAt4R_El5D83MEovfgTFDaDFSI5fmhoBzuo-28TE2DPN8oTQLAnGeE5vtHC8wPoA86Ks8D2RGiXdMsmIwjwboOa0vvWIiVtAwp66lyX0MwyDKOQYY7PXrCpNhSD6fS6i"/>
+<div class="absolute inset-0 bg-[#0D0B14]/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity duration-300">
+<span class="material-symbols-outlined text-white text-xl mb-1" data-icon="photo_camera">photo_camera</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter text-white">Change</span>
+</div>
+</div>
+</div>
+<!-- Fields -->
+<div class="space-y-6">
+<!-- Display Name -->
+<div class="space-y-2">
+<label class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant px-1">Display Name</label>
+<input class="w-full bg-surface-container-lowest border-none rounded-xl px-4 py-3 text-on-surface focus:ring-2 focus:ring-primary-container transition-all outline-none placeholder:text-outline/50 font-medium" type="text" value="Wahaj"/>
+</div>
+<!-- Bio -->
+<div class="space-y-2">
+<label class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant px-1">Bio</label>
+<textarea class="w-full bg-surface-container-lowest border-none rounded-xl px-4 py-3 text-on-surface focus:ring-2 focus:ring-primary-container transition-all outline-none placeholder:text-outline/50 h-24 resize-none font-medium text-sm" placeholder="Tell your squad about yourself..."></textarea>
+</div>
+<!-- Intent Mode -->
+<div class="space-y-2">
+<label class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant px-1">Default Intent Mode</label>
+<div class="relative">
+<select class="w-full bg-surface-container-lowest border-none rounded-xl px-4 py-3 text-on-surface focus:ring-2 focus:ring-primary-container transition-all outline-none appearance-none font-medium">
+<option value="competitive">Competitive</option>
+<option selected="" value="casual">Casual</option>
+<option value="lfg">LFG</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+<!-- Linked Accounts -->
+<div class="space-y-3">
+<label class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant px-1">Linked Accounts</label>
+<div class="flex items-center justify-between bg-surface-container/50 p-4 rounded-xl border border-white/5">
+<div class="flex items-center gap-3">
+<div class="bg-surface-container-highest p-2 rounded-lg">
+<span class="material-symbols-outlined text-[#8A869C]" data-icon="sports_esports">sports_esports</span>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-bold text-on-surface">Steam ID: 76561198</span>
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+<span class="text-[10px] font-bold text-emerald-500 uppercase">Connected</span>
+</div>
+</div>
+</div>
+<button class="text-[#E74C3C] text-[11px] font-bold uppercase hover:underline transition-all">Disconnect</button>
+</div>
+</div>
+<!-- Notifications -->
+<div class="space-y-4 pt-2">
+<label class="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant px-1">Notifications</label>
+<!-- Toggle Row 1 -->
+<div class="flex items-center justify-between">
+<span class="text-sm font-medium text-on-surface">Rally Reminders</span>
+<button class="w-10 h-5 bg-primary-container rounded-full relative transition-colors duration-200">
+<span class="absolute right-1 top-1 w-3 h-3 bg-white rounded-full shadow-sm"></span>
+</button>
+</div>
+<!-- Toggle Row 2 -->
+<div class="flex items-center justify-between">
+<span class="text-sm font-medium text-on-surface">Friend Activity</span>
+<button class="w-10 h-5 bg-primary-container rounded-full relative transition-colors duration-200">
+<span class="absolute right-1 top-1 w-3 h-3 bg-white rounded-full shadow-sm"></span>
+</button>
+</div>
+<!-- Toggle Row 3 -->
+<div class="flex items-center justify-between">
+<span class="text-sm font-medium text-on-surface-variant">Achievement Alerts</span>
+<button class="w-10 h-5 bg-outline-variant/50 rounded-full relative transition-colors duration-200">
+<span class="absolute left-1 top-1 w-3 h-3 bg-white rounded-full shadow-sm"></span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Actions -->
+<div class="flex items-center gap-4 mt-10">
+<button class="flex-1 py-3 px-6 rounded-full border border-outline-variant text-on-surface-variant font-bold text-sm uppercase tracking-wider hover:bg-white/5 transition-all">
+                    Cancel
+                </button>
+<button class="flex-1 py-3 px-6 rounded-full bg-primary-container text-white font-bold text-sm uppercase tracking-wider shadow-[0_4px_15px_rgba(86,56,149,0.4)] hover:shadow-[0_4px_25px_rgba(86,56,149,0.6)] hover:-translate-y-0.5 active:scale-95 transition-all">
+                    Save Changes
+                </button>
+</div>
+</div>
+</div>
+<!-- Background Decoration -->
+<div class="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden pointer-events-none">
+<div class="absolute top-[10%] left-[20%] w-[500px] h-[500px] bg-primary-container/10 blur-[120px] rounded-full"></div>
+<div class="absolute bottom-[10%] right-[20%] w-[400px] h-[400px] bg-secondary-container/10 blur-[120px] rounded-full"></div>
+</div>
+</body></html>

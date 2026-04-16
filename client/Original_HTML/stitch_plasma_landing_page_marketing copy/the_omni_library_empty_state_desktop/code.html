@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Omni-Library | The Neon Observatory</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800;900&amp;family=Inter:wght@300;400;500;600;700&amp;family=Rajdhani:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-secondary-container": "#fffbff",
+                        "surface-container": "#211e28",
+                        "on-tertiary": "#312e41",
+                        "on-surface": "#e6e0ee",
+                        "surface-dim": "#14121b",
+                        "surface-container-low": "#1c1a24",
+                        "secondary-container": "#e40468",
+                        "primary-fixed": "#eaddff",
+                        "background": "#14121b",
+                        "surface-bright": "#3b3842",
+                        "surface": "#14121b",
+                        "surface-container-high": "#2b2933",
+                        "inverse-on-surface": "#322f39",
+                        "on-error": "#690005",
+                        "error-container": "#93000a",
+                        "error": "#ffb4ab",
+                        "tertiary": "#c8c3db",
+                        "surface-container-lowest": "#0f0d16",
+                        "surface-tint": "#d1bcff",
+                        "secondary-fixed": "#ffd9df",
+                        "inverse-surface": "#e6e0ee",
+                        "on-primary-container": "#c7aeff",
+                        "on-tertiary-fixed": "#1c192b",
+                        "tertiary-container": "#4b485c",
+                        "on-primary-fixed-variant": "#523491",
+                        "tertiary-fixed-dim": "#c8c3db",
+                        "primary": "#d1bcff",
+                        "primary-fixed-dim": "#d1bcff",
+                        "on-tertiary-fixed-variant": "#474458",
+                        "on-secondary": "#66002a",
+                        "inverse-primary": "#6a4daa",
+                        "on-error-container": "#ffdad6",
+                        "secondary-fixed-dim": "#ffb1c1",
+                        "outline-variant": "#494551",
+                        "on-secondary-fixed": "#3f0017",
+                        "primary-container": "#563895",
+                        "secondary": "#ffb1c1",
+                        "surface-container-highest": "#36333e",
+                        "tertiary-fixed": "#e5dff8",
+                        "surface-variant": "#36333e",
+                        "on-tertiary-container": "#bcb7cf",
+                        "on-primary-fixed": "#24005b",
+                        "on-background": "#e6e0ee",
+                        "on-secondary-fixed-variant": "#90003e",
+                        "outline": "#948e9c",
+                        "on-surface-variant": "#cbc4d3",
+                        "on-primary": "#3b1979"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Inter"],
+                        "technical": ["Rajdhani"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(26, 23, 38, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(248, 249, 250, 0.1);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .tonal-shift {
+            background: linear-gradient(180deg, #1A1726 0%, #14121B 100%);
+        }
+    </style>
+</head>
+<body class="bg-[#0D0B14] text-[#F8F9FA] font-body selection:bg-[#FF2A7A] selection:text-white">
+<!-- Top Navigation Bar -->
+<nav class="fixed top-0 z-50 w-full h-20 px-6 flex justify-between items-center bg-[#0D0B14] dark:bg-[#0D0B14] backdrop-blur-lg bg-opacity-60 border-b border-[#F8F9FA]/10 shadow-[0_0_40px_rgba(86,56,149,0.1)]">
+<div class="flex items-center gap-8">
+<span class="text-2xl font-black text-[#F8F9FA] tracking-tighter uppercase font-headline">Omni-Library</span>
+<div class="hidden md:flex gap-6 items-center">
+<a class="text-[#8A869C] font-['Space_Grotesk'] font-bold tracking-tight hover:text-[#FF2A7A] transition-colors duration-300" href="#">Pulse</a>
+<a class="text-[#8A869C] font-['Space_Grotesk'] font-bold tracking-tight hover:text-[#FF2A7A] transition-colors duration-300" href="#">Rally</a>
+<a class="text-[#FF2A7A] font-bold font-['Space_Grotesk'] tracking-tight" href="#">Library</a>
+<a class="text-[#8A869C] font-['Space_Grotesk'] font-bold tracking-tight hover:text-[#FF2A7A] transition-colors duration-300" href="#">Prestige</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-[#8A869C] hover:text-[#FF2A7A] transition-colors scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined">sensors</span>
+</button>
+<button class="p-2 text-[#8A869C] hover:text-[#FF2A7A] transition-colors scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined">toggle_on</span>
+</button>
+<div class="w-10 h-10 rounded-full border-2 border-[#563895] overflow-hidden">
+<img alt="User profile" data-alt="User profile avatar with purple glow" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC61TUk5Ysmo1A9zKJc-QKysxPzppw97ex_oF_SkdK-AhTBuA-HPSYkXj7sBUAAucKw8psY6pWu2XMBEh3tcZzBSxn1fHcuUinzePWZp0M1u84-tL3hpRo8PpseHnbujFQ2h_atI24FCOX22jACwap5lET4MM61gqLXoyqFv87Vf14tPha-A-Bu2YN9rBkLhmH7vlLCt9ObYh17YWNStJQ0rUJoqxEaMRIwASOS-6m3f6qGraR6wrWrvdsFj-VH7bzrvunkRbQOtsEL"/>
+</div>
+</div>
+</nav>
+<!-- Side Navigation Bar -->
+<aside class="fixed left-0 top-0 h-full w-64 pt-24 z-40 bg-[#1A1726] dark:bg-[#1A1726] flex flex-col tonal-shift border-r border-[#F8F9FA]/5">
+<div class="px-6 mb-8">
+<h2 class="text-[#F8F9FA] font-technical font-bold text-lg uppercase tracking-wider">The Neon Observatory</h2>
+<p class="text-[#8A869C] text-xs font-headline uppercase tracking-widest mt-1">Global squad status</p>
+</div>
+<nav class="flex-1 flex flex-col">
+<a class="flex items-center gap-4 px-6 py-4 text-[#8A869C] font-headline uppercase text-xs tracking-widest hover:text-[#F8F9FA] hover:bg-[#F8F9FA]/5 transition-all" href="#">
+<span class="material-symbols-outlined text-lg">monitor_heart</span>
+<span>Pulse</span>
+</a>
+<a class="flex items-center gap-4 px-6 py-4 text-[#8A869C] font-headline uppercase text-xs tracking-widest hover:text-[#F8F9FA] hover:bg-[#F8F9FA]/5 transition-all" href="#">
+<span class="material-symbols-outlined text-lg">groups</span>
+<span>Rally</span>
+</a>
+<a class="flex items-center gap-4 px-6 py-4 text-[#F8F9FA] border-r-4 border-[#FF2A7A] bg-gradient-to-r from-[#563895]/20 to-transparent font-headline uppercase text-xs tracking-widest" href="#">
+<span class="material-symbols-outlined text-lg">library_books</span>
+<span>Library</span>
+</a>
+<a class="flex items-center gap-4 px-6 py-4 text-[#8A869C] font-headline uppercase text-xs tracking-widest hover:text-[#F8F9FA] hover:bg-[#F8F9FA]/5 transition-all" href="#">
+<span class="material-symbols-outlined text-lg">military_tech</span>
+<span>Prestige</span>
+</a>
+</nav>
+<div class="p-6">
+<button class="w-full py-3 rounded-full bg-gradient-to-r from-[#563895] to-[#FF2A7A] text-white font-bold text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(255,42,122,0.3)] hover:shadow-[0_0_30px_rgba(255,42,122,0.5)] transition-all">
+                Join Squad
+            </button>
+</div>
+<div class="mt-auto border-t border-[#F8F9FA]/5 py-4">
+<a class="flex items-center gap-4 px-6 py-3 text-[#8A869C] font-headline uppercase text-xs tracking-widest hover:text-[#F8F9FA] transition-all" href="#">
+<span class="material-symbols-outlined text-lg">settings</span>
+<span>Settings</span>
+</a>
+<a class="flex items-center gap-4 px-6 py-3 text-[#8A869C] font-headline uppercase text-xs tracking-widest hover:text-[#F8F9FA] transition-all" href="#">
+<span class="material-symbols-outlined text-lg">help</span>
+<span>Support</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-64 pt-32 pb-20 px-10 flex flex-col items-center min-h-screen">
+<div class="w-full max-w-[960px]">
+<!-- Library Header -->
+<div class="mb-10 text-center md:text-left">
+<h1 class="font-technical font-bold text-[32px] text-[#F8F9FA]">The Omni-Library</h1>
+<!-- Search Bar -->
+<div class="mt-8 flex justify-center md:justify-start">
+<div class="relative w-full max-w-[600px] group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#8A869C] group-focus-within:text-[#563895] transition-colors">search</span>
+<input class="w-full bg-[#28243D] border-none rounded-[8px] py-[14px] pl-12 pr-4 text-[#F8F9FA] placeholder:text-[#8A869C] focus:ring-1 focus:ring-[#563895] transition-all" placeholder="Search any game..." type="text"/>
+</div>
+</div>
+<!-- Filter Pills (Disabled/Grayed Out) -->
+<div class="mt-6 flex gap-3 overflow-x-auto hide-scrollbar pb-2 opacity-50 cursor-not-allowed">
+<button class="px-6 py-2 rounded-full bg-[#28243D] text-[#8A869C] font-medium text-sm whitespace-nowrap pointer-events-none">All</button>
+<button class="px-6 py-2 rounded-full bg-[#28243D] text-[#8A869C] font-medium text-sm whitespace-nowrap pointer-events-none">Currently Playing</button>
+<button class="px-6 py-2 rounded-full bg-[#28243D] text-[#8A869C] font-medium text-sm whitespace-nowrap pointer-events-none">Steam</button>
+<button class="px-6 py-2 rounded-full bg-[#28243D] text-[#8A869C] font-medium text-sm whitespace-nowrap pointer-events-none">Non-Steam</button>
+<button class="px-6 py-2 rounded-full bg-[#28243D] text-[#8A869C] font-medium text-sm whitespace-nowrap pointer-events-none">PlayStation</button>
+<button class="px-6 py-2 rounded-full bg-[#28243D] text-[#8A869C] font-medium text-sm whitespace-nowrap pointer-events-none">Xbox</button>
+</div>
+</div>
+<!-- Empty State Content Area -->
+<div class="flex flex-col items-center justify-center py-24 text-center">
+<!-- Ghost Controller Icon -->
+<div class="mb-6 flex items-center justify-center text-[#28243D]">
+<span class="material-symbols-outlined !text-[120px] leading-none">videogame_asset</span>
+</div>
+<!-- Text Content -->
+<h3 class="font-technical font-semibold text-2xl text-[#F8F9FA] mb-2">Your shelf is empty</h3>
+<p class="font-body font-normal text-[15px] text-[#8A869C] max-width-[320px] mx-auto mb-8">
+                    Search for a game above to start building your collection.
+                </p>
+<!-- Action Button -->
+<button class="px-10 py-3 rounded-full bg-gradient-to-r from-[#563895] to-[#FF2A7A] text-white font-bold text-sm uppercase tracking-widest shadow-[0_0_20px_rgba(255,42,122,0.3)] hover:shadow-[0_0_30px_rgba(255,42,122,0.5)] transition-all">
+                    Search Games
+                </button>
+</div>
+</div>
+</main>
+</body></html>
