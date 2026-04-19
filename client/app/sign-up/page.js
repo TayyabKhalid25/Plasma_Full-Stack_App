@@ -17,7 +17,7 @@ const gridFields = [
 
 const SectionLeftSideSubsection = () => {
   return (
-    <div className="flex flex-col items-center justify-center px-6 py-12 flex-1 self-stretch grow z-[1] bg-[#0d0b14]">
+    <div className="flex flex-col items-center justify-center px-6 py-12 flex-1 self-stretch grow z-[1] bg-plasma-bg">
       <div className="flex flex-col max-w-[460px] w-full items-start">
         {/* Logo area */}
         <div className="inline-flex flex-col items-start pt-8 pb-0 px-0">
@@ -30,10 +30,10 @@ const SectionLeftSideSubsection = () => {
         <div className="flex flex-col items-start justify-between pl-0 pr-10 py-10 self-stretch w-full gap-6">
           {/* Heading section */}
           <div className="pt-6 pb-0 px-0 flex flex-col items-start self-stretch w-full gap-1">
-            <h1 className="font-display font-bold text-[#e6e0ee] text-[32px] tracking-[0] leading-8 self-stretch">
+            <h1 className="font-display font-bold text-plasma-text-heading text-[32px] tracking-[0] leading-8 self-stretch">
               Create Your Account
             </h1>
-            <p className="font-sans font-medium text-[#cbc4d3] text-sm tracking-[0] leading-5 self-stretch">
+            <p className="font-sans font-medium text-plasma-text-muted text-sm tracking-[0] leading-5 self-stretch">
               Join the squad and sync your Steam library in seconds.
             </p>
           </div>
@@ -48,7 +48,7 @@ const SectionLeftSideSubsection = () => {
                     <div key={field.id} className="flex flex-col gap-1.5 w-full">
                       <Label
                         htmlFor={field.id}
-                        className="font-sans font-medium text-[#cbc4d3] text-[13px] leading-[19.5px] whitespace-nowrap pl-1"
+                        className="font-sans font-medium text-plasma-text-muted text-[13px] leading-[19.5px] whitespace-nowrap pl-1"
                       >
                         {field.label}
                       </Label>
@@ -56,7 +56,7 @@ const SectionLeftSideSubsection = () => {
                         id={field.id}
                         type={field.type}
                         placeholder={field.type !== "password" ? field.placeholder : ""}
-                        className="bg-[#1A1726]/50 text-white rounded-xl border border-solid border-[#cbc4d340] font-sans font-normal text-sm leading-normal placeholder:text-[#cbc4d366] py-[11px] px-4 min-h-[44px] transition-all focus-visible:border-plasma-primary"
+                        className="bg-plasma-slate/50 text-white rounded-xl border border-solid border-plasma-text-muted/25 font-sans font-normal text-sm leading-normal placeholder:text-plasma-text-muted/40 py-[11px] px-4 min-h-[44px] transition-all focus-visible:border-plasma-primary"
                       />
                     </div>
                   ))}
@@ -67,19 +67,19 @@ const SectionLeftSideSubsection = () => {
               <div className="flex flex-col gap-1.5 w-full">
                 <Label
                   htmlFor="dob"
-                  className="font-sans font-medium text-[#cbc4d3] text-[13px] leading-[19.5px] whitespace-nowrap pl-1"
+                  className="font-sans font-medium text-plasma-text-muted text-[13px] leading-[19.5px] whitespace-nowrap pl-1"
                 >
                   Date of Birth
                 </Label>
-                <div className="flex w-full items-center px-4 py-2 min-h-[44px] bg-[#1A1726]/50 rounded-xl overflow-hidden border border-solid border-[#cbc4d340] transition-all hover:border-plasma-primary/50 cursor-pointer">
+                <div className="flex w-full items-center px-4 py-2 min-h-[44px] bg-plasma-slate/50 rounded-xl overflow-hidden border border-solid border-plasma-text-muted/25 transition-all hover:border-plasma-primary/50 cursor-pointer">
                   <div className="flex items-center flex-1 gap-1 select-none pointer-events-none">
-                    <span className="font-sans font-normal text-[#cbc4d366] text-sm leading-5">mm</span>
-                    <span className="font-sans font-normal text-[#cbc4d366] text-sm leading-5">/</span>
-                    <span className="font-sans font-normal text-[#cbc4d366] text-sm leading-5">dd</span>
-                    <span className="font-sans font-normal text-[#cbc4d366] text-sm leading-5">/</span>
-                    <span className="font-sans font-normal text-[#cbc4d366] text-sm leading-5">yyyy</span>
+                    <span className="font-sans font-normal text-plasma-text-muted/40 text-sm leading-5">mm</span>
+                    <span className="font-sans font-normal text-plasma-text-muted/40 text-sm leading-5">/</span>
+                    <span className="font-sans font-normal text-plasma-text-muted/40 text-sm leading-5">dd</span>
+                    <span className="font-sans font-normal text-plasma-text-muted/40 text-sm leading-5">/</span>
+                    <span className="font-sans font-normal text-plasma-text-muted/40 text-sm leading-5">yyyy</span>
                   </div>
-                  <CalendarIcon className="w-[18px] h-[18px] text-[#cbc4d399] shrink-0 pointer-events-none" />
+                  <CalendarIcon className="w-[18px] h-[18px] text-plasma-text-muted/60 shrink-0 pointer-events-none" />
                 </div>
               </div>
               
@@ -96,12 +96,12 @@ const SectionLeftSideSubsection = () => {
                   href="/login"
                   className="flex items-center justify-center font-sans font-normal text-[13px] text-center tracking-[0] leading-[19.5px] gap-1.5"
                 >
-                  <span className="text-[#cbc4d3]">Already have an account?</span>
+                  <span className="text-plasma-text-muted">Already have an account?</span>
                   <span className="text-plasma-secondary hover:text-plasma-primary font-medium transition-colors">Sign In</span>
                 </Link>
               </div>
               <div className="flex flex-col max-w-[280px] w-full items-center opacity-60">
-                <p className="font-sans font-normal text-[#cbc4d3] text-[11px] text-center tracking-[0] leading-[17.9px]">
+                <p className="font-sans font-normal text-plasma-text-muted text-[11px] text-center tracking-[0] leading-[17.9px]">
                   <span>By joining, you agree to our </span>
                   <span className="underline cursor-pointer hover:text-white transition-colors">Terms</span>
                   <span> and </span>
@@ -134,7 +134,7 @@ const SectionRightSideSubsection = () => {
       
       {/* Bottom-right watermark */}
       <div className="inline-flex flex-col items-start absolute right-8 bottom-8 opacity-20 pointer-events-none select-none">
-        <div className="flex items-center w-[196px] h-6 font-display font-bold text-[#f8f9fa4c] text-base tracking-[1.60px] leading-6 whitespace-nowrap relative mt-[-1.00px]">
+        <div className="flex items-center w-[196px] h-6 font-display font-bold text-plasma-text-primary/30 text-base tracking-[1.60px] leading-6 whitespace-nowrap relative mt-[-1.00px]">
           NEON OBSERVATORY v2.4
         </div>
       </div>
@@ -145,10 +145,10 @@ const SectionRightSideSubsection = () => {
         {/* Card 1: Squad live activity */}
         <div className="flex max-w-[280px] w-[280px] items-center gap-4 p-6 relative flex-[0_0_auto] bg-[#1a172699] rounded-2xl border border-solid border-white/10 backdrop-blur-md shadow-2xl transition-transform hover:-translate-y-1">
           <div className="flex w-10 h-10 items-center justify-center relative bg-[#ffb1c133] rounded-full shrink-0">
-            <span className="text-xl leading-7 text-[#e6e0ee]">🎮</span>
+            <span className="text-xl leading-7 text-plasma-text-heading">🎮</span>
           </div>
           <div className="inline-flex flex-col items-start relative flex-[0_0_auto]">
-            <p className="font-sans font-medium text-[#f8f9fa] text-sm tracking-[0] leading-[17.5px] relative mt-[-1.00px]">
+            <p className="font-sans font-medium text-plasma-text-primary text-sm tracking-[0] leading-[17.5px] relative mt-[-1.00px]">
               See your squad&apos;s live
               <br />
               activity
@@ -160,10 +160,10 @@ const SectionRightSideSubsection = () => {
         <div className="flex flex-col max-w-[328px] w-[328px] items-start pl-12 pr-0 py-0 relative flex-[0_0_auto]">
           <div className="flex max-w-[280px] items-center gap-4 p-6 relative w-full flex-[0_0_auto] bg-[#1a172699] rounded-2xl border border-solid border-white/10 backdrop-blur-md shadow-2xl transition-transform hover:-translate-y-1">
             <div className="bg-[#d1bcff33] flex w-10 h-10 items-center justify-center relative rounded-full shrink-0">
-              <span className="text-xl leading-7 text-[#e6e0ee]">📅</span>
+              <span className="text-xl leading-7 text-plasma-text-heading">📅</span>
             </div>
             <div className="inline-flex flex-col items-start relative flex-[0_0_auto]">
-              <p className="font-sans font-medium text-[#f8f9fa] text-sm tracking-[0] leading-[17.5px] relative mt-[-1.00px]">
+              <p className="font-sans font-medium text-plasma-text-primary text-sm tracking-[0] leading-[17.5px] relative mt-[-1.00px]">
                 Schedule gaming
                 <br />
                 sessions effortlessly
@@ -176,10 +176,10 @@ const SectionRightSideSubsection = () => {
         <div className="relative max-w-[280px] w-[280px] h-[90px] -left-6">
           <div className="flex max-w-[280px] w-full items-center gap-4 p-6 relative bg-[#1a172699] rounded-2xl border border-solid border-white/10 backdrop-blur-md shadow-2xl transition-transform hover:-translate-y-1">
             <div className="bg-[#e4046833] flex w-10 h-10 items-center justify-center relative rounded-full shrink-0">
-              <span className="text-xl leading-7 text-[#e6e0ee]">🏆</span>
+              <span className="text-xl leading-7 text-plasma-text-heading">🏆</span>
             </div>
             <div className="inline-flex flex-col items-start relative flex-[0_0_auto]">
-              <p className="font-sans font-medium text-[#f8f9fa] text-sm tracking-[0] leading-[17.5px] relative mt-[-1.00px]">
+              <p className="font-sans font-medium text-plasma-text-primary text-sm tracking-[0] leading-[17.5px] relative mt-[-1.00px]">
                 Track achievements
                 <br />
                 across all platforms
@@ -196,7 +196,7 @@ const SectionRightSideSubsection = () => {
 // Sign Up screen — /sign-up route
 export default function SignUpPage() {
   return (
-    <main className="flex min-h-screen w-full flex-col lg:flex-row bg-[#0d0b14] overflow-hidden selection:bg-plasma-primary selection:text-white">
+    <main className="flex min-h-screen w-full flex-col lg:flex-row bg-plasma-bg overflow-hidden selection:bg-plasma-primary selection:text-white">
       <SectionLeftSideSubsection />
       <SectionRightSideSubsection />
     </main>

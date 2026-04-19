@@ -27,6 +27,8 @@ module.exports = {
           secondary: "#FF2A7A",
           "text-primary": "#F8F9FA",
           "text-secondary": "#8A869C",
+          "text-muted": "#CBC4D3",
+          "text-heading": "#E6E0EE",
           success: "#2ECC71",
           warning: "#F1C40F",
           error: "#E74C3C",
