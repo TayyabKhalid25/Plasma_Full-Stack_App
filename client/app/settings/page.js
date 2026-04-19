@@ -4,7 +4,7 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
   User, Mail, Lock, Bell, BellOff, Eye, EyeOff, Link2, Unlink, Shield,
-  Palette, Trash2, Download, Save, Check, ChevronRight
+  Trash2, Download, Save, Check, ChevronRight
 } from "lucide-react";
 import Image from "next/image";
 import { userSettings as initialSettings } from "@/data/dummy";
@@ -14,7 +14,7 @@ const sectionNav = [
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "privacy", label: "Privacy", icon: Shield },
   { id: "connections", label: "Connected Accounts", icon: Link2 },
-  { id: "appearance", label: "Appearance", icon: Palette },
+
   { id: "danger", label: "Danger Zone", icon: Trash2 },
 ];
 
@@ -231,35 +231,6 @@ export default function SettingsPage() {
               </section>
             )}
 
-            {/* Appearance */}
-            {activeSection === "appearance" && (
-              <section className="bg-plasma-slate rounded-2xl border border-white/5 p-6 animate-fade-in">
-                <h2 className="font-display font-bold text-lg text-plasma-text-primary mb-6">Appearance</h2>
-
-                <SettingRow label="Theme" description="Dark mode is the only way to game">
-                  <div className="flex gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-plasma-bg border-2 border-plasma-primary flex items-center justify-center cursor-pointer">
-                      <Check className="w-4 h-4 text-plasma-primary" />
-                    </div>
-                    <div className="w-10 h-10 rounded-xl bg-gray-200 border-2 border-transparent opacity-40 cursor-not-allowed" title="Light mode coming soon" />
-                  </div>
-                </SettingRow>
-
-                <SettingRow label="Accent Color" description="Customize your primary accent">
-                  <div className="flex gap-2">
-                    {["#563895", "#FF2A7A", "#2ECC71", "#3498DB", "#F1C40F"].map((color) => (
-                      <button
-                        key={color}
-                        className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 cursor-pointer ${
-                          color === "#563895" ? "border-white scale-110" : "border-transparent"
-                        }`}
-                        style={{ backgroundColor: color }}
-                      />
-                    ))}
-                  </div>
-                </SettingRow>
-              </section>
-            )}
 
             {/* Danger Zone */}
             {activeSection === "danger" && (
