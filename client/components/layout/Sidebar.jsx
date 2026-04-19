@@ -1,67 +1,16 @@
 "use client";
 
-import { Activity, Calendar, Library, Trophy } from "lucide-react";
+import { Activity, Calendar, Library, Trophy, Settings, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { squadMembers } from "@/data/dummy";
 
 const navItems = [
   { id: "/pulse", label: "PULSE", icon: Activity },
   { id: "/rally", label: "RALLY", icon: Calendar },
   { id: "/library", label: "OMNI LIBRARY", icon: Library },
   { id: "/prestige", label: "PRESTIGE", icon: Trophy },
-];
-
-const squadMembers = [
-  {
-    id: "wahaj",
-    name: "Wahaj",
-    status: "Playing Valorant",
-    // TODO: REPLACE_IMAGE - Squad member avatar
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Wahaj",
-    online: true,
-    borderColor: null,
-    offline: false,
-  },
-  {
-    id: "ahmed",
-    name: "Ahmed",
-    status: "Menu",
-    // TODO: REPLACE_IMAGE - Squad member avatar
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ahmed",
-    online: true,
-    borderColor: "#2ecc71",
-    offline: false,
-  },
-  {
-    id: "sarah",
-    name: "Sarah",
-    status: "Helldivers 2",
-    // TODO: REPLACE_IMAGE - Squad member avatar
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-    online: true,
-    borderColor: "#2ecc71",
-    offline: false,
-  },
-  {
-    id: "ali",
-    name: "Ali",
-    status: "In-Queue",
-    // TODO: REPLACE_IMAGE - Squad member avatar
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ali",
-    online: true,
-    borderColor: "#ff2a7a",
-    offline: false,
-  },
-  {
-    id: "omar",
-    name: "Omar",
-    status: "Offline",
-    // TODO: REPLACE_IMAGE - Squad member avatar
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Omar",
-    online: false,
-    borderColor: "#28243d",
-    offline: true,
-  },
+  { id: "/messages", label: "MESSAGES", icon: MessageSquare },
 ];
 
 export const Sidebar = ({ onOpenDrawer }) => {
@@ -96,6 +45,22 @@ export const Sidebar = ({ onOpenDrawer }) => {
           );
         })}
       </div>
+
+      {/* Settings link */}
+      <div className="px-6 pb-4 w-full">
+        <Link
+          href="/settings"
+          className={`flex items-center gap-4 px-2 py-2.5 rounded-lg w-full transition-colors ${
+            pathname === "/settings"
+              ? "bg-plasma-primary/15 text-plasma-text-primary"
+              : "text-plasma-text-secondary hover:bg-white/5 hover:text-plasma-text-primary"
+          }`}
+        >
+          <Settings className="w-4 h-4" />
+          <span className="font-display font-bold text-xs tracking-[1.40px]">SETTINGS</span>
+        </Link>
+      </div>
+
       <div className="h-[49px] p-6 self-stretch w-full flex flex-col items-start relative">
         <div className="relative self-stretch w-full h-px bg-plasma-slate-hover" />
       </div>

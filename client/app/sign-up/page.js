@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { CalendarIcon } from "lucide-react";
+import Image from "next/image";
+import { CalendarIcon, Gamepad2, Calendar, Trophy } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -21,9 +22,7 @@ const SectionLeftSideSubsection = () => {
       <div className="flex flex-col max-w-[460px] w-full items-start">
         {/* Logo area */}
         <div className="inline-flex flex-col items-start pt-8 pb-0 px-0">
-          <div className="text-3xl font-bold text-white font-display tracking-[0.15em]">
-            PLASMA
-          </div>
+          <Image src="/lockup.svg" alt="Plasma" width={150} height={32} className="h-8 w-auto brightness-0 invert" priority />
         </div>
         
         {/* Main content area */}
@@ -123,13 +122,17 @@ const SectionRightSideSubsection = () => {
       {/* Radial gradient background overlay */}
       <div className="absolute w-full h-full top-0 left-0" style={{ background: "radial-gradient(50% 50% at 50% 50%, rgba(86,56,149,0.15) 0%, rgba(86,56,149,0) 70%)" }} />
       
-      {/* Large background "P" letter */}
-      <div className="flex w-full h-full items-center justify-center absolute top-0 left-0 opacity-5 select-none pointer-events-none">
-        <div className="inline-flex flex-col items-start relative flex-[0_0_auto]">
-          <div className="flex items-center w-[318px] h-[900px] font-display font-bold text-plasma-primary text-[600px] tracking-[-0.05em] leading-[900px] whitespace-nowrap relative mt-[-1.00px] ml-[-120px]">
-            P
-          </div>
-        </div>
+      {/* Large background Logo */}
+      <div className="flex w-full h-full items-center justify-center absolute top-0 left-0 opacity-5 pointer-events-none select-none">
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          viewBox="0 0 394.31 468"
+          className="w-[600px] h-auto ml-[-120px] text-plasma-primary"
+          fill="currentColor"
+        >
+          <polygon points="0 0 0 99.37 96.23 99.37 100.17 99.37 292.56 99.37 292.56 241.68 197.16 241.68 197.16 331.59 197.16 331.98 197.16 338.66 297.59 338.66 299.5 336.34 394.31 241.86 394.31 0 0 0"/>
+          <polygon points="100.17 273.23 100.17 265.82 100.17 130.93 96.23 130.93 0 226.82 0 350.71 0 375.33 0 468 170.22 467.27 265.79 370.81 100.17 370.21 100.17 273.23"/>
+        </svg>
       </div>
       
       {/* Bottom-right watermark */}
@@ -145,7 +148,7 @@ const SectionRightSideSubsection = () => {
         {/* Card 1: Squad live activity */}
         <div className="flex max-w-[280px] w-[280px] items-center gap-4 p-6 relative flex-[0_0_auto] bg-[#1a172699] rounded-2xl border border-solid border-white/10 backdrop-blur-md shadow-2xl transition-transform hover:-translate-y-1">
           <div className="flex w-10 h-10 items-center justify-center relative bg-[#ffb1c133] rounded-full shrink-0">
-            <span className="text-xl leading-7 text-plasma-text-heading">🎮</span>
+            <Gamepad2 className="w-5 h-5 text-[#ffb1c1]" />
           </div>
           <div className="inline-flex flex-col items-start relative flex-[0_0_auto]">
             <p className="font-sans font-medium text-plasma-text-primary text-sm tracking-[0] leading-[17.5px] relative mt-[-1.00px]">
@@ -160,7 +163,7 @@ const SectionRightSideSubsection = () => {
         <div className="flex flex-col max-w-[328px] w-[328px] items-start pl-12 pr-0 py-0 relative flex-[0_0_auto]">
           <div className="flex max-w-[280px] items-center gap-4 p-6 relative w-full flex-[0_0_auto] bg-[#1a172699] rounded-2xl border border-solid border-white/10 backdrop-blur-md shadow-2xl transition-transform hover:-translate-y-1">
             <div className="bg-[#d1bcff33] flex w-10 h-10 items-center justify-center relative rounded-full shrink-0">
-              <span className="text-xl leading-7 text-plasma-text-heading">📅</span>
+              <Calendar className="w-5 h-5 text-[#d1bcff]" />
             </div>
             <div className="inline-flex flex-col items-start relative flex-[0_0_auto]">
               <p className="font-sans font-medium text-plasma-text-primary text-sm tracking-[0] leading-[17.5px] relative mt-[-1.00px]">
@@ -176,7 +179,7 @@ const SectionRightSideSubsection = () => {
         <div className="relative max-w-[280px] w-[280px] h-[90px] -left-6">
           <div className="flex max-w-[280px] w-full items-center gap-4 p-6 relative bg-[#1a172699] rounded-2xl border border-solid border-white/10 backdrop-blur-md shadow-2xl transition-transform hover:-translate-y-1">
             <div className="bg-[#e4046833] flex w-10 h-10 items-center justify-center relative rounded-full shrink-0">
-              <span className="text-xl leading-7 text-plasma-text-heading">🏆</span>
+              <Trophy className="w-5 h-5 text-[#e40468]" />
             </div>
             <div className="inline-flex flex-col items-start relative flex-[0_0_auto]">
               <p className="font-sans font-medium text-plasma-text-primary text-sm tracking-[0] leading-[17.5px] relative mt-[-1.00px]">

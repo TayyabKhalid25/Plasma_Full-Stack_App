@@ -178,6 +178,14 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: var(--color-plasma-primary);
   }
+
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @layer base {

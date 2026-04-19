@@ -1,15 +1,7 @@
 "use client";
 
-const trendingGames = [
-  { initials: "VL", bgColor: "#563895", name: "Valorant", count: "4 PLAYING" },
-  { initials: "CS", bgColor: "#ff2a7a", name: "CS2", count: "3 PLAYING" },
-  { initials: "HD", bgColor: "#2ecc71", name: "Helldivers 2", count: "2 PLAYING" },
-];
-
-const upcomingRallies = [
-  { title: "Friday Ranked", time: "Tomorrow 9PM", borderColor: "#563895" },
-  { title: "Sunday Chill", time: "In 3 days", borderColor: "#ff2a7a" },
-];
+import { trendingGames, upcomingRallies, currentUser } from "@/data/dummy";
+import Link from "next/link";
 
 export const RightRail = () => {
   return (
@@ -46,38 +38,39 @@ export const RightRail = () => {
         </div>
         <div className="flex flex-col items-start gap-4 relative self-stretch w-full">
           {upcomingRallies.map((rally) => (
-            <div 
-              key={rally.title} 
+            <Link 
+              key={rally.title}
+              href="/rally"
               className="flex flex-col gap-1 pl-3 border-l-2 cursor-pointer hover:opacity-80 transition-opacity"
               style={{ borderColor: rally.borderColor }}
             >
               <span className="font-sans font-bold text-plasma-text-primary text-xs">{rally.title}</span>
               <span className="font-sans text-plasma-text-secondary text-[10px]">{rally.time}</span>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
 
       {/* Prestige */}
-      <div className="flex flex-col items-start gap-4 p-4 relative self-stretch w-full bg-plasma-slate rounded-xl border border-white/5 overflow-hidden shadow-lg cursor-pointer hover:-translate-y-1 transition-transform">
+      <Link href="/prestige" className="flex flex-col items-start gap-4 p-4 relative self-stretch w-full bg-plasma-slate rounded-xl border border-white/5 overflow-hidden shadow-lg cursor-pointer hover:-translate-y-1 transition-transform">
         <div className="font-display font-bold text-plasma-text-secondary text-xs tracking-[1.80px] z-10">
           YOUR PRESTIGE
         </div>
         <div className="flex flex-col gap-2 w-full z-10">
           <div className="bg-primary-gradient bg-clip-text text-transparent font-mono font-bold text-xl">
-            12,450 XP
+            {currentUser.stats.xp} XP
           </div>
           <div className="flex items-center justify-between w-full gap-4">
             <div className="flex-1 h-1 bg-plasma-slate-hover rounded-full overflow-hidden">
               <div className="w-[65%] h-full bg-plasma-primary shadow-[0px_0px_8px_#563895]" />
             </div>
             <div className="px-2 py-0.5 bg-plasma-primary rounded-full">
-              <span className="font-sans font-bold text-white text-[10px]">RANK #42</span>
+              <span className="font-sans font-bold text-white text-[10px]">RANK #{currentUser.stats.globalRank}</span>
             </div>
           </div>
         </div>
         <div className="absolute -top-4 -right-4 w-20 h-20 bg-plasma-secondary blur-[20px] opacity-10" />
-      </div>
+      </Link>
     </div>
   );
 };
