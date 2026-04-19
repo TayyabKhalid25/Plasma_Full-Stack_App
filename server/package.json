@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "encrypt": "node utils/vault.js encrypt",
+    "decrypt": "node utils/vault.js decrypt",
+    "verify-db": "node utils/verify-schema.js"
   },
   "keywords": [],
   "author": "",
