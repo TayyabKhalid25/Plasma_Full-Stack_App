@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { CalendarIcon, Gamepad2, Calendar, Trophy, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
+import AuthRightPanel from "../../components/ui/AuthRightPanel";
+import LegalModal from "../../components/ui/LegalModal";
 import { useAuth } from "@/context/AuthContext";
 
 // Removed hardcoded grid fields since we need controlled inputs
@@ -20,6 +21,7 @@ const SectionLeftSideSubsection = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [legalModal, setLegalModal] = useState({ isOpen: false, type: null });
   const { login } = useAuth();
   const router = useRouter();
 
@@ -49,200 +51,169 @@ const SectionLeftSideSubsection = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center px-6 py-12 flex-1 self-stretch grow z-[1] bg-plasma-bg">
-      <div className="flex flex-col max-w-[460px] w-full items-start">
-        {/* Logo area */}
-        <div className="inline-flex flex-col items-start pt-8 pb-0 px-0">
-          <Image src="/lockup.svg" alt="Plasma" width={150} height={32} className="h-8 w-auto brightness-0 invert" priority />
-        </div>
-        
-        {/* Main content area */}
-        <div className="flex flex-col items-start justify-between pl-0 pr-10 py-10 self-stretch w-full gap-6">
-          {/* Heading section */}
-          <div className="pt-6 pb-0 px-0 flex flex-col items-start self-stretch w-full gap-1">
-            <h1 className="font-display font-bold text-plasma-text-heading text-[32px] tracking-[0] leading-8 self-stretch">
-              Create Your Account
-            </h1>
-            <p className="font-sans font-medium text-plasma-text-muted text-sm tracking-[0] leading-5 self-stretch">
-              Join the squad and sync your Steam library in seconds.
-            </p>
+    <div className="flex flex-col items-center justify-center px-6 py-12 flex-1 self-stretch z-[1] bg-plasma-bg">
+      <div className="flex flex-col max-w-[460px] w-full items-start gap-[18px]">
+        {/* Logo + heading */}
+        <div className="pt-8 pb-0 px-0 inline-flex flex-col items-start flex-[0_0_auto]">
+          <Link href="/">
+            <svg
+              viewBox="0 0 2013.09 468"
+              className="mb-4 h-8 w-auto text-white hover:text-plasma-primary transition-colors cursor-pointer"
+              fill="currentColor"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <polygon points="0 99.37 96.23 99.37 100.17 99.37 292.56 99.37 292.56 241.68 197.16 241.68 197.16 331.59 197.16 331.98 197.16 338.66 297.59 338.66 299.5 336.34 394.31 241.86 394.31 0 0 0 0 99.37" />
+              <polygon points="100.17 273.23 100.17 265.82 100.17 130.93 96.23 130.93 0 226.82 0 350.71 0 375.33 0 468 170.22 467.27 265.79 370.81 100.17 370.21 100.17 273.23" />
+              <path d="M576.96.34h-171.47v241.02h74.37v-68.86h97.1c44.07,0,62.67-18.59,62.67-62.67v-46.83c0-44.07-18.59-62.67-62.67-62.67ZM565.26,99.16c0,14.12-4.48,18.59-18.59,18.59h-66.8v-59.91h66.8c14.12,0,18.59,4.48,18.59,18.59v22.72Z" />
+              <polygon points="738.79 .34 664.42 .34 664.42 241.36 858.62 241.36 858.62 175.59 738.79 175.59 738.79 .34" />
+              <path d="M964.66.34l-101.23,241.02h78.5l13.43-37.53h98.82l13.43,37.53h82.29L1049.02.34h-84.36ZM973.96,152.53l30.99-85.39,30.64,85.39h-61.63Z" />
+              <path d="M1342.72,95.71l-97.1-8.61c-11.36-1.03-15.15-4.13-15.15-15.15v-4.48c0-11.36,3.79-15.15,15.15-15.15h59.91c11.36,0,15.15,3.79,15.15,15.15v6.89h71.62v-19.63c0-37.53-17.22-54.4-54.4-54.4h-127.4c-37.19,0-54.4,16.87-54.4,54.4v32.37c0,36.84,15.84,50.61,54.4,54.4l97.1,8.61c12.05,1.03,15.15,3.79,15.15,15.15v8.61c0,11.36-3.79,15.15-15.15,15.15h-68.17c-11.36,0-15.15-3.79-15.15-15.15v-9.98h-71.62v23.07c0,37.53,17.22,54.4,54.4,54.4h135.66c37.19,0,54.4-16.87,54.4-54.4v-36.84c0-37.19-15.84-51.3-54.4-54.4Z" />
+              <polygon points="1569.62 125.67 1492.49 .34 1427.07 .34 1427.07 241.36 1495.94 241.36 1495.94 120.5 1549.31 203.83 1587.18 203.83 1640.55 120.5 1640.55 241.36 1709.41 241.36 1709.41 .34 1647.09 .34 1569.62 125.67" />
+              <path d="M1912.21.34h-84.36l-101.23,241.02h78.5l13.43-37.53h98.82l13.43,37.53h82.29L1912.21.34ZM1837.15,152.53l30.99-85.39,30.64,85.39h-61.63Z" />
+            </svg>
+          </Link>
+
+          <div className="gap-[7px] inline-flex flex-col items-start flex-[0_0_auto]">
+            <div className="flex flex-col items-start self-stretch w-full flex-[0_0_auto]">
+              <h1 className="font-display font-bold text-plasma-text-primary text-[32px] tracking-[-0.70px] leading-[42px] whitespace-nowrap">
+                Create Your Account
+              </h1>
+            </div>
+            <div className="flex flex-col max-w-[380px] items-start w-full flex-[0_0_auto]">
+              <p className="font-sans font-normal text-plasma-text-secondary text-[15px] tracking-[0] leading-[24px]">
+                Join the squad and sync your Steam library
+                <br />
+                in seconds.
+              </p>
+            </div>
           </div>
-          
-          {/* Form section */}
-          <form onSubmit={handleSignUp} className="pt-6 pb-4 px-0 flex flex-col items-start self-stretch w-full">
-            <div className="flex flex-col gap-4 self-stretch w-full">
-              {error && (
-                <div className="flex items-center gap-2 p-3 bg-plasma-error/10 border border-plasma-error/30 rounded-xl text-plasma-error text-sm">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <p>{error}</p>
-                </div>
-              )}
+        </div>
 
-              <div className="grid grid-cols-2 gap-4 w-full">
-                <div className="flex flex-col gap-1.5 w-full">
-                  <Label htmlFor="username" className="font-sans font-medium text-plasma-text-muted text-[13px] leading-[19.5px] whitespace-nowrap pl-1">
-                    Username
-                  </Label>
-                  <Input
-                    id="username"
-                    value={formData.username}
-                    onChange={handleInputChange}
-                    placeholder="pro_gamer"
-                    className="bg-plasma-slate/50 text-white rounded-xl border border-solid border-plasma-text-muted/25 font-sans font-normal text-sm leading-normal placeholder:text-plasma-text-muted/40 py-[11px] px-4 min-h-[44px] transition-all focus-visible:border-plasma-primary"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5 w-full">
-                  <Label htmlFor="email" className="font-sans font-medium text-plasma-text-muted text-[13px] leading-[19.5px] whitespace-nowrap pl-1">
-                    Email Address
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    placeholder="name@example.com"
-                    className="bg-plasma-slate/50 text-white rounded-xl border border-solid border-plasma-text-muted/25 font-sans font-normal text-sm leading-normal placeholder:text-plasma-text-muted/40 py-[11px] px-4 min-h-[44px] transition-all focus-visible:border-plasma-primary"
-                  />
-                </div>
-              </div>
+        <form onSubmit={handleSignUp} className="flex flex-col gap-[18px] w-full max-w-[380px]">
+          {error && (
+            <div className="flex items-center gap-2 p-3 bg-plasma-error/10 border border-plasma-error/30 rounded-xl text-plasma-error text-sm">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <p>{error}</p>
+            </div>
+          )}
 
-              <div className="flex flex-col gap-1.5 w-full">
-                <Label htmlFor="steamID" className="font-sans font-medium text-plasma-text-muted text-[13px] leading-[19.5px] whitespace-nowrap pl-1">
-                  Steam ID64 (Dev Account Creation)
-                </Label>
-                <Input
-                  id="steamID"
-                  value={formData.steamID}
-                  onChange={handleInputChange}
-                  placeholder="76561198..."
-                  className="bg-plasma-slate/50 text-white rounded-xl border border-solid border-plasma-text-muted/25 font-sans font-normal text-sm leading-normal placeholder:text-plasma-text-muted/40 py-[11px] px-4 min-h-[44px] transition-all focus-visible:border-plasma-primary"
-                />
-              </div>
-              
-              {/* Submit button */}
-              <Button 
-                type="submit"
-                disabled={loading}
-                className="relative flex items-center justify-center px-0 py-6 mt-4 self-stretch w-full rounded-[32px] bg-primary-gradient shadow-card-glow font-sans font-bold text-white text-base text-center leading-6 whitespace-nowrap h-auto border-0 focus-visible:ring-0 hover:opacity-90 transition-all hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed"
+          {/* Username field */}
+          <div className="flex flex-col gap-1.5 self-stretch w-full">
+            <Label
+              htmlFor="username"
+              className="font-sans font-medium text-plasma-text-muted text-[13px] tracking-[0] leading-[19.5px]"
+            >
+              Username
+            </Label>
+            <Input
+              id="username"
+              value={formData.username}
+              onChange={handleInputChange}
+              placeholder="pro_gamer"
+              className="w-full bg-plasma-slate/50 text-white rounded-xl border border-solid border-plasma-text-muted/25 font-sans font-normal text-plasma-text-muted text-sm py-[11px] px-4 h-[44px] transition-all focus-visible:border-plasma-primary"
+            />
+          </div>
+
+          {/* Email field */}
+          <div className="flex flex-col gap-1.5 self-stretch w-full">
+            <Label
+              htmlFor="email"
+              className="font-sans font-medium text-plasma-text-muted text-[13px] tracking-[0] leading-[19.5px]"
+            >
+              Email Address
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              placeholder="name@example.com"
+              className="w-full bg-plasma-slate/50 text-white rounded-xl border border-solid border-plasma-text-muted/25 font-sans font-normal text-plasma-text-muted text-sm py-[11px] px-4 h-[44px] transition-all focus-visible:border-plasma-primary"
+            />
+          </div>
+
+          {/* Steam ID field */}
+          <div className="flex flex-col gap-1.5 self-stretch w-full">
+            <Label
+              htmlFor="steamID"
+              className="font-sans font-medium text-plasma-text-muted text-[13px] tracking-[0] leading-[19.5px]"
+            >
+              Steam ID64 (Dev Account Creation)
+            </Label>
+            <Input
+              id="steamID"
+              value={formData.steamID}
+              onChange={handleInputChange}
+              placeholder="76561198..."
+              className="w-full bg-plasma-slate/50 text-white rounded-xl border border-solid border-plasma-text-muted/25 font-sans font-normal text-plasma-text-muted text-sm py-[11px] px-4 h-[44px] transition-all focus-visible:border-plasma-primary"
+            />
+          </div>
+
+          {/* Create Account button */}
+          <Button
+            type="submit"
+            disabled={loading}
+            className="self-stretch w-full h-[52px] bg-primary-gradient rounded-[32px] shadow-card-glow font-sans font-bold text-white text-base text-center tracking-[0] leading-6 border-0 hover:opacity-90 transition-all hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {loading ? "Creating Account..." : "Create Account"}
+          </Button>
+        </form>
+
+        {/* Sign In link */}
+        <div className="w-full pt-4 pb-0 px-0 flex flex-col max-w-[380px] items-start flex-[0_0_auto]">
+          <div className="gap-[24px] w-full flex flex-col max-w-[380px] items-start flex-[0_0_auto]">
+            <div className="flex flex-col w-full items-center flex-[0_0_auto]">
+              <Link
+                href="/login"
+                className="font-sans font-medium text-plasma-primary text-[13px] text-center tracking-[0] leading-[19.5px] whitespace-nowrap hover:underline hover:text-plasma-secondary transition-colors"
               >
-                {loading ? "Creating Account..." : "Create Account"}
-              </Button>
+                Already have an Account? Sign In
+              </Link>
             </div>
-            
-            {/* Footer */}
-            <footer className="flex flex-col items-center gap-3 pt-8 pb-0 px-0 self-stretch w-full bg-transparent">
-              <div className="flex flex-col items-center self-stretch w-full">
-                <Link
-                  href="/login"
-                  className="flex items-center justify-center font-sans font-normal text-[13px] text-center tracking-[0] leading-[19.5px] gap-1.5"
-                >
-                  <span className="text-plasma-text-muted">Already have an account?</span>
-                  <span className="text-plasma-secondary hover:text-plasma-primary font-medium transition-colors">Sign In</span>
-                </Link>
-              </div>
-              <div className="flex flex-col max-w-[280px] w-full items-center opacity-60">
-                <p className="font-sans font-normal text-plasma-text-muted text-[11px] text-center tracking-[0] leading-[17.9px]">
-                  <span>By joining, you agree to our </span>
-                  <span className="underline cursor-pointer hover:text-white transition-colors">Terms</span>
-                  <span> and </span>
-                  <span className="underline cursor-pointer hover:text-white transition-colors">Privacy Policy</span>
-                  <span>.</span>
-                </p>
-              </div>
-            </footer>
-          </form>
+          </div>
+        </div>
+
+        {/* Terms and Privacy */}
+        <div className="flex flex-wrap items-center justify-center text-center max-w-[380px] w-full mt-4">
+          <span className="font-sans font-normal text-plasma-text-secondary text-xs leading-[19.5px]">
+            By joining, you agree to our{" "}
+          </span>
+          <span
+            onClick={() => setLegalModal({ isOpen: true, type: 'terms' })}
+            className="font-sans font-medium text-plasma-primary text-xs leading-[19.5px] mx-1 cursor-pointer hover:underline"
+          >
+            Terms of Service
+          </span>
+          <span className="font-sans font-normal text-plasma-text-secondary text-xs leading-[19.5px]">
+            and{" "}
+          </span>
+          <span
+            onClick={() => setLegalModal({ isOpen: true, type: 'privacy' })}
+            className="font-sans font-medium text-plasma-primary text-xs leading-[19.5px] mx-1 cursor-pointer hover:underline"
+          >
+            Privacy Policy
+          </span>
         </div>
       </div>
+
+      {/* Legal Modal */}
+      <LegalModal
+        isOpen={legalModal.isOpen}
+        type={legalModal.type}
+        onClose={() => setLegalModal({ isOpen: false, type: null })}
+      />
     </div>
   );
 };
 
-const SectionRightSideSubsection = () => {
-  return (
-    <div className="hidden lg:flex flex-col items-center justify-center relative flex-1 self-stretch grow z-0 bg-plasma-slate overflow-hidden">
-      {/* Radial gradient background overlay */}
-      <div className="absolute w-full h-full top-0 left-0" style={{ background: "radial-gradient(50% 50% at 50% 50%, rgba(86,56,149,0.15) 0%, rgba(86,56,149,0) 70%)" }} />
-      
-      {/* Large background Logo */}
-      <div className="flex w-full h-full items-center justify-center absolute top-0 left-0 opacity-5 pointer-events-none select-none">
-        <svg 
-          xmlns="http://www.w3.org/2000/svg" 
-          viewBox="0 0 394.31 468"
-          className="w-[600px] h-auto ml-[-120px] text-plasma-primary"
-          fill="currentColor"
-        >
-          <polygon points="0 0 0 99.37 96.23 99.37 100.17 99.37 292.56 99.37 292.56 241.68 197.16 241.68 197.16 331.59 197.16 331.98 197.16 338.66 297.59 338.66 299.5 336.34 394.31 241.86 394.31 0 0 0"/>
-          <polygon points="100.17 273.23 100.17 265.82 100.17 130.93 96.23 130.93 0 226.82 0 350.71 0 375.33 0 468 170.22 467.27 265.79 370.81 100.17 370.21 100.17 273.23"/>
-        </svg>
-      </div>
-      
-      {/* Bottom-right watermark */}
-      <div className="inline-flex flex-col items-start absolute right-8 bottom-8 opacity-20 pointer-events-none select-none">
-        <div className="flex items-center w-[196px] h-6 font-display font-bold text-plasma-text-primary/30 text-base tracking-[1.60px] leading-6 whitespace-nowrap relative mt-[-1.00px]">
-          NEON OBSERVATORY v2.4
-        </div>
-      </div>
-      
-      {/* Feature cards container */}
-      <div className="flex flex-col items-center gap-8 relative self-stretch w-full flex-[0_0_auto] z-10 scale-90 xl:scale-100 pb-16">
-        
-        {/* Card 1: Squad live activity */}
-        <div className="flex max-w-[280px] w-[280px] items-center gap-4 p-6 relative flex-[0_0_auto] bg-[#1a172699] rounded-2xl border border-solid border-white/10 backdrop-blur-md shadow-2xl transition-transform hover:-translate-y-1">
-          <div className="flex w-10 h-10 items-center justify-center relative bg-[#ffb1c133] rounded-full shrink-0">
-            <Gamepad2 className="w-5 h-5 text-[#ffb1c1]" />
-          </div>
-          <div className="inline-flex flex-col items-start relative flex-[0_0_auto]">
-            <p className="font-sans font-medium text-plasma-text-primary text-sm tracking-[0] leading-[17.5px] relative mt-[-1.00px]">
-              See your squad&apos;s live
-              <br />
-              activity
-            </p>
-          </div>
-        </div>
-        
-        {/* Card 2: Schedule gaming sessions (offset right) */}
-        <div className="flex flex-col max-w-[328px] w-[328px] items-start pl-12 pr-0 py-0 relative flex-[0_0_auto]">
-          <div className="flex max-w-[280px] items-center gap-4 p-6 relative w-full flex-[0_0_auto] bg-[#1a172699] rounded-2xl border border-solid border-white/10 backdrop-blur-md shadow-2xl transition-transform hover:-translate-y-1">
-            <div className="bg-[#d1bcff33] flex w-10 h-10 items-center justify-center relative rounded-full shrink-0">
-              <Calendar className="w-5 h-5 text-[#d1bcff]" />
-            </div>
-            <div className="inline-flex flex-col items-start relative flex-[0_0_auto]">
-              <p className="font-sans font-medium text-plasma-text-primary text-sm tracking-[0] leading-[17.5px] relative mt-[-1.00px]">
-                Schedule gaming
-                <br />
-                sessions effortlessly
-              </p>
-            </div>
-          </div>
-        </div>
-        
-        {/* Card 3: Track achievements (offset left) */}
-        <div className="relative max-w-[280px] w-[280px] h-[90px] -left-6">
-          <div className="flex max-w-[280px] w-full items-center gap-4 p-6 relative bg-[#1a172699] rounded-2xl border border-solid border-white/10 backdrop-blur-md shadow-2xl transition-transform hover:-translate-y-1">
-            <div className="bg-[#e4046833] flex w-10 h-10 items-center justify-center relative rounded-full shrink-0">
-              <Trophy className="w-5 h-5 text-[#e40468]" />
-            </div>
-            <div className="inline-flex flex-col items-start relative flex-[0_0_auto]">
-              <p className="font-sans font-medium text-plasma-text-primary text-sm tracking-[0] leading-[17.5px] relative mt-[-1.00px]">
-                Track achievements
-                <br />
-                across all platforms
-              </p>
-            </div>
-          </div>
-        </div>
-        
-      </div>
-    </div>
-  );
-};
+
 
 // Sign Up screen — /sign-up route
 export default function SignUpPage() {
   return (
     <main className="flex min-h-screen w-full flex-col lg:flex-row bg-plasma-bg overflow-hidden selection:bg-plasma-primary selection:text-white">
       <SectionLeftSideSubsection />
-      <SectionRightSideSubsection />
+      <AuthRightPanel />
     </main>
   );
 }
