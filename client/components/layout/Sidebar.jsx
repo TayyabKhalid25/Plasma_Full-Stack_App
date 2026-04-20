@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, Calendar, Library, Trophy, Settings, MessageSquare } from "lucide-react";
+import { Activity, Calendar, Library, Trophy } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { squadMembers } from "@/data/dummy";
@@ -10,7 +10,6 @@ const navItems = [
   { id: "/rally", label: "RALLY", icon: Calendar },
   { id: "/library", label: "OMNI LIBRARY", icon: Library },
   { id: "/prestige", label: "PRESTIGE", icon: Trophy },
-  { id: "/messages", label: "MESSAGES", icon: MessageSquare },
 ];
 
 export const Sidebar = ({ onOpenDrawer }) => {
@@ -46,20 +45,7 @@ export const Sidebar = ({ onOpenDrawer }) => {
         })}
       </div>
 
-      {/* Settings link */}
-      <div className="px-6 pb-4 w-full">
-        <Link
-          href="/settings"
-          className={`flex items-center gap-4 px-2 py-2.5 rounded-lg w-full transition-colors ${
-            pathname === "/settings"
-              ? "bg-plasma-primary/15 text-plasma-text-primary"
-              : "text-plasma-text-secondary hover:bg-white/5 hover:text-plasma-text-primary"
-          }`}
-        >
-          <Settings className="w-4 h-4" />
-          <span className="font-display font-bold text-xs tracking-[1.40px]">SETTINGS</span>
-        </Link>
-      </div>
+
 
       <div className="h-[49px] p-6 self-stretch w-full flex flex-col items-start relative">
         <div className="relative self-stretch w-full h-px bg-plasma-slate-hover" />
