@@ -5,6 +5,8 @@ import { Search, Bell, Trophy, UserPlus, Calendar, AlertCircle } from "lucide-re
 import Link from "next/link";
 import Image from "next/image";
 import { notifications } from "@/data/dummy";
+import { useAuth } from "@/context/AuthContext";
+import { LogOut } from "lucide-react";
 
 const statusModes = [
   { id: "comp", label: "COMP", bg: "bg-plasma-secondary", shadow: "shadow-[0px_0px_15px_rgba(232,65,24,0.3)]" },
@@ -27,23 +29,46 @@ const notifColorMap = {
 };
 
 export const TopNav = () => {
+  const { user, logout } = useAuth();
   const [activeMode, setActiveMode] = useState("chill");
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const dropdownRef = useRef(null);
+  const profileDropdownRef = useRef(null);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
   const previewNotifs = notifications.slice(0, 4);
 
-  // Close dropdown on outside click
+  // Set initial mode from localStorage, falling back to user's intent
+  useEffect(() => {
+    const savedMode = localStorage.getItem("plasma_active_mode");
+    if (savedMode) {
+      setActiveMode(savedMode);
+    } else if (user && user.intent) {
+      setActiveMode(user.intent.toLowerCase());
+    }
+  }, [user]);
+
+  // Handle mode change
+  const handleModeChange = (modeId) => {
+    setActiveMode(modeId);
+    localStorage.setItem("plasma_active_mode", modeId);
+    // Future: Update backend intent via API here
+  };
+
+  // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setShowNotifDropdown(false);
       }
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target)) {
+        setShowProfileDropdown(false);
+      }
     };
-    if (showNotifDropdown) document.addEventListener("mousedown", handleClickOutside);
+    if (showNotifDropdown || showProfileDropdown) document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showNotifDropdown]);
+  }, [showNotifDropdown, showProfileDropdown]);
 
   return (
     <div className="flex w-full h-16 items-center justify-between px-6 py-0 fixed top-0 left-0 bg-plasma-bg/80 border-b border-white/5 shadow-[0px_0px_40px_#5638951a] backdrop-blur-md z-50">
@@ -73,7 +98,7 @@ export const TopNav = () => {
             return (
               <button
                 key={mode.id}
-                onClick={() => setActiveMode(mode.id)}
+                onClick={() => handleModeChange(mode.id)}
                 className={`cursor-pointer justify-center px-4 py-1.5 rounded-full inline-flex items-center relative flex-[0_0_auto] transition-all ${
                   isActive ? `${mode.bg} ${mode.shadow}` : "hover:bg-white/5"
                 }`}
@@ -163,10 +188,63 @@ export const TopNav = () => {
           </div>
 
           {/* Avatar → Profile */}
-          <Link href="/profile" className="inline-flex flex-col items-start relative flex-[0_0_auto]">
-            <div className="relative w-10 h-10 rounded-full border-2 border-solid border-plasma-success bg-[url(https://api.dicebear.com/7.x/avataaars/svg?seed=Me)] bg-cover bg-center hover:opacity-80 transition-opacity" />
-            <div className="absolute right-0 bottom-0 w-3 h-3 bg-plasma-success rounded-full border-2 border-solid border-plasma-bg" />
-          </Link>
+          <div className="relative" ref={profileDropdownRef}>
+            <button 
+              onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+              className="inline-flex flex-col items-start relative flex-[0_0_auto] cursor-pointer"
+            >
+              <div 
+                className="relative w-10 h-10 rounded-full border-2 border-solid bg-cover bg-center hover:opacity-80 transition-opacity" 
+                style={{ 
+                  backgroundImage: `url(${user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Fallback"})`,
+                  borderColor: activeMode === 'comp' ? '#e84118' : activeMode === 'chill' ? '#2ecc71' : '#94a3b8'
+                }}
+              />
+              <div 
+                className="absolute right-0 bottom-0 w-3 h-3 rounded-full border-2 border-solid border-plasma-bg" 
+                style={{ 
+                  backgroundColor: activeMode === 'comp' ? '#e84118' : activeMode === 'chill' ? '#2ecc71' : '#94a3b8'
+                }}
+              />
+            </button>
+
+            {/* Profile Dropdown */}
+            {showProfileDropdown && (
+              <div className="absolute right-0 top-12 w-48 bg-plasma-slate border border-white/10 rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] z-[100] overflow-hidden animate-fade-in">
+                <div className="px-4 py-3 border-b border-white/5">
+                  <p className="text-sm font-bold text-plasma-text-primary truncate">{user?.name || "User"}</p>
+                </div>
+                <div className="p-1">
+                  <Link 
+                    href="/profile"
+                    onClick={() => setShowProfileDropdown(false)}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-plasma-text-secondary hover:text-plasma-text-primary hover:bg-white/5 rounded-lg transition-colors"
+                  >
+                    View Profile
+                  </Link>
+                  <Link 
+                    href="/settings"
+                    onClick={() => setShowProfileDropdown(false)}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-plasma-text-secondary hover:text-plasma-text-primary hover:bg-white/5 rounded-lg transition-colors"
+                  >
+                    Settings
+                  </Link>
+                </div>
+                <div className="p-1 border-t border-white/5">
+                  <button 
+                    onClick={() => {
+                      setShowProfileDropdown(false);
+                      logout();
+                    }}
+                    className="flex items-center gap-2 px-3 py-2 w-full text-left text-sm text-plasma-error hover:bg-plasma-error/10 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Log Out
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

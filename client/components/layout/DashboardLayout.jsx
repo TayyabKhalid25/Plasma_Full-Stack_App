@@ -3,6 +3,7 @@
 import { TopNav } from "./TopNav";
 import { Sidebar } from "./Sidebar";
 import { RightRail } from "./RightRail";
+import { ProtectedRoute } from "./ProtectedRoute";
 import { FriendManagementDrawer } from "../ui/FriendManagementDrawer";
 import { useState } from "react";
 

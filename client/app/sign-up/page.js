@@ -1,22 +1,53 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
-import { CalendarIcon, Gamepad2, Calendar, Trophy } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { CalendarIcon, Gamepad2, Calendar, Trophy, AlertCircle } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
+import { useAuth } from "@/context/AuthContext";
 
-const gridFields = [
-  [
-    { id: "username", label: "Username", placeholder: "pro_gamer", type: "text" },
-    { id: "email", label: "Email Address", placeholder: "name@example.com", type: "email" },
-  ],
-  [
-    { id: "password", label: "Password", placeholder: "........", type: "password" },
-    { id: "confirmPassword", label: "Confirm Password", placeholder: "........", type: "password" },
-  ],
-];
+// Removed hardcoded grid fields since we need controlled inputs
 
 const SectionLeftSideSubsection = () => {
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    steamID: ""
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const { login } = useAuth();
+  const router = useRouter();
+
+  const handleInputChange = (e) => {
+    const { id, value } = e.target;
+    setFormData((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const handleSignUp = async (e) => {
+    e.preventDefault();
+    if (!formData.username || !formData.steamID) {
+      setError("Please fill in Username and Steam ID");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      // We use the dev-login endpoint which creates an account if it doesn't exist
+      await login(formData.username, formData.steamID);
+      router.push("/pulse");
+    } catch (err) {
+      setError(err.message || "Failed to create account");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col items-center justify-center px-6 py-12 flex-1 self-stretch grow z-[1] bg-plasma-bg">
       <div className="flex flex-col max-w-[460px] w-full items-start">
@@ -38,53 +69,63 @@ const SectionLeftSideSubsection = () => {
           </div>
           
           {/* Form section */}
-          <form className="pt-6 pb-4 px-0 flex flex-col items-start self-stretch w-full">
+          <form onSubmit={handleSignUp} className="pt-6 pb-4 px-0 flex flex-col items-start self-stretch w-full">
             <div className="flex flex-col gap-4 self-stretch w-full">
-              {/* Two-column grid rows */}
-              {gridFields.map((row, rowIndex) => (
-                <div key={rowIndex} className="grid grid-cols-2 gap-4 w-full">
-                  {row.map((field) => (
-                    <div key={field.id} className="flex flex-col gap-1.5 w-full">
-                      <Label
-                        htmlFor={field.id}
-                        className="font-sans font-medium text-plasma-text-muted text-[13px] leading-[19.5px] whitespace-nowrap pl-1"
-                      >
-                        {field.label}
-                      </Label>
-                      <Input
-                        id={field.id}
-                        type={field.type}
-                        placeholder={field.type !== "password" ? field.placeholder : ""}
-                        className="bg-plasma-slate/50 text-white rounded-xl border border-solid border-plasma-text-muted/25 font-sans font-normal text-sm leading-normal placeholder:text-plasma-text-muted/40 py-[11px] px-4 min-h-[44px] transition-all focus-visible:border-plasma-primary"
-                      />
-                    </div>
-                  ))}
+              {error && (
+                <div className="flex items-center gap-2 p-3 bg-plasma-error/10 border border-plasma-error/30 rounded-xl text-plasma-error text-sm">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <p>{error}</p>
                 </div>
-              ))}
-              
-              {/* Date of Birth field */}
+              )}
+
+              <div className="grid grid-cols-2 gap-4 w-full">
+                <div className="flex flex-col gap-1.5 w-full">
+                  <Label htmlFor="username" className="font-sans font-medium text-plasma-text-muted text-[13px] leading-[19.5px] whitespace-nowrap pl-1">
+                    Username
+                  </Label>
+                  <Input
+                    id="username"
+                    value={formData.username}
+                    onChange={handleInputChange}
+                    placeholder="pro_gamer"
+                    className="bg-plasma-slate/50 text-white rounded-xl border border-solid border-plasma-text-muted/25 font-sans font-normal text-sm leading-normal placeholder:text-plasma-text-muted/40 py-[11px] px-4 min-h-[44px] transition-all focus-visible:border-plasma-primary"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5 w-full">
+                  <Label htmlFor="email" className="font-sans font-medium text-plasma-text-muted text-[13px] leading-[19.5px] whitespace-nowrap pl-1">
+                    Email Address
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    placeholder="name@example.com"
+                    className="bg-plasma-slate/50 text-white rounded-xl border border-solid border-plasma-text-muted/25 font-sans font-normal text-sm leading-normal placeholder:text-plasma-text-muted/40 py-[11px] px-4 min-h-[44px] transition-all focus-visible:border-plasma-primary"
+                  />
+                </div>
+              </div>
+
               <div className="flex flex-col gap-1.5 w-full">
-                <Label
-                  htmlFor="dob"
-                  className="font-sans font-medium text-plasma-text-muted text-[13px] leading-[19.5px] whitespace-nowrap pl-1"
-                >
-                  Date of Birth
+                <Label htmlFor="steamID" className="font-sans font-medium text-plasma-text-muted text-[13px] leading-[19.5px] whitespace-nowrap pl-1">
+                  Steam ID64 (Dev Account Creation)
                 </Label>
-                <div className="flex w-full items-center px-4 py-2 min-h-[44px] bg-plasma-slate/50 rounded-xl overflow-hidden border border-solid border-plasma-text-muted/25 transition-all hover:border-plasma-primary/50 cursor-pointer">
-                  <div className="flex items-center flex-1 gap-1 select-none pointer-events-none">
-                    <span className="font-sans font-normal text-plasma-text-muted/40 text-sm leading-5">mm</span>
-                    <span className="font-sans font-normal text-plasma-text-muted/40 text-sm leading-5">/</span>
-                    <span className="font-sans font-normal text-plasma-text-muted/40 text-sm leading-5">dd</span>
-                    <span className="font-sans font-normal text-plasma-text-muted/40 text-sm leading-5">/</span>
-                    <span className="font-sans font-normal text-plasma-text-muted/40 text-sm leading-5">yyyy</span>
-                  </div>
-                  <CalendarIcon className="w-[18px] h-[18px] text-plasma-text-muted/60 shrink-0 pointer-events-none" />
-                </div>
+                <Input
+                  id="steamID"
+                  value={formData.steamID}
+                  onChange={handleInputChange}
+                  placeholder="76561198..."
+                  className="bg-plasma-slate/50 text-white rounded-xl border border-solid border-plasma-text-muted/25 font-sans font-normal text-sm leading-normal placeholder:text-plasma-text-muted/40 py-[11px] px-4 min-h-[44px] transition-all focus-visible:border-plasma-primary"
+                />
               </div>
               
               {/* Submit button */}
-              <Button className="relative flex items-center justify-center px-0 py-6 mt-4 self-stretch w-full rounded-[32px] bg-primary-gradient shadow-card-glow font-sans font-bold text-white text-base text-center leading-6 whitespace-nowrap h-auto border-0 focus-visible:ring-0 hover:opacity-90 transition-all hover:scale-[1.02]">
-                Create Account
+              <Button 
+                type="submit"
+                disabled={loading}
+                className="relative flex items-center justify-center px-0 py-6 mt-4 self-stretch w-full rounded-[32px] bg-primary-gradient shadow-card-glow font-sans font-bold text-white text-base text-center leading-6 whitespace-nowrap h-auto border-0 focus-visible:ring-0 hover:opacity-90 transition-all hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {loading ? "Creating Account..." : "Create Account"}
               </Button>
             </div>
             
