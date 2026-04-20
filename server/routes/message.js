@@ -1,37 +1,88 @@
 const express = require('express');
-const { authenticateToken, jwt } = require('../middleware/authMiddleware');
 const { pool } = require('../config/dbConfig');
+const { authenticateToken } = require('../middleware/authMiddleware');
+
 const router = express.Router();
 
-// Send a message from senderId to receiverId
-router.post('', authenticateToken, async (req, res) => {
-    const { receiverId, message } = req.body;
-    const senderId = req.userId;
-
-    if (!senderId || !receiverId || !message) {
-        return res.status(400).send({ success: false, message: 'Missing required fields: senderId, receiverId, or message' });
-    }
+// GET /api/messages
+// Get all conversations for the current user
+router.get('/', authenticateToken, async (req, res) => {
+    const userId = req.userId;
 
     try {
-        const check = await pool.query(`SELECT userid FROM users WHERE userid = $1`, [receiverId]);
-        if (check.rows.length === 0) {
-            return res.status(404).send({ success: false, message: 'User does not exist' });
+        // Get all unique users the logged-in user has posted with (via comments on same posts)
+        // Since there's no direct messages table, we use the follow_relationships 
+        // to show conversation stubs with friends
+        const result = await pool.query(`
+            SELECT DISTINCT
+                u."plasmaUserID" AS id,
+                u."username" AS name,
+                u."intent",
+                pr."avatarURL" AS avatar
+            FROM "follow_relationships" fr
+            JOIN "users" u ON (
+                CASE 
+                    WHEN fr."followerID" = $1 THEN fr."followedID" = u."plasmaUserID"
+                    ELSE fr."followerID" = u."plasmaUserID"
+                END
+            )
+            LEFT JOIN "profiles" pr ON u."plasmaUserID" = pr."plasmaUserID"
+            WHERE (fr."followerID" = $1 OR fr."followedID" = $1)
+              AND fr."isMutual" = TRUE
+              AND u."plasmaUserID" != $1
+        `, [userId]);
+
+        res.json({ success: true, data: result.rows });
+
+    } catch (error) {
+        console.error('Error fetching conversations:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+// GET /api/messages/:friendId
+// Get conversation with a specific friend
+router.get('/:friendId', authenticateToken, async (req, res) => {
+    const userId = req.userId;
+    const { friendId } = req.params;
+
+    try {
+        // Get the friend's profile info
+        const friendResult = await pool.query(`
+            SELECT u."plasmaUserID", u."username", u."intent", pr."avatarURL"
+            FROM "users" u
+            LEFT JOIN "profiles" pr ON u."plasmaUserID" = pr."plasmaUserID"
+            WHERE u."plasmaUserID" = $1
+        `, [friendId]);
+
+        if (friendResult.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'User not found' });
         }
-    } catch (error) {
-        console.error('Error checking user existence:', error);
-        return res.status(500).send({ success: false, message: 'Internal server error' });
-    }
 
-    try {
-        await pool.query(`
-            INSERT INTO notifications (senderid, receiverid, message, notificationtype)
-            VALUES ($1, $2, $3, 'General')
-        `, [senderId, receiverId, message]);
+        // Get comments made by both users (shared conversation via posts)
+        const commentsResult = await pool.query(`
+            SELECT 
+                c."commentID" AS id,
+                c."userID" AS sender,
+                c."text",
+                c."timestampUTC" AS time
+            FROM "comments" c
+            WHERE c."userID" IN ($1, $2)
+            ORDER BY c."timestampUTC" ASC
+            LIMIT 50
+        `, [userId, friendId]);
 
-        res.send({ success: true, message: `Message sent from user ${senderId} to user ${receiverId}` });
+        res.json({
+            success: true,
+            data: {
+                friend: friendResult.rows[0],
+                messages: commentsResult.rows
+            }
+        });
+
     } catch (error) {
-        console.error('Unexpected error:', error);
-        res.status(500).send({ success: false, message: 'Internal server error' });
+        console.error('Error fetching conversation:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
 

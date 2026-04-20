@@ -26,7 +26,7 @@ app.get('/', (req, res) => {
 
 // Import and use routes
 const authRoutes = require('./routes/auth');
-const userRoutes = require('./routes/users'); // Consider merging with friends/squad later
+const userRoutes = require('./routes/users');
 const notificationRoutes = require('./routes/notification');
 const messageRoutes = require('./routes/message');
 const adminRoutes = require('./routes/admin');
@@ -42,10 +42,29 @@ const settingsRoutes = require('./routes/settings');
 
 // Mount routes under /api prefix for the frontend service layer
 app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes); 
+app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/admin', adminRoutes);
+
+// GET /api/trending - top games being played by the user's network
+app.get('/api/trending', require('./middleware/authMiddleware').authenticateToken, async (req, res) => {
+  const { pool } = require('./config/dbConfig');
+  try {
+    const result = await pool.query(`
+      SELECT g."title", g."coverArtURL", COUNT(l."userID") AS "playerCount"
+      FROM "library_entries" l
+      JOIN "games" g ON l."appID" = g."appID"
+      WHERE l."isCurrentlyPlaying" = TRUE
+      GROUP BY g."appID", g."title", g."coverArtURL"
+      ORDER BY "playerCount" DESC
+      LIMIT 5
+    `);
+    res.json({ success: true, data: result.rows });
+  } catch (e) {
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
 // New API Endpoints
 app.use('/api/feed', feedRoutes);
 app.use('/api/games', gamesRoutes);
