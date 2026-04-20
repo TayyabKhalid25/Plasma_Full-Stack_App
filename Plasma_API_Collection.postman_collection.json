@@ -1,0 +1,211 @@
+{
+	"info": {
+		"_postman_id": "a97d16ee-d308-4bc2-91f5-aa91069cf870",
+		"name": "Plasma API",
+		"description": "API Documentation for the Plasma backend. Contains all routes required for the frontend integration.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Authentication",
+			"item": [
+				{
+					"name": "Dev Login (Generate Token)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"Wahaj\",\n    \"steamID64\": \"76561198000000001\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5000/api/auth/dev-login",
+							"protocol": "http",
+							"host": [ "localhost" ],
+							"port": "5000",
+							"path": [ "api", "auth", "dev-login" ]
+						},
+						"description": "Use this to log in. Copy the `token` from the response and use it in the Authorization header for all other requests. Other seeded users: Ahmed, Sarah, Ali, Omar."
+					}
+				},
+				{
+					"name": "Get Current User Profile (/me)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{YOUR_TOKEN_HERE}}" }
+						],
+						"url": {
+							"raw": "http://localhost:5000/api/auth/me",
+							"protocol": "http",
+							"host": [ "localhost" ],
+							"port": "5000",
+							"path": [ "api", "auth", "me" ]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Social & Feed",
+			"item": [
+				{
+					"name": "Get Pulse Feed",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{YOUR_TOKEN_HERE}}" }
+						],
+						"url": {
+							"raw": "http://localhost:5000/api/feed?filter=all",
+							"protocol": "http",
+							"host": [ "localhost" ],
+							"port": "5000",
+							"path": [ "api", "feed" ],
+							"query": [
+								{ "key": "filter", "value": "all", "description": "Options: all, my-posts, comp, chill, friends" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Friends List",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{YOUR_TOKEN_HERE}}" }
+						],
+						"url": {
+							"raw": "http://localhost:5000/api/friends",
+							"protocol": "http",
+							"host": [ "localhost" ],
+							"port": "5000",
+							"path": [ "api", "friends" ]
+						}
+					}
+				},
+				{
+					"name": "Get Online Squad",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{YOUR_TOKEN_HERE}}" }
+						],
+						"url": {
+							"raw": "http://localhost:5000/api/squad",
+							"protocol": "http",
+							"host": [ "localhost" ],
+							"port": "5000",
+							"path": [ "api", "squad" ]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Gaming & Progression",
+			"item": [
+				{
+					"name": "Get Games Library",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{YOUR_TOKEN_HERE}}" }
+						],
+						"url": {
+							"raw": "http://localhost:5000/api/games?filter=all&search=",
+							"protocol": "http",
+							"host": [ "localhost" ],
+							"port": "5000",
+							"path": [ "api", "games" ],
+							"query": [
+								{ "key": "filter", "value": "all", "description": "Options: all, playing, steam, non-steam" },
+								{ "key": "search", "value": "", "description": "Search by game title" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Prestige Achievements",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{YOUR_TOKEN_HERE}}" }
+						],
+						"url": {
+							"raw": "http://localhost:5000/api/achievements?type=steam",
+							"protocol": "http",
+							"host": [ "localhost" ],
+							"port": "5000",
+							"path": [ "api", "achievements" ],
+							"query": [
+								{ "key": "type", "value": "steam", "description": "Platform filter" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Leaderboard",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{YOUR_TOKEN_HERE}}" }
+						],
+						"url": {
+							"raw": "http://localhost:5000/api/leaderboard?scope=friends",
+							"protocol": "http",
+							"host": [ "localhost" ],
+							"port": "5000",
+							"path": [ "api", "leaderboard" ],
+							"query": [
+								{ "key": "scope", "value": "friends", "description": "Options: friends, global" }
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "4. Events & Profile",
+			"item": [
+				{
+					"name": "Get Upcoming Rallies",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{YOUR_TOKEN_HERE}}" }
+						],
+						"url": {
+							"raw": "http://localhost:5000/api/rallies?view=calendar",
+							"protocol": "http",
+							"host": [ "localhost" ],
+							"port": "5000",
+							"path": [ "api", "rallies" ],
+							"query": [
+								{ "key": "view", "value": "calendar", "description": "Options: calendar, list" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get User Settings",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{YOUR_TOKEN_HERE}}" }
+						],
+						"url": {
+							"raw": "http://localhost:5000/api/settings",
+							"protocol": "http",
+							"host": [ "localhost" ],
+							"port": "5000",
+							"path": [ "api", "settings" ]
+						}
+					}
+				}
+			]
+		}
+	]
+}

@@ -1,197 +1,105 @@
 const express = require('express');
-const bcrypt = require('bcrypt');
-require('dotenv').config();
-const { authenticateToken, jwt } = require('../middleware/authMiddleware');
+const { jwt, authenticateToken } = require('../middleware/authMiddleware');
 const { pool } = require('../config/dbConfig');
 const router = express.Router();
 
-// Authentication route for User Log In
-router.post('/signin', async (req, res) => {
-    if (!req.body || Object.keys(req.body).length === 0) {
-        return res.status(400).send('Request body is required');
-    }
+// ==========================================
+// NEW AUTHENTICATION SYSTEM (UUID SCHEMA)
+// ==========================================
 
-    const keys = Object.keys(req.body);
-    if (keys.length !== 2 || !keys.includes('userName') || !keys.includes('password')) {
-        return res.status(400).send('Request body must contain only userName and password');
-    }
+// POST /api/auth/dev-login
+// Development ONLY: Logs in or creates a user using just a username and steamID64.
+// Since the new schema has no passwords, this bypasses Steam OpenID for testing.
+router.post('/dev-login', async (req, res) => {
+    const { username, steamID64 } = req.body;
 
-    const { userName, password } = req.body;
+    if (!username || !steamID64) {
+        return res.status(400).json({ success: false, message: 'username and steamID64 are required' });
+    }
 
     try {
-        const result = await pool.query(`
-            SELECT userid AS "UserId", passwordhash AS "PasswordHash", usertype AS "UserType", privacy AS "Privacy", username AS "Username"
-            FROM users
-            WHERE username = $1
-        `, [userName]);
+        // 1. Check if user exists
+        let result = await pool.query(`
+            SELECT "plasmaUserID", "username", "intent"
+            FROM "users"
+            WHERE "steamID64" = $1
+        `, [steamID64]);
+
+        let user;
 
         if (result.rows.length > 0) {
-            const hashedPassword = result.rows[0].PasswordHash;
-            const isMatch = await bcrypt.compare(password, hashedPassword);
-
-            if (isMatch) {
-                const payload = { userId: result.rows[0].UserId };
-                const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '60d' });
-                const user = {
-                    userId: result.rows[0].UserId,
-                    userName: result.rows[0].Username,
-                    userType: result.rows[0].UserType,
-                    privacy: result.rows[0].Privacy
-                };
-                res.json({ success: true, message: 'Authentication successful', token, user });
-            } else {
-                res.status(401).json({ success: false, message: 'Invalid Password' });
-            }
+            user = result.rows[0];
         } else {
-            res.status(401).json({ success: false, message: 'Invalid Username' });
-        }
-    } catch (err) {
-        console.error('Error during authentication:', err.message);
-        res.status(500).send('Error during authentication');
-    }
-});
+            // 2. Create user if they don't exist
+            const insertResult = await pool.query(`
+                INSERT INTO "users" ("steamID64", "username", "intent")
+                VALUES ($1, $2, 'OFFLINE')
+                RETURNING "plasmaUserID", "username", "intent"
+            `, [steamID64, username]);
+            user = insertResult.rows[0];
 
-// Route to check if a userName exists in the database
-router.get('/authname/:name', async (req, res) => {
-    const userName = req.params.name;
-
-    try {
-        const result = await pool.query(`
-            SELECT COUNT(*) AS count
-            FROM users
-            WHERE username = $1
-        `, [userName]);
-
-        if (parseInt(result.rows[0].count) > 0) {
-            res.json({ found: true, message: 'Username found' });
-        } else {
-            res.json({ found: false, message: 'Username not found' });
-        }
-    } catch (err) {
-        console.error('Error checking userName:', err.message);
-        res.status(500).send('Error checking userName');
-    }
-});
-
-// Route to check if an email exists in the database
-router.get('/authemail/:mail', async (req, res) => {
-    const email = req.params.mail;
-
-    try {
-        const result = await pool.query(`
-            SELECT COUNT(*) AS count
-            FROM users
-            WHERE email = $1
-        `, [email]);
-
-        if (parseInt(result.rows[0].count) > 0) {
-            res.json({ found: true, message: 'Email found' });
-        } else {
-            res.json({ found: false, message: 'Email not found' });
-        }
-    } catch (err) {
-        console.error('Error checking email:', err.message);
-        res.status(500).send('Error checking email');
-    }
-});
-
-// Route for User Sign Up
-router.post('/signup', async (req, res) => {
-    if (!req.body || Object.keys(req.body).length === 0) {
-        return res.status(400).send('Request body is required');
-    }
-
-    const requiredFields = ['fullName', 'userName', 'password', 'email'];
-    const keys = Object.keys(req.body);
-
-    if (keys.length !== requiredFields.length || !requiredFields.every(field => keys.includes(field))) {
-        return res.status(400).send(`Request body must contain only the following fields: ${requiredFields.join(', ')}`);
-    }
-
-    const { fullName, userName, password, email } = req.body;
-
-    try {
-        // Check if userName or email already exists
-        const checkResult = await pool.query(`
-            SELECT COUNT(*) AS count
-            FROM users
-            WHERE username = $1 OR email = $2
-        `, [userName, email]);
-
-        if (parseInt(checkResult.rows[0].count) > 0) {
-            return res.status(409).json({ success: false, message: 'Username or email already exists' });
+            // 3. Create a blank profile for the new user
+            await pool.query(`
+                INSERT INTO "profiles" ("plasmaUserID", "bio", "avatarURL", "totalPlasmaXP")
+                VALUES ($1, 'New to Plasma', '', 0)
+            `, [user.plasmaUserID]);
         }
 
-        // Hash the password
-        const hashedPassword = await bcrypt.hash(password, parseInt(process.env.BCRYPT_COST_FACTOR, 10));
-
-        // Insert new user and return the generated UserId
-        const insertResult = await pool.query(`
-            INSERT INTO users (fullname, username, passwordhash, email, usertype, privacy, gender)
-            VALUES ($1, $2, $3, $4, 'User', 'Private', 'Other')
-            RETURNING userid AS "UserId"
-        `, [fullName, userName, hashedPassword, email]);
-
-        const payload = { userId: insertResult.rows[0].UserId };
+        // 4. Generate JWT with the UUID
+        const payload = { userId: user.plasmaUserID }; // This MUST be the UUID
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '60d' });
-        const user = {
-            userId: insertResult.rows[0].UserId,
-            userName: userName,
-            userType: 'User',
-            privacy: 'Private'
-        };
-        res.json({ success: true, message: 'User registered successfully', token, user });
+
+        res.json({
+            success: true,
+            message: 'Dev authentication successful',
+            token,
+            user
+        });
+
     } catch (err) {
-        console.error('Error during sign up:', err.message);
-        res.status(500).send('Error during sign up');
+        console.error('Error during dev-login:', err.message);
+        res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
 
-// Route to Verify JWT token
-router.get('/verify', authenticateToken, (req, res) => {
-    res.json({ success: true, message: 'Token is valid' });
-});
-
-// Password reset
-router.put('/reset', async (req, res) => {
-    if (!req.body || Object.keys(req.body).length === 0) {
-        return res.status(400).send('Request body is required');
-    }
-
-    const requiredFields = ['email', 'password'];
-    const keys = Object.keys(req.body);
-
-    if (keys.length !== requiredFields.length || !requiredFields.every(field => keys.includes(field))) {
-        return res.status(400).send(`Request body must contain only the following fields: ${requiredFields.join(', ')}`);
-    }
-
-    const { email, password } = req.body;
+// GET /api/auth/me
+// Returns the currently authenticated user's profile (Required by frontend api.js)
+router.get('/me', authenticateToken, async (req, res) => {
+    const userId = req.userId;
 
     try {
         const result = await pool.query(`
-            SELECT userid AS "UserId"
-            FROM users
-            WHERE email = $1
-        `, [email]);
+            SELECT 
+                u."plasmaUserID" AS id, 
+                u."username" AS name, 
+                u."intent",
+                u."steamID64",
+                p."avatarURL" AS avatar,
+                p."bio",
+                p."totalPlasmaXP"
+            FROM "users" u
+            LEFT JOIN "profiles" p ON u."plasmaUserID" = p."plasmaUserID"
+            WHERE u."plasmaUserID" = $1
+        `, [userId]);
 
         if (result.rows.length === 0) {
-            return res.status(404).json({ success: false, message: 'Email not found' });
+            return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        const userId = result.rows[0].UserId;
-        const hashedPassword = await bcrypt.hash(password, parseInt(process.env.BCRYPT_COST_FACTOR, 10));
+        res.json({
+            success: true,
+            data: result.rows[0]
+        });
 
-        await pool.query(`
-            UPDATE users
-            SET passwordhash = $1
-            WHERE userid = $2
-        `, [hashedPassword, userId]);
-
-        res.json({ success: true, message: 'Password updated successfully' });
     } catch (err) {
-        console.error('Error during password update:', err.message);
-        res.status(500).send('Error during password update');
+        console.error('Error fetching current user:', err.message);
+        res.status(500).json({ success: false, message: 'Internal server error' });
     }
+});
+
+// Route to Verify JWT token validity
+router.get('/verify', authenticateToken, (req, res) => {
+    res.json({ success: true, message: 'Token is valid' });
 });
 
 module.exports = router;

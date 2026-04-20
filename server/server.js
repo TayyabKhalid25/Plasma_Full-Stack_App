@@ -26,16 +26,35 @@ app.get('/', (req, res) => {
 
 // Import and use routes
 const authRoutes = require('./routes/auth');
-const userRoutes = require('./routes/users');
-const notificationRoutes = require('./routes/notification'); // Import notification routes
-const messageRoutes = require('./routes/message'); // Import message routes
-const adminRoutes = require('./routes/admin'); // Import admin routes
+const userRoutes = require('./routes/users'); // Consider merging with friends/squad later
+const notificationRoutes = require('./routes/notification');
+const messageRoutes = require('./routes/message');
+const adminRoutes = require('./routes/admin');
+// New API Domains
+const feedRoutes = require('./routes/feed');
+const gamesRoutes = require('./routes/games');
+const achievementsRoutes = require('./routes/achievements');
+const leaderboardRoutes = require('./routes/leaderboard');
+const ralliesRoutes = require('./routes/rallies');
+const squadRoutes = require('./routes/squad');
+const friendsRoutes = require('./routes/friends');
+const settingsRoutes = require('./routes/settings');
 
-app.use('/auth', authRoutes); // Routes for authentication
-app.use('/users', userRoutes); // Routes for user-related operations
-app.use('/notification', notificationRoutes); // Routes for notification-related operations
-app.use('/message', messageRoutes); // Routes for message-related operations
-app.use('/admin', adminRoutes); // Routes for admin-related operations
+// Mount routes under /api prefix for the frontend service layer
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes); 
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/admin', adminRoutes);
+// New API Endpoints
+app.use('/api/feed', feedRoutes);
+app.use('/api/games', gamesRoutes);
+app.use('/api/achievements', achievementsRoutes);
+app.use('/api/leaderboard', leaderboardRoutes);
+app.use('/api/rallies', ralliesRoutes);
+app.use('/api/squad', squadRoutes);
+app.use('/api/friends', friendsRoutes);
+app.use('/api/settings', settingsRoutes);
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
