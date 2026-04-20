@@ -7,9 +7,9 @@ import Image from "next/image";
 import { notifications } from "@/data/dummy";
 
 const statusModes = [
-  { id: "comp", label: "COMP" },
-  { id: "chill", label: "CHILL" },
-  { id: "offline", label: "OFFLINE" },
+  { id: "comp", label: "COMP", bg: "bg-plasma-secondary", shadow: "shadow-[0px_0px_15px_rgba(232,65,24,0.3)]" },
+  { id: "chill", label: "CHILL", bg: "bg-plasma-success", shadow: "shadow-[0px_0px_15px_rgba(46,204,113,0.3)]" },
+  { id: "offline", label: "OFFLINE", bg: "bg-plasma-text-secondary", shadow: "shadow-[0px_0px_15px_rgba(148,163,184,0.2)]" },
 ];
 
 const notifIconMap = {
@@ -75,7 +75,7 @@ export const TopNav = () => {
                 key={mode.id}
                 onClick={() => setActiveMode(mode.id)}
                 className={`cursor-pointer justify-center px-4 py-1.5 rounded-full inline-flex items-center relative flex-[0_0_auto] transition-all ${
-                  isActive ? "bg-plasma-success shadow-[0px_0px_15px_rgba(46,204,113,0.3)]" : "hover:bg-white/5"
+                  isActive ? `${mode.bg} ${mode.shadow}` : "hover:bg-white/5"
                 }`}
               >
                 <div
