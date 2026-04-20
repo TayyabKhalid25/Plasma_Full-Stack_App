@@ -39,10 +39,27 @@ This starts both the client and server in parallel using [`concurrently`](https:
 
 ## Environment Variables
 
-This project uses environment variables for configuration. Copy the example files and fill in your actual values:
+This project uses environment variables for configuration.
+
+### Manual Setup
+Copy the example files and fill in your actual values:
 
 - `client/.env.example` → `client/.env.local`
 - `server/.env.example` → `server/.env`
+
+### Automated Setup (Secrets Vault)
+The server environment variables can be managed using the built-in vault system, which uses `server/secrets.enc` to securely store configuration.
+
+To automatically create your `.env` file from the encrypted secrets:
+```bash
+npm run decrypt --prefix server
+```
+
+To update the encrypted secrets with your current `.env` values:
+```bash
+npm run encrypt --prefix server
+```
+
 
 ### Client (Next.js)
 - `NEXT_PUBLIC_API_URL`: URL of the backend API
@@ -55,3 +72,11 @@ This project uses environment variables for configuration. Copy the example file
 - API keys for external services
 
 **Important:** Never commit actual `.env` files to version control. They are ignored via `.gitignore`.
+
+---
+
+## Legal & License
+
+For information on terms of service, privacy policies, and licensing, please see:
+- [LEGAL.md](LEGAL.md)
+- [LICENSE](LICENSE)

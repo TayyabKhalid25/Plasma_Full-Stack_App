@@ -1,15 +1,20 @@
 import * as React from "react";
 import { cn } from "../../lib/utils";
 
-const Card = React.forwardRef(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "rounded-xl border bg-card text-card-foreground shadow",
-      className
-    )}
-    {...props}
-  />
+const Card = React.forwardRef(({ className, wrapperClassName, ...props }, ref) => (
+  <div className={cn("relative group w-full h-full transition-all duration-700", wrapperClassName)}>
+    {/* The glow effect matching the Pulse Dashboard */}
+    <div className="absolute -inset-8 bg-[#ff2a7a00] rounded-[3rem] blur-[40px] opacity-0 group-hover:opacity-100 group-hover:bg-[#ff2a7a22] transition-all duration-700 pointer-events-none z-0" />
+    
+    <div
+      ref={ref}
+      className={cn(
+        "relative z-10 h-full rounded-xl border bg-card text-card-foreground shadow transition-all duration-700",
+        className
+      )}
+      {...props}
+    />
+  </div>
 ));
 Card.displayName = "Card";
 

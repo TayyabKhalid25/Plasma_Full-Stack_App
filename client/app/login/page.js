@@ -1,46 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Gamepad2, Calendar, Trophy, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Separator } from "../../components/ui/separator";
+import AuthRightPanel from "../../components/ui/AuthRightPanel";
+import LegalModal from "../../components/ui/LegalModal";
 import { useAuth } from "@/context/AuthContext";
 
-// Feature cards data for the right panel
-const featureCards = [
-  {
-    icon: <Gamepad2 className="w-5 h-5 text-[#ffb1c1]" />,
-    iconBg: "bg-[#ffb1c133]",
-    text: "See your squad's live\nactivity",
-    wrapperClass: "flex justify-center w-full",
-    cardClass: "flex max-w-[280px] w-[280px] items-center gap-4 p-6 bg-plasma-slate/60 rounded-2xl border border-solid border-plasma-text-primary/10 backdrop-blur [-webkit-backdrop-filter:blur(8px)_brightness(100%)] shadow-[0px_25px_50px_-12px_#00000040]",
-  },
-  {
-    icon: <Calendar className="w-5 h-5 text-[#d1bcff]" />,
-    iconBg: "bg-[#d1bcff33]",
-    text: "Schedule gaming\nsessions effortlessly",
-    wrapperClass: "flex justify-center w-full pl-12",
-    cardClass: "flex max-w-[280px] w-[280px] items-center gap-4 p-6 bg-plasma-slate/60 rounded-2xl border border-solid border-plasma-text-primary/10 backdrop-blur [-webkit-backdrop-filter:blur(8px)_brightness(100%)] shadow-[0px_25px_50px_-12px_#00000040]",
-  },
-  {
-    icon: <Trophy className="w-5 h-5 text-[#e40468]" />,
-    iconBg: "bg-[#e4046833]",
-    text: "Track achievements\nacross all platforms",
-    wrapperClass: "flex justify-center w-full pr-12",
-    cardClass: "flex max-w-[280px] w-[280px] items-center gap-4 p-6 bg-plasma-slate/60 rounded-2xl border border-solid border-plasma-text-primary/10 backdrop-blur [-webkit-backdrop-filter:blur(8px)_brightness(100%)] shadow-[0px_25px_50px_-12px_#00000040]",
-  },
-];
+
 
 export default function LoginPage() {
   const [username, setUsername] = useState("Wahaj");
   const [steamID, setSteamID] = useState("76561198000000001");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [legalModal, setLegalModal] = useState({ isOpen: false, type: null });
   const { login } = useAuth();
   const router = useRouter();
 
@@ -70,11 +49,27 @@ export default function LoginPage() {
         <div className="flex flex-col max-w-[460px] w-full items-start gap-[18px]">
           {/* Logo + heading */}
           <div className="pt-8 pb-0 px-0 inline-flex flex-col items-start flex-[0_0_auto]">
-            <Image src="/lockup.svg" alt="Plasma" width={150} height={32} className="mb-4 h-8 w-auto brightness-0 invert" priority />
+            <Link href="/">
+              <svg
+                viewBox="0 0 2013.09 468"
+                className="mb-4 h-8 w-auto text-white hover:text-plasma-primary transition-colors cursor-pointer"
+                fill="currentColor"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <polygon points="0 99.37 96.23 99.37 100.17 99.37 292.56 99.37 292.56 241.68 197.16 241.68 197.16 331.59 197.16 331.98 197.16 338.66 297.59 338.66 299.5 336.34 394.31 241.86 394.31 0 0 0 0 99.37" />
+                <polygon points="100.17 273.23 100.17 265.82 100.17 130.93 96.23 130.93 0 226.82 0 350.71 0 375.33 0 468 170.22 467.27 265.79 370.81 100.17 370.21 100.17 273.23" />
+                <path d="M576.96.34h-171.47v241.02h74.37v-68.86h97.1c44.07,0,62.67-18.59,62.67-62.67v-46.83c0-44.07-18.59-62.67-62.67-62.67ZM565.26,99.16c0,14.12-4.48,18.59-18.59,18.59h-66.8v-59.91h66.8c14.12,0,18.59,4.48,18.59,18.59v22.72Z" />
+                <polygon points="738.79 .34 664.42 .34 664.42 241.36 858.62 241.36 858.62 175.59 738.79 175.59 738.79 .34" />
+                <path d="M964.66.34l-101.23,241.02h78.5l13.43-37.53h98.82l13.43,37.53h82.29L1049.02.34h-84.36ZM973.96,152.53l30.99-85.39,30.64,85.39h-61.63Z" />
+                <path d="M1342.72,95.71l-97.1-8.61c-11.36-1.03-15.15-4.13-15.15-15.15v-4.48c0-11.36,3.79-15.15,15.15-15.15h59.91c11.36,0,15.15,3.79,15.15,15.15v6.89h71.62v-19.63c0-37.53-17.22-54.4-54.4-54.4h-127.4c-37.19,0-54.4,16.87-54.4,54.4v32.37c0,36.84,15.84,50.61,54.4,54.4l97.1,8.61c12.05,1.03,15.15,3.79,15.15,15.15v8.61c0,11.36-3.79,15.15-15.15,15.15h-68.17c-11.36,0-15.15-3.79-15.15-15.15v-9.98h-71.62v23.07c0,37.53,17.22,54.4,54.4,54.4h135.66c37.19,0,54.4-16.87,54.4-54.4v-36.84c0-37.19-15.84-51.3-54.4-54.4Z" />
+                <polygon points="1569.62 125.67 1492.49 .34 1427.07 .34 1427.07 241.36 1495.94 241.36 1495.94 120.5 1549.31 203.83 1587.18 203.83 1640.55 120.5 1640.55 241.36 1709.41 241.36 1709.41 .34 1647.09 .34 1569.62 125.67" />
+                <path d="M1912.21.34h-84.36l-101.23,241.02h78.5l13.43-37.53h98.82l13.43,37.53h82.29L1912.21.34ZM1837.15,152.53l30.99-85.39,30.64,85.39h-61.63Z" />
+              </svg>
+            </Link>
 
             <div className="gap-[7px] inline-flex flex-col items-start flex-[0_0_auto]">
               <div className="flex flex-col items-start self-stretch w-full flex-[0_0_auto]">
-                <h1 className="font-display font-bold text-plasma-text-primary text-[28px] tracking-[-0.70px] leading-[42px] whitespace-nowrap">
+                <h1 className="font-display font-bold text-plasma-text-primary text-[32px] tracking-[-0.70px] leading-[42px] whitespace-nowrap">
                   Welcome Back, Gamer
                 </h1>
               </div>
@@ -130,8 +125,8 @@ export default function LoginPage() {
             </div>
 
             {/* Log In button */}
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={loading}
               className="self-stretch w-full h-[52px] bg-primary-gradient rounded-[32px] shadow-card-glow font-sans font-bold text-white text-base text-center tracking-[0] leading-6 border-0 hover:opacity-90 transition-all hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed"
             >
@@ -154,7 +149,7 @@ export default function LoginPage() {
           <div className="w-full pt-4 pb-0 px-0 flex flex-col max-w-[380px] items-start flex-[0_0_auto]">
             <div className="gap-[24px] w-full flex flex-col max-w-[380px] items-start flex-[0_0_auto]">
               {/* Steam button */}
-              <Button 
+              <Button
                 onClick={handleLogin}
                 disabled={loading}
                 className="w-full h-[50px] bg-plasma-primary rounded-[32px] font-sans font-normal text-white text-[15px] text-center tracking-[0] leading-[22.5px] whitespace-nowrap hover:bg-plasma-slate-hover border-0 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed"
@@ -181,13 +176,19 @@ export default function LoginPage() {
             <span className="font-sans font-normal text-plasma-text-secondary text-xs leading-[19.5px]">
               By signing in, you agree to our{" "}
             </span>
-            <span className="font-sans font-medium text-plasma-primary text-xs leading-[19.5px] mx-1 cursor-pointer hover:underline">
+            <span 
+              onClick={() => setLegalModal({ isOpen: true, type: 'terms' })}
+              className="font-sans font-medium text-plasma-primary text-xs leading-[19.5px] mx-1 cursor-pointer hover:underline"
+            >
               Terms of Service
             </span>
             <span className="font-sans font-normal text-plasma-text-secondary text-xs leading-[19.5px]">
               and{" "}
             </span>
-            <span className="font-sans font-medium text-plasma-primary text-xs leading-[19.5px] mx-1 cursor-pointer hover:underline">
+            <span 
+              onClick={() => setLegalModal({ isOpen: true, type: 'privacy' })}
+              className="font-sans font-medium text-plasma-primary text-xs leading-[19.5px] mx-1 cursor-pointer hover:underline"
+            >
               Privacy Policy
             </span>
           </div>
@@ -195,48 +196,14 @@ export default function LoginPage() {
       </div>
 
       {/* Right panel - Decorative */}
-      <div className="hidden lg:flex flex-col items-center justify-center relative flex-1 self-stretch z-0 bg-plasma-slate overflow-hidden">
-        {/* Radial gradient overlay */}
-        <div className="absolute w-full h-full top-0 left-0" style={{ background: "radial-gradient(50% 50% at 50% 50%, rgba(86,56,149,0.15) 0%, rgba(86,56,149,0) 70%)" }} />
+      <AuthRightPanel />
 
-        {/* Large watermark Logo */}
-        <div className="flex w-full h-full items-center justify-center absolute top-0 left-0 opacity-5 pointer-events-none select-none">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 394.31 468"
-            className="w-[600px] h-auto ml-[-120px] text-plasma-primary"
-            fill="currentColor"
-          >
-            <polygon points="0 0 0 99.37 96.23 99.37 100.17 99.37 292.56 99.37 292.56 241.68 197.16 241.68 197.16 331.59 197.16 331.98 197.16 338.66 297.59 338.66 299.5 336.34 394.31 241.86 394.31 0 0 0" />
-            <polygon points="100.17 273.23 100.17 265.82 100.17 130.93 96.23 130.93 0 226.82 0 350.71 0 375.33 0 468 170.22 467.27 265.79 370.81 100.17 370.21 100.17 273.23" />
-          </svg>
-        </div>
-
-        {/* Version label */}
-        <div className="absolute right-8 bottom-8 opacity-20 select-none">
-          <span className="font-display font-bold text-plasma-text-primary/30 text-base tracking-[1.60px] leading-6 whitespace-nowrap">
-            NEON OBSERVATORY v2.4
-          </span>
-        </div>
-
-        {/* Feature cards */}
-        <div className="flex flex-col items-center gap-8 relative self-stretch w-full flex-[0_0_auto] z-10 scale-90 xl:scale-100">
-          {featureCards.map((card, index) => (
-            <div key={index} className={card.wrapperClass}>
-              <div className={`${card.cardClass} transition-transform hover:-translate-y-1`}>
-                {/* Icon circle */}
-                <div className={`${card.iconBg} flex w-10 h-10 items-center justify-center rounded-full flex-shrink-0`}>
-                  {card.icon}
-                </div>
-                {/* Card text */}
-                <p className="font-sans font-medium text-plasma-text-primary text-sm tracking-[0] leading-[17.5px] whitespace-pre-line">
-                  {card.text}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Legal Modal */}
+      <LegalModal 
+        isOpen={legalModal.isOpen} 
+        type={legalModal.type} 
+        onClose={() => setLegalModal({ isOpen: false, type: null })} 
+      />
     </div>
   );
 }

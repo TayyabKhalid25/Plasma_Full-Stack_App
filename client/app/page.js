@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -30,15 +31,17 @@ const prestigeFeatures = [
 const intentModes = [
   {
     title: "Competitive",
-    description: "Locked in. No distractions. Ready for ranked\ngrinds and high-stakes tournament play.",
+    description: "Locked in. Absolute Tunnel Vision. No distractions. Ready for ranked grinds and high-stakes tournament play.",
+    icon: "/images/intent-1.png",
     barBg: "bg-[#dc262633]",
     barFill: "bg-red-600 shadow-[0px_0px_10px_#ef4444]",
     glowBg: "bg-[#dc26261a]",
-    barTop: "top-[262px]",
+    barTop: "top-[285px]",
   },
   {
     title: "Casual/Chill",
     description: "Just vibing. Open to talk, exploring new\nworlds, or completing daily quests at a\nrelaxed pace.",
+    icon: "/images/intent-2.png",
     barBg: "bg-[#05966933]",
     barFill: "bg-emerald-600 shadow-[0px_0px_10px_#10b981]",
     glowBg: "bg-[#0596691a]",
@@ -47,6 +50,7 @@ const intentModes = [
   {
     title: "LFG",
     description: "Looking for Group. Need more players for a\nspecific activity or just want to find new\nteammates.",
+    icon: "/images/intent-3.png",
     barBg: "bg-[#ca8a0433]",
     barFill: "bg-yellow-600 shadow-[0px_0px_10px_#f59e0b]",
     glowBg: "bg-[#ca8a041a]",
@@ -58,29 +62,27 @@ const avatarColors = ["bg-slate-500", "bg-slate-600", "bg-slate-700"];
 
 const TopNavBarSubsection = () => {
   const { isAuthenticated, loading } = useAuth();
-  
+
   return (
     <nav className="flex w-full h-[72px] items-center justify-center z-50 bg-plasma-bg/80 backdrop-blur-[6px] sticky top-0 border-b border-white/5">
       <div className="flex max-w-screen-xl items-center justify-between px-8 py-0 w-full">
         {/* Logo area */}
         <div className="inline-flex flex-col items-start flex-[0_0_auto]">
-          <Link href="/">
-            <svg
-              viewBox="0 0 2013.09 468"
-              className="h-8 w-auto text-white hover:text-plasma-primary transition-colors cursor-pointer"
-              fill="currentColor"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <polygon points="0 99.37 96.23 99.37 100.17 99.37 292.56 99.37 292.56 241.68 197.16 241.68 197.16 331.59 197.16 331.98 197.16 338.66 297.59 338.66 299.5 336.34 394.31 241.86 394.31 0 0 0 0 99.37" />
-              <polygon points="100.17 273.23 100.17 265.82 100.17 130.93 96.23 130.93 0 226.82 0 350.71 0 375.33 0 468 170.22 467.27 265.79 370.81 100.17 370.21 100.17 273.23" />
-              <path d="M576.96.34h-171.47v241.02h74.37v-68.86h97.1c44.07,0,62.67-18.59,62.67-62.67v-46.83c0-44.07-18.59-62.67-62.67-62.67ZM565.26,99.16c0,14.12-4.48,18.59-18.59,18.59h-66.8v-59.91h66.8c14.12,0,18.59,4.48,18.59,18.59v22.72Z" />
-              <polygon points="738.79 .34 664.42 .34 664.42 241.36 858.62 241.36 858.62 175.59 738.79 175.59 738.79 .34" />
-              <path d="M964.66.34l-101.23,241.02h78.5l13.43-37.53h98.82l13.43,37.53h82.29L1049.02.34h-84.36ZM973.96,152.53l30.99-85.39,30.64,85.39h-61.63Z" />
-              <path d="M1342.72,95.71l-97.1-8.61c-11.36-1.03-15.15-4.13-15.15-15.15v-4.48c0-11.36,3.79-15.15,15.15-15.15h59.91c11.36,0,15.15,3.79,15.15,15.15v6.89h71.62v-19.63c0-37.53-17.22-54.4-54.4-54.4h-127.4c-37.19,0-54.4,16.87-54.4,54.4v32.37c0,36.84,15.84,50.61,54.4,54.4l97.1,8.61c12.05,1.03,15.15,3.79,15.15,15.15v8.61c0,11.36-3.79,15.15-15.15,15.15h-68.17c-11.36,0-15.15-3.79-15.15-15.15v-9.98h-71.62v23.07c0,37.53,17.22,54.4,54.4,54.4h135.66c37.19,0,54.4-16.87,54.4-54.4v-36.84c0-37.19-15.84-51.3-54.4-54.4Z" />
-              <polygon points="1569.62 125.67 1492.49 .34 1427.07 .34 1427.07 241.36 1495.94 241.36 1495.94 120.5 1549.31 203.83 1587.18 203.83 1640.55 120.5 1640.55 241.36 1709.41 241.36 1709.41 .34 1647.09 .34 1569.62 125.67" />
-              <path d="M1912.21.34h-84.36l-101.23,241.02h78.5l13.43-37.53h98.82l13.43,37.53h82.29L1912.21.34ZM1837.15,152.53l30.99-85.39,30.64,85.39h-61.63Z" />
-            </svg>
-          </Link>
+          <svg
+            viewBox="0 0 2013.09 468"
+            className="h-8 w-auto text-white hover:text-plasma-primary transition-colors"
+            fill="currentColor"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <polygon points="0 99.37 96.23 99.37 100.17 99.37 292.56 99.37 292.56 241.68 197.16 241.68 197.16 331.59 197.16 331.98 197.16 338.66 297.59 338.66 299.5 336.34 394.31 241.86 394.31 0 0 0 0 99.37" />
+            <polygon points="100.17 273.23 100.17 265.82 100.17 130.93 96.23 130.93 0 226.82 0 350.71 0 375.33 0 468 170.22 467.27 265.79 370.81 100.17 370.21 100.17 273.23" />
+            <path d="M576.96.34h-171.47v241.02h74.37v-68.86h97.1c44.07,0,62.67-18.59,62.67-62.67v-46.83c0-44.07-18.59-62.67-62.67-62.67ZM565.26,99.16c0,14.12-4.48,18.59-18.59,18.59h-66.8v-59.91h66.8c14.12,0,18.59,4.48,18.59,18.59v22.72Z" />
+            <polygon points="738.79 .34 664.42 .34 664.42 241.36 858.62 241.36 858.62 175.59 738.79 175.59 738.79 .34" />
+            <path d="M964.66.34l-101.23,241.02h78.5l13.43-37.53h98.82l13.43,37.53h82.29L1049.02.34h-84.36ZM973.96,152.53l30.99-85.39,30.64,85.39h-61.63Z" />
+            <path d="M1342.72,95.71l-97.1-8.61c-11.36-1.03-15.15-4.13-15.15-15.15v-4.48c0-11.36,3.79-15.15,15.15-15.15h59.91c11.36,0,15.15,3.79,15.15,15.15v6.89h71.62v-19.63c0-37.53-17.22-54.4-54.4-54.4h-127.4c-37.19,0-54.4,16.87-54.4,54.4v32.37c0,36.84,15.84,50.61,54.4,54.4l97.1,8.61c12.05,1.03,15.15,3.79,15.15,15.15v8.61c0,11.36-3.79,15.15-15.15,15.15h-68.17c-11.36,0-15.15-3.79-15.15-15.15v-9.98h-71.62v23.07c0,37.53,17.22,54.4,54.4,54.4h135.66c37.19,0,54.4-16.87,54.4-54.4v-36.84c0-37.19-15.84-51.3-54.4-54.4Z" />
+            <polygon points="1569.62 125.67 1492.49 .34 1427.07 .34 1427.07 241.36 1495.94 241.36 1495.94 120.5 1549.31 203.83 1587.18 203.83 1640.55 120.5 1640.55 241.36 1709.41 241.36 1709.41 .34 1647.09 .34 1569.62 125.67" />
+            <path d="M1912.21.34h-84.36l-101.23,241.02h78.5l13.43-37.53h98.82l13.43,37.53h82.29L1912.21.34ZM1837.15,152.53l30.99-85.39,30.64,85.39h-61.63Z" />
+          </svg>
         </div>
 
         {/* Navigation actions */}
@@ -264,7 +266,16 @@ const MainSubsection = () => {
             <div className="absolute w-[calc(100%_+_32px)] h-[calc(100%_+_32px)] -top-4 -left-4 rounded-2xl blur-[20px] bg-[linear-gradient(19deg,rgba(86,56,149,0.3)_0%,rgba(255,42,122,0.3)_100%)] opacity-50" />
             <Card className="relative self-stretch w-full bg-[#1a172699] rounded-2xl overflow-hidden border border-solid border-[#ffffff1a] shadow-[0px_25px_50px_-12px_#00000040] backdrop-blur [-webkit-backdrop-filter:blur(8px)_brightness(100%)] min-h-[300px]">
               <CardContent className="p-0">
-                <div className="relative w-full h-[317px] opacity-80 bg-gradient-to-b from-[#28243D] to-[#0d0b14]" />
+                <div className="relative w-full h-[317px] opacity-80 bg-gradient-to-b from-[#28243D] to-[#0d0b14] overflow-hidden">
+                  <Image
+                    src="/images/cs2-cover.png"
+                    alt="CS2 Gameplay"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="object-cover"
+                    priority
+                  />
+                </div>
                 <div className="absolute inset-0 bg-[linear-gradient(0deg,rgba(13,11,20,1)_0%,rgba(13,11,20,0)_100%)]" />
                 <div className="flex flex-col w-[calc(100%_-_50px)] items-start p-4 absolute left-[25px] bottom-[25px] bg-plasma-slate/60 rounded-[48px] border border-solid border-plasma-text-primary/10 backdrop-blur [-webkit-backdrop-filter:blur(8px)_brightness(100%)]">
                   <div className="flex items-center self-stretch">
@@ -396,8 +407,16 @@ const MainSubsection = () => {
                   {[1, 2, 3, 4, 5, 6].map((n) => (
                     <div
                       key={n}
-                      className={`h-[140px] bg-white/5 rounded-2xl border border-solid border-white/10 hover:bg-white/10 transition-colors ${n === 1 ? 'bg-gradient-to-b from-plasma-primary/50 to-transparent' : ''}`}
-                    />
+                      className="relative aspect-[3/4] rounded-2xl overflow-hidden group hover:scale-110 transition duration-500"
+                    >
+                      <Image
+                        src={`/images/library-${n}.png`}
+                        alt={`Library Game ${n}`}
+                        fill
+                        sizes="(max-width: 640px) 50vw, 33vw"
+                        className="object-cover opacity-80 group-hover:opacity-100 transition-all duration-500"
+                      />
+                    </div>
                   ))}
                 </div>
               </CardContent>
@@ -483,11 +502,15 @@ const MainSubsection = () => {
                   {/* Glow top-right */}
                   <div className={`${mode.glowBg} absolute top-[-39px] right-[-39px] w-32 h-32 rounded-full blur-[32px]`} />
 
-                  {/* Icon placeholder */}
-                  <div className="absolute top-[41px] left-[41px] w-16 h-16 bg-[#ffffff0d] rounded-2xl border border-solid border-[#ffffff1a] flex items-center justify-center shadow-inner">
-                    <span className="font-thin text-white text-3xl">
-                      {i === 0 ? "🔥" : i === 1 ? "☕" : "🤝"}
-                    </span>
+                  {/* Icon */}
+                  <div className={`absolute top-[41px] left-[41px] w-16 h-16 ${mode.glowBg} rounded-2xl border border-solid border-[#ffffff1a] flex items-center justify-center shadow-inner overflow-hidden`}>
+                    <Image
+                      src={mode.icon}
+                      alt={`${mode.title} icon`}
+                      width={25}
+                      height={25}
+                      className="object-contain"
+                    />
                   </div>
 
                   {/* Title */}
