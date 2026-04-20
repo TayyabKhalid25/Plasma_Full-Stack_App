@@ -85,6 +85,66 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/rallies/:eventId
+router.get('/:eventId', authenticateToken, async (req, res) => {
+    const { eventId } = req.params;
+    try {
+        const result = await pool.query(`
+            SELECT 
+                e."eventID", e."title", e."description", e."scheduledStartUTC", e."maxCapacity", e."requiredIntent",
+                u."username" AS "organizerName", u."plasmaUserID" AS "organizerID",
+                (SELECT COUNT(*) FROM "rsvps" r WHERE r."eventID" = e."eventID" AND r."status" = 'CONFIRMED') AS "currentAttendees"
+            FROM "rally_events" e
+            JOIN "users" u ON e."organizerID" = u."plasmaUserID"
+            WHERE e."eventID" = $1
+        `, [eventId]);
+        
+        if (result.rows.length === 0) return res.status(404).json({ success: false, message: 'Rally not found' });
+        res.json({ success: true, data: result.rows[0] });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+// PUT /api/rallies/:eventId
+router.put('/:eventId', authenticateToken, async (req, res) => {
+    const { eventId } = req.params;
+    const { title, description, scheduledStartUTC, maxCapacity, requiredIntent } = req.body;
+    try {
+        const result = await pool.query(`
+            UPDATE "rally_events"
+            SET "title" = COALESCE($1, "title"),
+                "description" = COALESCE($2, "description"),
+                "scheduledStartUTC" = COALESCE($3, "scheduledStartUTC"),
+                "maxCapacity" = COALESCE($4, "maxCapacity"),
+                "requiredIntent" = COALESCE($5, "requiredIntent")
+            WHERE "eventID" = $6 AND "organizerID" = $7
+            RETURNING *
+        `, [title, description, scheduledStartUTC, maxCapacity, requiredIntent, eventId, req.userId]);
+        
+        if (result.rows.length === 0) return res.status(403).json({ success: false, message: 'Not authorized or rally not found' });
+        res.json({ success: true, message: 'Rally updated successfully', data: result.rows[0] });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+// DELETE /api/rallies/:eventId
+router.delete('/:eventId', authenticateToken, async (req, res) => {
+    const { eventId } = req.params;
+    try {
+        const result = await pool.query(`
+            DELETE FROM "rally_events" WHERE "eventID" = $1 AND "organizerID" = $2
+            RETURNING "eventID"
+        `, [eventId, req.userId]);
+        
+        if (result.rows.length === 0) return res.status(403).json({ success: false, message: 'Not authorized or rally not found' });
+        res.json({ success: true, message: 'Rally deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
 // POST /api/rallies/:eventId/rsvp
 // RSVP to a rally
 router.post('/:eventId/rsvp', authenticateToken, async (req, res) => {

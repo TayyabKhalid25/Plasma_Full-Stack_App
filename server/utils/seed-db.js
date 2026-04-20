@@ -11,7 +11,8 @@ async function seedDatabase() {
         await pool.query(`
             TRUNCATE TABLE "users", "profiles", "follow_relationships", 
             "games", "library_entries", "achievements", "user_achievements", 
-            "posts", "rally_events", "rsvps" RESTART IDENTITY CASCADE;
+            "posts", "comments", "rally_events", "rsvps", "user_settings",
+            "post_reactions", "notifications", "push_subscriptions", "direct_messages" RESTART IDENTITY CASCADE;
         `);
 
         // Create a universal test password
@@ -86,6 +87,26 @@ async function seedDatabase() {
             ($1, 'Friday Night Ranked', NOW() + INTERVAL '1 day', 5, 'COMPETITIVE'),
             ($2, 'Sunday Chill Custom Games', NOW() + INTERVAL '3 days', 10, 'CHILL')
         `, [users['Sarah'], users['Wahaj']]);
+
+        // 9. Insert User Settings
+        console.log('⚙️ Inserting User Settings...');
+        await pool.query(`
+            INSERT INTO "user_settings" ("plasmaUserID", "notificationsEnabled", "timezone", "privacy") VALUES
+            ($1, true, 'Asia/Karachi', 'Public'),
+            ($2, true, 'UTC', 'Public'),
+            ($3, true, 'America/New_York', 'Public'),
+            ($4, false, 'Europe/London', 'Private'),
+            ($5, false, 'UTC', 'Private')
+        `, [users['Wahaj'], users['Ahmed'], users['Sarah'], users['Ali'], users['Omar']]);
+
+        // 10. Insert Direct Messages
+        console.log('💬 Inserting Direct Messages...');
+        await pool.query(`
+            INSERT INTO "direct_messages" ("senderID", "receiverID", "content") VALUES
+            ($1, $2, 'Hey Ahmed, you down for some Valorant?'),
+            ($2, $1, 'Yeah give me 10 mins!'),
+            ($3, $1, 'Are we still on for the Friday Night Ranked rally?')
+        `, [users['Wahaj'], users['Ahmed'], users['Sarah']]);
 
         console.log('✅ Database Seeding Complete!');
         process.exit(0);

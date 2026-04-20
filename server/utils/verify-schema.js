@@ -7,6 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config({ path: '../.env' });
 const { pool } = require('../config/dbConfig');
 
 const SQL_FILE_PATH = path.join(__dirname, '../../plasma_schema.sql');

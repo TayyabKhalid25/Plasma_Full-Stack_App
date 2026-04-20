@@ -168,6 +168,26 @@ router.post('/dev-login', async (req, res) => {
     }
 });
 
+// GET /api/auth/steam
+// Redirects the browser to Valve's OpenID 2.0 endpoint
+router.get('/steam', (req, res) => {
+    // Stub for passport-steam integration
+    // res.redirect('https://steamcommunity.com/openid/login?...');
+    res.status(501).json({ success: false, message: 'Steam OpenID redirect unimplemented. Use /dev-login for now.' });
+});
+
+// GET /api/auth/steam/callback
+// Valve redirects here after login to validate assertion, issue JWT
+router.get('/steam/callback', (req, res) => {
+    res.status(501).json({ success: false, message: 'Steam OpenID callback unimplemented.' });
+});
+
+// POST /api/auth/logout
+// Clears session (client-side clears token, server could blacklist)
+router.post('/logout', authenticateToken, (req, res) => {
+    res.json({ success: true, message: 'Logged out successfully. Please discard your token.' });
+});
+
 // GET /api/auth/me
 // Returns the currently authenticated user's profile (Required by frontend api.js)
 router.get('/me', authenticateToken, async (req, res) => {

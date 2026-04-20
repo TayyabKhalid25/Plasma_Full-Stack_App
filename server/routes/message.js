@@ -4,84 +4,70 @@ const { authenticateToken } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-// GET /api/messages
-// Get all conversations for the current user
-router.get('/', authenticateToken, async (req, res) => {
-    const userId = req.userId;
+// Helper to check BR-2 Double Opt-In
+async function checkMutualFollow(userA, userB) {
+    const result = await pool.query(`
+        SELECT "isMutual" FROM "follow_relationships"
+        WHERE ("followerID" = $1 AND "followedID" = $2)
+           OR ("followerID" = $2 AND "followedID" = $1)
+    `, [userA, userB]);
+    
+    return result.rows.some(row => row.isMutual === true);
+}
 
+// GET /api/messages/:userId
+// Retrieves conversation with another user
+router.get('/:userId', authenticateToken, async (req, res) => {
+    const friendId = req.params.userId;
+    const myId = req.userId;
+    
     try {
-        // Get all unique users the logged-in user has posted with (via comments on same posts)
-        // Since there's no direct messages table, we use the follow_relationships 
-        // to show conversation stubs with friends
+        const isMutual = await checkMutualFollow(myId, friendId);
+        if (!isMutual) {
+            return res.status(403).json({ success: false, message: 'You must mutually follow each other to access direct messages.' });
+        }
+        
         const result = await pool.query(`
-            SELECT DISTINCT
-                u."plasmaUserID" AS id,
-                u."username" AS name,
-                u."intent",
-                pr."avatarURL" AS avatar
-            FROM "follow_relationships" fr
-            JOIN "users" u ON (
-                CASE 
-                    WHEN fr."followerID" = $1 THEN fr."followedID" = u."plasmaUserID"
-                    ELSE fr."followerID" = u."plasmaUserID"
-                END
-            )
-            LEFT JOIN "profiles" pr ON u."plasmaUserID" = pr."plasmaUserID"
-            WHERE (fr."followerID" = $1 OR fr."followedID" = $1)
-              AND fr."isMutual" = TRUE
-              AND u."plasmaUserID" != $1
-        `, [userId]);
-
+            SELECT "messageID", "senderID", "receiverID", "content", "isLobbyInvite", "lobbyLink", "timestampUTC"
+            FROM "direct_messages"
+            WHERE ("senderID" = $1 AND "receiverID" = $2) OR ("senderID" = $2 AND "receiverID" = $1)
+            ORDER BY "timestampUTC" ASC
+            LIMIT 100
+        `, [myId, friendId]);
+        
         res.json({ success: true, data: result.rows });
-
     } catch (error) {
-        console.error('Error fetching conversations:', error);
+        console.error('Error fetching DMs:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
 
-// GET /api/messages/:friendId
-// Get conversation with a specific friend
-router.get('/:friendId', authenticateToken, async (req, res) => {
-    const userId = req.userId;
-    const { friendId } = req.params;
-
+// POST /api/messages/:userId
+// Sends a new DM, with lobby invite support
+router.post('/:userId', authenticateToken, async (req, res) => {
+    const friendId = req.params.userId;
+    const myId = req.userId;
+    const { content, isLobbyInvite, lobbyLink } = req.body;
+    
+    if (!content && !isLobbyInvite) {
+        return res.status(400).json({ success: false, message: 'Message content or lobby invite is required' });
+    }
+    
     try {
-        // Get the friend's profile info
-        const friendResult = await pool.query(`
-            SELECT u."plasmaUserID", u."username", u."intent", pr."avatarURL"
-            FROM "users" u
-            LEFT JOIN "profiles" pr ON u."plasmaUserID" = pr."plasmaUserID"
-            WHERE u."plasmaUserID" = $1
-        `, [friendId]);
-
-        if (friendResult.rows.length === 0) {
-            return res.status(404).json({ success: false, message: 'User not found' });
+        const isMutual = await checkMutualFollow(myId, friendId);
+        if (!isMutual) {
+            return res.status(403).json({ success: false, message: 'You must mutually follow each other to send direct messages.' });
         }
-
-        // Get comments made by both users (shared conversation via posts)
-        const commentsResult = await pool.query(`
-            SELECT 
-                c."commentID" AS id,
-                c."userID" AS sender,
-                c."text",
-                c."timestampUTC" AS time
-            FROM "comments" c
-            WHERE c."userID" IN ($1, $2)
-            ORDER BY c."timestampUTC" ASC
-            LIMIT 50
-        `, [userId, friendId]);
-
-        res.json({
-            success: true,
-            data: {
-                friend: friendResult.rows[0],
-                messages: commentsResult.rows
-            }
-        });
-
+        
+        const result = await pool.query(`
+            INSERT INTO "direct_messages" ("senderID", "receiverID", "content", "isLobbyInvite", "lobbyLink")
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING "messageID", "timestampUTC"
+        `, [myId, friendId, content, isLobbyInvite || false, lobbyLink]);
+        
+        res.status(201).json({ success: true, data: result.rows[0], message: 'Message sent' });
     } catch (error) {
-        console.error('Error fetching conversation:', error);
+        console.error('Error sending DM:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });

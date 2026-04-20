@@ -6,72 +6,88 @@ const router = express.Router();
 
 // GET /api/notifications
 router.get('/', authenticateToken, async (req, res) => {
-    const userId = req.userId;
-    const filter = req.query.filter || 'all';
-
     try {
-        const friendReqResult = await pool.query(`
+        const result = await pool.query(`
             SELECT 
-                fr."followID" AS id,
-                'friend_request' AS type,
-                u."username" AS "senderName",
-                u."plasmaUserID" AS "fromUserId",
-                pr."avatarURL" AS avatar,
-                fr."followedAt" AS time,
-                FALSE AS read
-            FROM "follow_relationships" fr
-            JOIN "users" u ON fr."followerID" = u."plasmaUserID"
-            LEFT JOIN "profiles" pr ON u."plasmaUserID" = pr."plasmaUserID"
-            WHERE fr."followedID" = $1 AND fr."isMutual" = FALSE
-        `, [userId]);
-
-        const rallyResult = await pool.query(`
-            SELECT 
-                r."rsvpID" AS id,
-                'rally' AS type,
-                e."title" AS "eventTitle",
-                e."eventID" AS "eventId",
-                e."scheduledStartUTC" AS time,
-                NULL AS avatar,
-                FALSE AS read
-            FROM "rsvps" r
-            JOIN "rally_events" e ON r."eventID" = e."eventID"
-            WHERE r."userID" = $1 
-              AND r."status" = 'CONFIRMED'
-              AND e."scheduledStartUTC" BETWEEN NOW() AND NOW() + INTERVAL '24 hours'
-        `, [userId]);
-
-        const achievementResult = await pool.query(`
-            SELECT 
-                ua."claimID" AS id,
-                'achievement' AS type,
-                a."title" AS "achievementTitle",
-                NULL AS avatar,
-                ua."unlockedAt" AS time,
-                FALSE AS read
-            FROM "user_achievements" ua
-            JOIN "achievements" a ON ua."achievementID" = a."achievementID"
-            WHERE ua."userID" = $1
-            ORDER BY ua."unlockedAt" DESC
-            LIMIT 5
-        `, [userId]);
-
-        let notifications = [
-            ...friendReqResult.rows.map(r => ({ ...r, title: `${r.senderName} sent you a friend request` })),
-            ...rallyResult.rows.map(r => ({ ...r, title: `${r.eventTitle} starts soon!` })),
-            ...achievementResult.rows.map(r => ({ ...r, title: `You unlocked: ${r.achievementTitle}` }))
-        ];
-
-        if (filter !== 'all') {
-            notifications = notifications.filter(n => n.type === filter);
-        }
-
-        notifications.sort((a, b) => new Date(b.time) - new Date(a.time));
-
-        res.json({ success: true, data: notifications });
-
+                n."notificationID", n."notificationType", n."message", n."isRead", n."sentAt",
+                u."plasmaUserID" AS "senderID", u."username" AS "senderName", 
+                p."avatarURL" AS "senderAvatar"
+            FROM "notifications" n
+            LEFT JOIN "users" u ON n."senderID" = u."plasmaUserID"
+            LEFT JOIN "profiles" p ON u."plasmaUserID" = p."plasmaUserID"
+            WHERE n."receiverID" = $1
+            ORDER BY n."sentAt" DESC
+            LIMIT 50
+        `, [req.userId]);
+        
+        res.json({ success: true, data: result.rows });
     } catch (error) {
         console.error('Error fetching notifications:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+// PUT /api/notifications/:notificationId/read
+router.put('/:notificationId/read', authenticateToken, async (req, res) => {
+    const { notificationId } = req.params;
+    
+    try {
+        const result = await pool.query(`
+            UPDATE "notifications"
+            SET "isRead" = TRUE
+            WHERE "notificationID" = $1 AND "receiverID" = $2
+            RETURNING "notificationID"
+        `, [notificationId, req.userId]);
+        
+        if (result.rows.length === 0) return res.status(404).json({ success: false, message: 'Notification not found' });
+        
+        res.json({ success: true, message: 'Notification marked as read' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+// POST /api/notifications/subscribe
+// Register a Push API Subscription token (Service Worker)
+router.post('/subscribe', authenticateToken, async (req, res) => {
+    const { endpoint, keys } = req.body;
+    
+    if (!endpoint || !keys || !keys.p256dh || !keys.auth) {
+        return res.status(400).json({ success: false, message: 'Invalid subscription object' });
+    }
+    
+    try {
+        await pool.query(`
+            INSERT INTO "push_subscriptions" ("userID", "endpoint", "p256dh", "auth")
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT ("userID", "endpoint") DO UPDATE SET
+                "p256dh" = EXCLUDED."p256dh",
+                "auth" = EXCLUDED."auth",
+                "createdAt" = CURRENT_TIMESTAMP
+        `, [req.userId, endpoint, keys.p256dh, keys.auth]);
+        
+        res.json({ success: true, message: 'Push subscription registered successfully' });
+    } catch (error) {
+        console.error('Error registering push subscription:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+// DELETE /api/notifications/subscribe
+// Unregister a Push API token
+router.delete('/subscribe', authenticateToken, async (req, res) => {
+    const { endpoint } = req.body;
+    
+    if (!endpoint) return res.status(400).json({ success: false, message: 'Endpoint is required' });
+    
+    try {
+        await pool.query(`
+            DELETE FROM "push_subscriptions"
+            WHERE "userID" = $1 AND "endpoint" = $2
+        `, [req.userId, endpoint]);
+        
+        res.json({ success: true, message: 'Push subscription removed successfully' });
+    } catch (error) {
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
