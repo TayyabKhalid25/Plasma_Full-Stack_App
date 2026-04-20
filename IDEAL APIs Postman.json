@@ -1,7 +1,7 @@
 {
     "info": {
         "_postman_id": "a97d16ee-d308-4bc2-91f5-aa91069cf870",
-        "name": "Plasma API",
+        "name": "IDEAL Plasma APIs",
         "description": "API Documentation for the Plasma backend. Contains all routes required for the frontend integration.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
