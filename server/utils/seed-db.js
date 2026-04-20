@@ -1,5 +1,6 @@
 require('dotenv').config({ path: '../.env' });
 const { pool } = require('../config/dbConfig');
+const bcrypt = require('bcrypt');
 
 async function seedDatabase() {
     console.log('🌱 Starting Database Seeding...');
@@ -13,17 +14,20 @@ async function seedDatabase() {
             "posts", "rally_events", "rsvps" RESTART IDENTITY CASCADE;
         `);
 
+        // Create a universal test password
+        const passwordHash = await bcrypt.hash('password123', 10);
+
         // 2. Insert Users
         console.log('👤 Inserting Users...');
         const usersResult = await pool.query(`
-            INSERT INTO "users" ("steamID64", "username", "intent") VALUES 
-            ('76561198000000001', 'Wahaj', 'COMPETITIVE'),
-            ('76561198000000002', 'Ahmed', 'CHILL'),
-            ('76561198000000003', 'Sarah', 'COMPETITIVE'),
-            ('76561198000000004', 'Ali', 'OFFLINE'),
-            ('76561198000000005', 'Omar', 'OFFLINE')
+            INSERT INTO "users" ("steamID64", "username", "email", "passwordHash", "intent") VALUES 
+            ('76561198000000001', 'Wahaj', 'wahaj@plasma.gg', $1, 'COMPETITIVE'),
+            ('76561198000000002', 'Ahmed', 'ahmed@plasma.gg', $1, 'CHILL'),
+            ('76561198000000003', 'Sarah', 'sarah@plasma.gg', $1, 'COMPETITIVE'),
+            ('76561198000000004', 'Ali', 'ali@plasma.gg', $1, 'OFFLINE'),
+            ('76561198000000005', 'Omar', 'omar@plasma.gg', $1, 'OFFLINE')
             RETURNING "plasmaUserID", "username";
-        `);
+        `, [passwordHash]);
 
         const users = {};
         usersResult.rows.forEach(u => users[u.username] = u.plasmaUserID);
