@@ -17,8 +17,11 @@ CREATE TYPE post_type AS ENUM ('MOMENT', 'ACHIEVEMENT_UNLOCK', 'ACTIVITY_UPDATE'
 
 CREATE TABLE "users" (
     "plasmaUserID" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    "steamID64" VARCHAR(17) UNIQUE NOT NULL,
-    "username" VARCHAR(255) NOT NULL,
+    "steamID64" VARCHAR(17) UNIQUE,
+    "email" VARCHAR(255) UNIQUE,
+    "passwordHash" VARCHAR(255),
+    "dateOfBirth" DATE,
+    "username" VARCHAR(255) UNIQUE NOT NULL,
     "intent" intent_mode DEFAULT 'OFFLINE',
     "trustFactor" INTEGER DEFAULT 100,
     "accountAgeDays" INTEGER DEFAULT 0,
