@@ -1,4 +1,9 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent } from "../components/ui/card";
@@ -52,6 +57,8 @@ const intentModes = [
 const avatarColors = ["bg-slate-500", "bg-slate-600", "bg-slate-700"];
 
 const TopNavBarSubsection = () => {
+  const { isAuthenticated, loading } = useAuth();
+  
   return (
     <nav className="flex w-full h-[72px] items-center justify-center z-50 bg-plasma-bg/80 backdrop-blur-[6px] sticky top-0 border-b border-white/5">
       <div className="flex max-w-screen-xl items-center justify-between px-8 py-0 w-full">
@@ -78,29 +85,46 @@ const TopNavBarSubsection = () => {
 
         {/* Navigation actions */}
         <div className="inline-flex items-center gap-2 flex-[0_0_auto]">
-          {/* Sign In link */}
-          <Link
-            href="/login"
-            className="inline-flex flex-col justify-center items-center flex-[0_0_auto] px-4 py-2 hover:opacity-80 transition-opacity"
-          >
-            <span className="flex items-center justify-center font-sans font-medium text-plasma-text-secondary text-sm text-center tracking-[0] leading-5 whitespace-nowrap hover:text-white transition-colors">
-              Sign In
-            </span>
-          </Link>
+          {!loading && (
+            isAuthenticated ? (
+              <div className="inline-flex flex-col items-start flex-[0_0_auto]">
+                <Button
+                  asChild
+                  className="inline-flex flex-col justify-center px-6 py-5 rounded-full shadow-[0px_0px_20px_rgba(86,56,149,0.3)] bg-primary-gradient items-center flex-[0_0_auto] h-auto border-0 focus-visible:ring-0 hover:opacity-90 transition-all hover:scale-[1.02]"
+                >
+                  <Link href="/pulse">
+                    <span className="flex items-center justify-center font-sans font-bold text-white text-sm text-center tracking-[0] leading-5 whitespace-nowrap pt-[2px]">
+                      Open Dashboard
+                    </span>
+                  </Link>
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="inline-flex flex-col justify-center items-center flex-[0_0_auto] px-4 py-2 hover:opacity-80 transition-opacity"
+                >
+                  <span className="flex items-center justify-center font-sans font-medium text-plasma-text-secondary text-sm text-center tracking-[0] leading-5 whitespace-nowrap hover:text-white transition-colors">
+                    Sign In
+                  </span>
+                </Link>
 
-          {/* Get Started button */}
-          <div className="inline-flex flex-col items-start flex-[0_0_auto]">
-            <Button
-              asChild
-              className="inline-flex flex-col justify-center px-6 py-5 rounded-full shadow-[0px_0px_20px_rgba(86,56,149,0.3)] bg-primary-gradient items-center flex-[0_0_auto] h-auto border-0 focus-visible:ring-0 hover:opacity-90 transition-all hover:scale-[1.02]"
-            >
-              <Link href="/sign-up">
-                <span className="flex items-center justify-center font-sans font-bold text-white text-sm text-center tracking-[0] leading-5 whitespace-nowrap pt-[2px]">
-                  Get Started
-                </span>
-              </Link>
-            </Button>
-          </div>
+                <div className="inline-flex flex-col items-start flex-[0_0_auto]">
+                  <Button
+                    asChild
+                    className="inline-flex flex-col justify-center px-6 py-5 rounded-full shadow-[0px_0px_20px_rgba(86,56,149,0.3)] bg-primary-gradient items-center flex-[0_0_auto] h-auto border-0 focus-visible:ring-0 hover:opacity-90 transition-all hover:scale-[1.02]"
+                  >
+                    <Link href="/sign-up">
+                      <span className="flex items-center justify-center font-sans font-bold text-white text-sm text-center tracking-[0] leading-5 whitespace-nowrap pt-[2px]">
+                        Get Started
+                      </span>
+                    </Link>
+                  </Button>
+                </div>
+              </>
+            )
+          )}
         </div>
       </div>
     </nav>
@@ -534,6 +558,24 @@ const MainSubsection = () => {
 };
 
 export default function HeroPage() {
+  const { isAuthenticated, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      router.push("/pulse");
+    }
+  }, [loading, isAuthenticated, router]);
+
+  // Don't render while checking auth to prevent flash
+  if (loading || isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-plasma-bg">
+        <div className="w-10 h-10 border-3 border-plasma-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col w-full min-h-screen items-start relative selection:bg-plasma-primary selection:text-white" style={{ background: "radial-gradient(50% 50% at 50% 50%, rgba(86,56,149,0.2) 0%, rgba(13,11,20,1) 50%)" }}>
       <TopNavBarSubsection />

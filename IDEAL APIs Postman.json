@@ -1,0 +1,774 @@
+{
+    "info": {
+        "_postman_id": "a97d16ee-d308-4bc2-91f5-aa91069cf870",
+        "name": "IDEAL Plasma APIs",
+        "description": "API Documentation for the Plasma backend. Contains all routes required for the frontend integration.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "1. Authentication",
+            "item": [
+                {
+                    "name": "Dev Login (Generate Token)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"username\": \"Wahaj\",\n    \"steamID64\": \"76561198000000001\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:5000/api/auth/dev-login",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5000",
+                            "path": [
+                                "api",
+                                "auth",
+                                "dev-login"
+                            ]
+                        },
+                        "description": "Use this to log in. Copy the `token` from the response and use it in the Authorization header for all other requests. Other seeded users: Ahmed, Sarah, Ali, Omar."
+                    }
+                },
+                {
+                    "name": "Get Current User Profile (/me)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:5000/api/auth/me",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5000",
+                            "path": [
+                                "api",
+                                "auth",
+                                "me"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Logout User",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:5000/api/auth/logout",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5000",
+                            "path": [
+                                "api",
+                                "auth",
+                                "logout"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "2. Social & Feed",
+            "item": [
+                {
+                    "name": "Get Pulse Feed",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:5000/api/feed?filter=all",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5000",
+                            "path": [
+                                "api",
+                                "feed"
+                            ],
+                            "query": [
+                                {
+                                    "key": "filter",
+                                    "value": "all",
+                                    "description": "Options: all, my-posts, comp, chill, friends"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Friends List",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:5000/api/friends",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5000",
+                            "path": [
+                                "api",
+                                "friends"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Online Squad",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:5000/api/squad",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5000",
+                            "path": [
+                                "api",
+                                "squad"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Intent Mode",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"intent\": \"COMP\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:5000/api/users/me/intent",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5000",
+                            "path": [
+                                "api",
+                                "users",
+                                "me",
+                                "intent"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Follow User",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:5000/api/users/:userId/follow",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5000",
+                            "path": [
+                                "api",
+                                "users",
+                                ":userId",
+                                "follow"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "userId",
+                                    "value": "12345"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Post (Moment)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"content\": \"Finally hit Platinum in the new Season!\",\n    \"mediaUrl\": \"https://example.com/clip.mp4\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:5000/api/pulse/posts",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5000",
+                            "path": [
+                                "api",
+                                "pulse",
+                                "posts"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "React to Post",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:5000/api/pulse/posts/:postId/react",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5000",
+                            "path": [
+                                "api",
+                                "pulse",
+                                "posts",
+                                ":postId",
+                                "react"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "postId",
+                                    "value": "98765"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "3. Gaming & Progression",
+            "item": [
+                {
+                    "name": "Get Games Library",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:5000/api/games?filter=all&search=",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5000",
+                            "path": [
+                                "api",
+                                "games"
+                            ],
+                            "query": [
+                                {
+                                    "key": "filter",
+                                    "value": "all",
+                                    "description": "Options: all, playing, steam, non-steam"
+                                },
+                                {
+                                    "key": "search",
+                                    "value": "",
+                                    "description": "Search by game title"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Sync Steam Library",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:5000/api/library/sync/steam",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5000",
+                            "path": [
+                                "api",
+                                "library",
+                                "sync",
+                                "steam"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Search IGDB (Manual Entry)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:5000/api/library/igdb/search?q=valorant",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5000",
+                            "path": [
+                                "api",
+                                "library",
+                                "igdb",
+                                "search"
+                            ],
+                            "query": [
+                                {
+                                    "key": "q",
+                                    "value": "valorant"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Add Manual Game (Omni-Library)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"igdbId\": \"1234\",\n    \"title\": \"Valorant\",\n    \"coverUrl\": \"https://images.igdb.com/igdb/image/upload/t_cover_big/co2mvt.jpg\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:5000/api/library/manual",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5000",
+                            "path": [
+                                "api",
+                                "library",
+                                "manual"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Toggle Manual Playing Status",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"isPlaying\": true\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:5000/api/library/:gameId/status",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5000",
+                            "path": [
+                                "api",
+                                "library",
+                                ":gameId",
+                                "status"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "gameId",
+                                    "value": "5678"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Prestige Achievements",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:5000/api/achievements?type=steam",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5000",
+                            "path": [
+                                "api",
+                                "achievements"
+                            ],
+                            "query": [
+                                {
+                                    "key": "type",
+                                    "value": "steam",
+                                    "description": "Platform filter"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Leaderboard",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:5000/api/leaderboard?scope=friends",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5000",
+                            "path": [
+                                "api",
+                                "leaderboard"
+                            ],
+                            "query": [
+                                {
+                                    "key": "scope",
+                                    "value": "friends",
+                                    "description": "Options: friends, global"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Hall of Fame",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"achievementIds\": [\"achv_1\", \"achv_2\", \"achv_3\"]\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:5000/api/prestige/me/hall-of-fame",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5000",
+                            "path": [
+                                "api",
+                                "prestige",
+                                "me",
+                                "hall-of-fame"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "4. Events & Profile",
+            "item": [
+                {
+                    "name": "Get Upcoming Rallies",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:5000/api/rallies?view=calendar",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5000",
+                            "path": [
+                                "api",
+                                "rallies"
+                            ],
+                            "query": [
+                                {
+                                    "key": "view",
+                                    "value": "calendar",
+                                    "description": "Options: calendar, list"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Event Intel (Details)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:5000/api/rallies/:eventId",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5000",
+                            "path": [
+                                "api",
+                                "rallies",
+                                ":eventId"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "eventId",
+                                    "value": "rally_123"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Rally",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title\": \"Friday Night Ranked\",\n    \"gameId\": \"1234\",\n    \"utcStartTime\": \"2026-03-22T21:00:00.000Z\",\n    \"roles\": [\n        { \"name\": \"DPS\", \"capacity\": 3 },\n        { \"name\": \"Sentinel\", \"capacity\": 2 }\n    ]\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:5000/api/rallies",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5000",
+                            "path": [
+                                "api",
+                                "rallies"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "RSVP to Rally",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"roleId\": \"role_dps_1\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:5000/api/rallies/:eventId/rsvp",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5000",
+                            "path": [
+                                "api",
+                                "rallies",
+                                ":eventId",
+                                "rsvp"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "eventId",
+                                    "value": "rally_123"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Cancel RSVP",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:5000/api/rallies/:eventId/rsvp",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5000",
+                            "path": [
+                                "api",
+                                "rallies",
+                                ":eventId",
+                                "rsvp"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "eventId",
+                                    "value": "rally_123"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get User Settings",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:5000/api/settings",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5000",
+                            "path": [
+                                "api",
+                                "settings"
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

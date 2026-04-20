@@ -3,6 +3,8 @@
 import { TopNav } from "./TopNav";
 import { Sidebar } from "./Sidebar";
 import { RightRail } from "./RightRail";
+import { ProtectedRoute } from "./ProtectedRoute";
+import { FloatingMessages } from "../ui/FloatingMessages";
 import { FriendManagementDrawer } from "../ui/FriendManagementDrawer";
 import { useState } from "react";
 
@@ -19,6 +21,8 @@ export const DashboardLayout = ({ children, showRightRail = true }) => {
         </main>
         {showRightRail && <RightRail />}
       </div>
+        
+      <FloatingMessages />
       
       {/* Global Overlay Drawer */}
       <FriendManagementDrawer 
