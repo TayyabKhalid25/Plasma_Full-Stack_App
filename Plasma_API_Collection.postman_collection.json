@@ -192,6 +192,26 @@
 							]
 						}
 					}
+				},
+				{
+					"name": "Verify Token",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{YOUR_TOKEN_HERE}}"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:5000/api/auth/verify",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "5000",
+							"path": ["api", "auth", "verify"]
+						},
+						"description": "Checks if the supplied JWT token is still valid. Returns 200 if valid, 401 if expired or tampered. Useful for the frontend to gate protected routes on page load without fetching the full /me profile."
+					}
 				}
 			]
 		},
@@ -710,6 +730,32 @@
 								}
 							]
 						}
+					}
+				},
+				{
+					"name": "Unfollow / Remove Friend (friends router)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{YOUR_TOKEN_HERE}}"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:5000/api/friends/:targetUserId",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "5000",
+							"path": ["api", "friends", ":targetUserId"],
+							"variable": [
+								{
+									"key": "targetUserId",
+									"value": "12345"
+								}
+							]
+						},
+						"description": "Removes a follow relationship via the /api/friends router. Also clears the isMutual flag on the reverse relationship if it existed. Note: there is also DELETE /api/users/:userId/follow on the users router — both do the same thing but are separate route handlers."
 					}
 				},
 				{
@@ -1792,7 +1838,7 @@
 			"name": "9. Direct Messaging (BR-2)",
 			"item": [
 				{
-					"name": "Get All Conversations",
+					"name": "⚠️ GET /api/messages — NOT IMPLEMENTED (will 404)",
 					"request": {
 						"method": "GET",
 						"header": [
@@ -1812,7 +1858,62 @@
 								"api",
 								"messages"
 							]
-						}
+						},
+						"description": "⚠️ WARNING: This route does NOT exist in message.js. There is no GET / handler on the messages router. This will return a 404. A 'list all conversations' endpoint needs to be implemented if required by the frontend. Only GET /api/messages/:userId (with a specific peer ID) is implemented."
+					}
+				},
+				{
+					"name": "Create Post via Feed Router (POST /api/feed/posts)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{YOUR_TOKEN_HERE}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"content\": \"Just hit Radiant! Let's go! 🎮\",\n    \"type\": \"MOMENT\",\n    \"mediaURL\": null\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5000/api/feed/posts",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "5000",
+							"path": ["api", "feed", "posts"]
+						},
+						"description": "Alternative post creation endpoint on the feed router (feed.js). Accepts the same body as POST /api/pulse/posts but is a separate route handler. Valid types: MOMENT, ACHIEVEMENT_UNLOCK, ACTIVITY_UPDATE, RALLY_BROADCAST. Both /api/feed/posts and /api/pulse/posts are live."
+					}
+				},
+				{
+					"name": "Delete Post via Feed Router (DELETE /api/feed/posts/:postId)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{YOUR_TOKEN_HERE}}"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:5000/api/feed/posts/:postId",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "5000",
+							"path": ["api", "feed", "posts", ":postId"],
+							"variable": [
+								{
+									"key": "postId",
+									"value": "post-uuid-here"
+								}
+							]
+						},
+						"description": "Alternative post deletion endpoint on the feed router (feed.js). Only the post author can delete. Returns 404 if the post doesn't exist or doesn't belong to the caller. Mirrors DELETE /api/pulse/posts/:postId."
 					}
 				},
 				{
