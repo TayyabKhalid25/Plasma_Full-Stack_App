@@ -3,13 +3,10 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { 
-  Gamepad2, MoreHorizontal, PlayCircle, Heart, MessageCircle, Share2, Play, Medal, Trophy, Swords, Shield, Target, Calendar, Users, User
+  Gamepad2, MoreHorizontal, PlayCircle, Heart, MessageCircle, Share2, Play, Medal, Trophy, Swords, Shield, Target, Calendar, Users, UserPlus
 } from "lucide-react";
 import Link from "next/link";
 import { currentUser, hallOfFame, games, rallyEvents } from "@/data/dummy";
-import { useModal } from "@/hooks/useModal";
-import { ShareModal } from "@/components/modals/ShareModal";
-import { PostOptionsModal } from "@/components/modals/PostOptionsModal";
 
 const iconMap = { Trophy, Swords, Shield, Target, Medal };
 
@@ -20,11 +17,10 @@ const userStats = [
   { label: "Library", value: String(currentUser.stats.library) },
 ];
 
-export default function Profile() {
+export default function UserProfile({ params }) {
   const [activeTab, setActiveTab] = useState("Activity");
-  
-  const shareModal = useModal();
-  const optionsModal = useModal();
+
+  // In the future, use params.userId to fetch user data
 
   return (
     <DashboardLayout showRightRail={false}>
@@ -69,12 +65,9 @@ export default function Profile() {
               </div>
             </div>
             
-            <Link 
-              href="/settings" 
-              className="flex items-center gap-2 px-8 py-3 rounded-full bg-primary-gradient text-white font-bold text-sm transition-all hover:shadow-card-glow hover:scale-[1.02] shrink-0 cursor-pointer"
-            >
-              <User className="w-4 h-4" /> Edit Profile
-            </Link>
+            <button className="flex items-center gap-2 px-8 py-3 rounded-full bg-primary-gradient text-white font-bold text-sm transition-all hover:shadow-card-glow hover:scale-[1.02] shrink-0 cursor-pointer">
+              <UserPlus className="w-4 h-4" /> Follow
+            </button>
           </div>
         </header>
 
@@ -126,10 +119,7 @@ export default function Profile() {
                       <p className="text-[11px] text-plasma-text-secondary">Shared a clip • 2h ago</p>
                     </div>
                   </div>
-                  <button 
-                    onClick={() => optionsModal.open({ id: 'profile-post-1' })}
-                    className="text-plasma-text-secondary hover:text-plasma-text-primary transition-colors cursor-pointer"
-                  >
+                  <button className="text-plasma-text-secondary hover:text-plasma-text-primary transition-colors cursor-pointer">
                     <MoreHorizontal className="w-5 h-5" />
                   </button>
                 </div>
@@ -145,12 +135,7 @@ export default function Profile() {
                 <div className="flex items-center gap-6 mt-4">
                   <button className="flex items-center gap-2 text-plasma-text-secondary text-xs hover:text-plasma-secondary transition-colors cursor-pointer"><Heart className="w-4 h-4" /> 24</button>
                   <button className="flex items-center gap-2 text-plasma-text-secondary text-xs hover:text-plasma-primary transition-colors cursor-pointer"><MessageCircle className="w-4 h-4" /> 8</button>
-                  <button 
-                    onClick={() => shareModal.open({ type: 'post', id: 'profile-post-1' })}
-                    className="flex items-center gap-2 text-plasma-text-secondary text-xs hover:text-white transition-colors cursor-pointer"
-                  >
-                    <Share2 className="w-4 h-4" /> Share
-                  </button>
+                  <button className="flex items-center gap-2 text-plasma-text-secondary text-xs hover:text-white transition-colors cursor-pointer"><Share2 className="w-4 h-4" /> Share</button>
                 </div>
               </div>
 
@@ -273,18 +258,6 @@ export default function Profile() {
         </section>
 
       </div>
-      
-      <ShareModal 
-        isOpen={shareModal.isOpen} 
-        onClose={shareModal.close} 
-        shareType={shareModal.modalData?.type} 
-        shareId={shareModal.modalData?.id} 
-      />
-      <PostOptionsModal 
-        isOpen={optionsModal.isOpen} 
-        onClose={optionsModal.close} 
-        post={optionsModal.modalData} 
-      />
     </DashboardLayout>
   );
 }

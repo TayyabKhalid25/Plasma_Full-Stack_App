@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { useAuth, API_BASE } from "@/context/AuthContext";
 import { 
   Search, 
   Gamepad2, 
@@ -24,32 +25,119 @@ import { SearchIGDBGameModal } from "@/components/modals/SearchIGDBGameModal";
 const iconMap = { Gamepad2, Diamond, Cloud, Zap, Shield, Sparkles, Dog, Star, Castle, Cpu };
 
 export default function Library() {
-  const [games, setGames] = useState(initialGames);
+  const [games, setGames] = useState([]);
+  const [igdbResults, setIgdbResults] = useState([]);
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  
+  const { token } = useAuth();
   const addGameModal = useModal();
+  
+  // Fetch local library
+  const fetchLibrary = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/games?filter=${activeFilter}&q=${searchQuery}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        const mapped = data.data.map(g => ({
+          id: g.appID,
+          title: g.title,
+          image: g.coverArtURL,
+          nowPlaying: g.isCurrentlyPlaying || false,
+          platform: g.platform?.toLowerCase() || "non-steam",
+          iconName: g.platform === "STEAM" ? "Cloud" : "Gamepad2"
+        }));
+        setGames(mapped);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchLibrary();
+  }, [token, activeFilter, searchQuery]);
+
+  // Search IGDB when query is present
+  useEffect(() => {
+    if (!searchQuery || !token) {
+      setIgdbResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/library/igdb/search?q=${searchQuery}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setIgdbResults(data.data);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery, token]);
 
   const isEmpty = games.length === 0;
 
-  // Filter + search logic
-  const filteredGames = games.filter((game) => {
-    // Search filter
-    if (searchQuery && !game.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    // Category filter
-    if (activeFilter === "all") return true;
-    if (activeFilter === "playing") return game.nowPlaying;
-    if (activeFilter === "steam") return game.platform === "steam";
-    if (activeFilter === "non-steam") return game.platform === "non-steam";
-    return true;
-  });
-
-  const togglePlaying = (gameId, e) => {
+  const togglePlaying = async (gameId, e, currentPlaying) => {
     e.preventDefault();
     e.stopPropagation();
-    setGames((prev) =>
-      prev.map((g) => (g.id === gameId ? { ...g, nowPlaying: !g.nowPlaying } : g))
-    );
+    setGames((prev) => prev.map((g) => (g.id === gameId ? { ...g, nowPlaying: !currentPlaying } : g)));
+    try {
+      await fetch(`${API_BASE}/api/library/${gameId}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ playStatus: !currentPlaying ? "PLAYING" : "WANT_TO_PLAY" })
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+
+
+  const addToLibrary = async (igdbGame) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/library/manual`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          gameId: igdbGame.id,
+          title: igdbGame.title,
+          coverArtURL: igdbGame.coverArtURL,
+          playStatus: "WANT_TO_PLAY"
+        })
+      });
+      if (res.ok) {
+        setSearchQuery("");
+        fetchLibrary();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const syncSteam = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/library/sync/steam`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`Synced ${data.syncedGames} games!`);
+        fetchLibrary();
+      } else {
+        alert(data.message);
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -65,10 +153,10 @@ export default function Library() {
               </h1>
               {/* DEV TOGGLE FOR TESTING - REMOVE IN PROD */}
               <button 
-                onClick={() => setGames(isEmpty ? initialGames : [])}
-                className="px-4 py-2 bg-plasma-slate-hover text-plasma-text-secondary text-xs rounded-full hover:text-white transition-colors"
+                onClick={syncSteam}
+                className="px-4 py-2 bg-primary-gradient text-white font-bold text-xs rounded-full shadow-card-glow hover:scale-[1.02] transition-all cursor-pointer"
               >
-                Toggle Empty State
+                Sync Steam Library
               </button>
             </div>
 
@@ -83,6 +171,21 @@ export default function Library() {
                   placeholder="Search any game..." 
                   type="text"
                 />
+                {igdbResults.length > 0 && searchQuery && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-plasma-bg border border-white/10 rounded-xl overflow-hidden z-50 shadow-2xl">
+                    {igdbResults.map(res => (
+                      <div key={res.id} onClick={() => addToLibrary(res)} className="flex items-center gap-3 p-3 hover:bg-plasma-slate-hover cursor-pointer transition-colors border-b border-white/5 last:border-b-0">
+                        {res.coverArtURL ? (
+                          <img src={res.coverArtURL} alt="" className="w-8 h-10 rounded object-cover" />
+                        ) : (
+                          <div className="w-8 h-10 rounded bg-white/5 flex items-center justify-center"><Gamepad2 className="w-4 h-4 text-plasma-text-secondary" /></div>
+                        )}
+                        <span className="text-sm font-semibold text-plasma-text-primary">{res.title}</span>
+                        <span className="text-[10px] ml-auto bg-plasma-primary/20 text-plasma-primary px-2 py-1 rounded">Add</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -131,7 +234,7 @@ export default function Library() {
             <div className="animate-fade-in">
               {/* Stats Bar */}
               <div className="mb-6 flex items-center gap-2 text-plasma-text-secondary font-sans font-normal text-[13px]">
-                <span>{filteredGames.length} Games</span>
+                <span>{games.length} Games</span>
                 <span className="w-1 h-1 rounded-full bg-plasma-text-secondary/30"></span>
                 <span>{games.filter(g => g.platform === "steam").length} Steam</span>
                 <span className="w-1 h-1 rounded-full bg-plasma-text-secondary/30"></span>
@@ -145,9 +248,9 @@ export default function Library() {
               </div>
 
               {/* Game Grid */}
-              {filteredGames.length > 0 ? (
+              {games.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                  {filteredGames.map((game) => {
+                  {games.map((game) => {
                     const Icon = iconMap[game.iconName] || Gamepad2;
                     return (
                       <Link 
@@ -173,7 +276,7 @@ export default function Library() {
                         {/* Hover Overlay */}
                         <div className="absolute inset-0 bg-plasma-bg/70 backdrop-blur-[4px] flex flex-col items-center justify-center gap-4 px-4 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                           <button
-                            onClick={(e) => togglePlaying(game.id, e)}
+                            onClick={(e) => togglePlaying(game.id, e, game.nowPlaying)}
                             className="flex items-center justify-between w-full px-2"
                           >
                             <span className="text-[12px] font-medium text-plasma-text-primary">Set Playing</span>
@@ -181,7 +284,8 @@ export default function Library() {
                               <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-transform ${game.nowPlaying ? "right-0.5" : "left-0.5"}`}></div>
                             </div>
                           </button>
-                          <div className="text-[13px] font-bold text-plasma-text-primary hover:text-plasma-secondary transition-colors flex items-center gap-1">
+
+                          <div className="text-[13px] font-bold text-plasma-text-primary hover:text-plasma-secondary transition-colors flex items-center gap-1 mt-2">
                             View Details <ArrowRight className="w-3.5 h-3.5" />
                           </div>
                         </div>
