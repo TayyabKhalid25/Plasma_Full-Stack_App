@@ -1,0 +1,122 @@
+import { useState, useEffect } from "react";
+import { ModalWrapper } from "../ui/ModalWrapper";
+import { Heart, Send, MoreHorizontal } from "lucide-react";
+import { currentUser } from "@/data/dummy";
+
+export function PostCommentsModal({ isOpen, onClose, post, onAddComment, onToggleLike }) {
+  const [commentText, setCommentText] = useState("");
+  const [comments, setComments] = useState([]);
+  
+  // Dummy effect to populate comments when modal opens
+  useEffect(() => {
+    if (isOpen && post) {
+      setComments([
+        { id: 1, user: { name: "Nebula", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Nebula" }, text: "Insane play!", time: "2h ago", liked: false },
+        { id: 2, user: { name: "Vanguard", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Vanguard" }, text: "We need to queue up later.", time: "1h ago", liked: true }
+      ]);
+    }
+  }, [isOpen, post]);
+
+  const handleSubmit = () => {
+    if (!commentText.trim()) return;
+    const newComment = {
+      id: Date.now(),
+      user: { name: currentUser.username, avatar: currentUser.avatar },
+      text: commentText.trim(),
+      time: "Just now",
+      liked: false
+    };
+    
+    setComments([...comments, newComment]);
+    setCommentText("");
+    if (onAddComment) onAddComment(post.id); // Notify parent to update count
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
+  if (!post) return null;
+
+  return (
+    <ModalWrapper isOpen={isOpen} onClose={onClose} title="Post Details" maxWidth="max-w-2xl">
+      <div className="flex flex-col h-[60vh]">
+        {/* Original Post Recap */}
+        <div className="flex gap-4 pb-4 border-b border-white/5 shrink-0">
+          <img src={post.user?.avatar} className="w-10 h-10 rounded-full border-2 border-plasma-slate bg-plasma-slate" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="font-sans font-semibold text-plasma-text-primary text-sm">{post.user?.name}</span>
+                <span className="font-sans text-plasma-text-secondary text-[11px] ml-2">{post.time}</span>
+              </div>
+              {post.intent && (
+                <div className={`px-2 py-0.5 rounded-full ${post.intentColor} text-[10px] font-bold`}>
+                  {post.intent}
+                </div>
+              )}
+            </div>
+            <p className="text-sm text-plasma-text-primary mt-2">{post.text}</p>
+            {post.image && (
+              <img src={post.image} className="mt-3 rounded-xl max-h-48 w-auto object-cover border border-white/5" />
+            )}
+            
+            <div className="flex items-center gap-6 mt-4">
+              <button 
+                onClick={() => onToggleLike && onToggleLike(post.id)}
+                className={`flex items-center gap-2 transition-colors cursor-pointer text-xs font-medium ${post.liked ? "text-plasma-secondary" : "text-plasma-text-secondary hover:text-plasma-text-primary"}`}
+              >
+                <Heart className={`w-4 h-4 ${post.liked ? "fill-plasma-secondary" : ""}`} />
+                {post.likes}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Comments Section */}
+        <div className="flex-1 overflow-y-auto py-4 space-y-4 custom-scrollbar">
+          {comments.map((comment) => (
+            <div key={comment.id} className="flex gap-3 group">
+              <img src={comment.user.avatar} className="w-8 h-8 rounded-full bg-plasma-slate shrink-0" />
+              <div className="flex-1 bg-white/5 rounded-2xl rounded-tl-none p-3 relative">
+                <div className="flex justify-between items-start mb-1">
+                  <span className="text-xs font-bold text-plasma-text-primary">{comment.user.name}</span>
+                  <span className="text-[10px] text-plasma-text-secondary">{comment.time}</span>
+                </div>
+                <p className="text-sm text-plasma-text-primary">{comment.text}</p>
+                <div className="absolute -right-10 top-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+                  <button className="p-1 text-plasma-text-secondary hover:text-plasma-secondary transition-colors">
+                    <Heart className={`w-3.5 h-3.5 ${comment.liked ? "fill-plasma-secondary text-plasma-secondary" : ""}`} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Comment Input */}
+        <div className="pt-4 border-t border-white/5 shrink-0 flex items-center gap-3">
+          <img src={currentUser.avatar} className="w-8 h-8 rounded-full bg-plasma-slate shrink-0" />
+          <input
+            type="text"
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Write a comment..."
+            className="flex-1 bg-plasma-bg border border-white/5 rounded-full px-4 py-2 text-sm text-plasma-text-primary outline-none focus:border-plasma-primary"
+          />
+          <button 
+            onClick={handleSubmit}
+            disabled={!commentText.trim()}
+            className="p-2 rounded-full bg-plasma-primary text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-plasma-primary/80 transition-colors shrink-0"
+          >
+            <Send className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </ModalWrapper>
+  );
+}

@@ -4,16 +4,19 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
   User, Mail, Lock, Bell, BellOff, Eye, EyeOff, Link2, Unlink, Shield,
-  Trash2, Download, Save, Check, ChevronRight
+  Trash2, Download, Save, Check, ChevronRight, Camera
 } from "lucide-react";
 import Image from "next/image";
 import { userSettings as initialSettings } from "@/data/dummy";
+import { useModal } from "@/hooks/useModal";
+import { ChangePasswordModal } from "@/components/modals/ChangePasswordModal";
+import { UploadAvatarModal } from "@/components/modals/UploadAvatarModal";
+import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 
 const sectionNav = [
   { id: "account", label: "Account", icon: User },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "privacy", label: "Privacy", icon: Shield },
-  { id: "connections", label: "Connected Accounts", icon: Link2 },
 
   { id: "danger", label: "Danger Zone", icon: Trash2 },
 ];
@@ -45,6 +48,14 @@ export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState("account");
   const [settings, setSettings] = useState(initialSettings);
   const [saved, setSaved] = useState(false);
+
+  const passwordModal = useModal();
+  const avatarModal = useModal();
+  const dangerModal = useModal();
+
+  const handleAvatarUpload = (newAvatar) => {
+    setSettings((s) => ({ ...s, account: { ...s.account, avatar: newAvatar } }));
+  };
 
   const toggleNotif = (key) => {
     setSettings((s) => ({
@@ -104,13 +115,21 @@ export default function SettingsPage() {
 
                 {/* Avatar */}
                 <div className="flex items-center gap-6 mb-8">
-                  <img
-                    src={settings.account.avatar}
-                    alt="Avatar"
-                    className="w-20 h-20 rounded-full border-2 border-plasma-primary bg-plasma-slate"
-                  />
+                  <div className="relative">
+                    <img
+                      src={settings.account.avatar}
+                      alt="Avatar"
+                      className="w-20 h-20 rounded-full border-2 border-plasma-primary bg-plasma-slate"
+                    />
+                    <button 
+                      onClick={() => avatarModal.open()}
+                      className="absolute bottom-0 right-0 p-1.5 bg-plasma-primary rounded-full text-white border-2 border-plasma-slate hover:bg-plasma-primary/90 transition-colors cursor-pointer"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                   <div>
-                    <button className="px-5 py-2 rounded-xl bg-plasma-primary/15 text-plasma-primary text-sm font-bold hover:bg-plasma-primary/25 transition-colors cursor-pointer">
+                    <button onClick={() => avatarModal.open()} className="px-5 py-2 rounded-xl bg-plasma-primary/15 text-plasma-primary text-sm font-bold hover:bg-plasma-primary/25 transition-colors cursor-pointer">
                       Change Avatar
                     </button>
                     <p className="text-xs text-plasma-text-secondary mt-1.5">JPG, PNG. Max 2MB.</p>
@@ -134,7 +153,7 @@ export default function SettingsPage() {
                 </SettingRow>
 
                 <SettingRow label="Password" description="Last changed 30 days ago">
-                  <button className="px-4 py-2 rounded-lg border border-white/10 text-sm text-plasma-text-secondary hover:text-white hover:border-white/20 transition-colors cursor-pointer">
+                  <button onClick={() => passwordModal.open()} className="px-4 py-2 rounded-lg border border-white/10 text-sm text-plasma-text-secondary hover:text-white hover:border-white/20 transition-colors cursor-pointer">
                     Change Password
                   </button>
                 </SettingRow>
@@ -199,37 +218,7 @@ export default function SettingsPage() {
               </section>
             )}
 
-            {/* Connected Accounts */}
-            {activeSection === "connections" && (
-              <section className="bg-plasma-slate rounded-2xl border border-white/5 p-6 animate-fade-in">
-                <h2 className="font-display font-bold text-lg text-plasma-text-primary mb-6">Connected Accounts</h2>
 
-                {Object.entries(settings.connectedAccounts).map(([platform, data]) => (
-                  <div key={platform} className="flex items-center justify-between py-4 border-b border-white/5 last:border-b-0">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${data.connected ? "bg-plasma-primary/15" : "bg-white/5"}`}>
-                        <Link2 className={`w-5 h-5 ${data.connected ? "text-plasma-primary" : "text-plasma-text-secondary"}`} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-plasma-text-primary capitalize">{platform}</p>
-                        {data.connected ? (
-                          <p className="text-xs text-plasma-success">{data.username}</p>
-                        ) : (
-                          <p className="text-xs text-plasma-text-secondary">Not connected</p>
-                        )}
-                      </div>
-                    </div>
-                    <button className={`px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
-                      data.connected
-                        ? "border border-plasma-error/30 text-plasma-error hover:bg-plasma-error/10"
-                        : "bg-plasma-primary text-white hover:bg-plasma-primary/80"
-                    }`}>
-                      {data.connected ? "Disconnect" : "Connect"}
-                    </button>
-                  </div>
-                ))}
-              </section>
-            )}
 
 
             {/* Danger Zone */}
@@ -254,7 +243,10 @@ export default function SettingsPage() {
                       <p className="text-sm font-medium text-plasma-error">Delete Account</p>
                       <p className="text-xs text-plasma-text-secondary">Permanently delete your account and all data</p>
                     </div>
-                    <button className="px-4 py-2 rounded-lg bg-plasma-error text-white text-sm font-bold hover:bg-plasma-error/80 transition-colors cursor-pointer">
+                    <button 
+                      onClick={() => dangerModal.open({ title: 'Delete Account', message: 'This will permanently delete your account, posts, and history. This action cannot be undone.', requiredString: 'DELETE' })}
+                      className="px-4 py-2 rounded-lg bg-plasma-error text-white text-sm font-bold hover:bg-plasma-error/80 transition-colors cursor-pointer"
+                    >
                       Delete Account
                     </button>
                   </div>
@@ -280,6 +272,25 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      <ChangePasswordModal 
+        isOpen={passwordModal.isOpen} 
+        onClose={passwordModal.close} 
+      />
+      <UploadAvatarModal 
+        isOpen={avatarModal.isOpen} 
+        onClose={avatarModal.close} 
+        currentAvatar={settings.account.avatar}
+        onUpload={handleAvatarUpload}
+      />
+      <ConfirmActionModal 
+        isOpen={dangerModal.isOpen} 
+        onClose={dangerModal.close}
+        title={dangerModal.modalData?.title}
+        message={dangerModal.modalData?.message}
+        requiredString={dangerModal.modalData?.requiredString}
+        onConfirm={() => console.log("Confirmed action")}
+      />
     </DashboardLayout>
   );
 }

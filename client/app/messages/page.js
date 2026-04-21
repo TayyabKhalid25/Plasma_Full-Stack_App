@@ -2,14 +2,17 @@
 
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Send, MessageSquare, Search, ArrowLeft } from "lucide-react";
+import { Send, MessageSquare, Search, ArrowLeft, PlusCircle } from "lucide-react";
 import { conversations as allConversations } from "@/data/dummy";
+import { useModal } from "@/hooks/useModal";
+import { NewMessageModal } from "@/components/modals/NewMessageModal";
 
 export default function MessagesPage() {
   const [conversations] = useState(allConversations);
   const [activeConvId, setActiveConvId] = useState(null);
   const [messageInput, setMessageInput] = useState("");
   const [localMessages, setLocalMessages] = useState({});
+  const newMessageModal = useModal();
 
   const activeConv = conversations.find((c) => c.id === activeConvId);
 
@@ -49,7 +52,15 @@ export default function MessagesPage() {
         <div className={`w-full md:w-[340px] border-r border-white/5 flex flex-col bg-plasma-slate/30 shrink-0 ${activeConvId ? "hidden md:flex" : "flex"}`}>
           {/* Search Header */}
           <div className="p-4 border-b border-white/5">
-            <h1 className="font-display font-bold text-xl text-plasma-text-primary mb-4">Messages</h1>
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="font-display font-bold text-xl text-plasma-text-primary">Messages</h1>
+              <button 
+                onClick={() => newMessageModal.open()}
+                className="p-2 bg-plasma-primary/10 text-plasma-primary rounded-xl hover:bg-plasma-primary hover:text-white transition-all cursor-pointer"
+              >
+                <PlusCircle className="w-5 h-5" />
+              </button>
+            </div>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-plasma-text-secondary" />
               <input
@@ -176,6 +187,15 @@ export default function MessagesPage() {
           )}
         </div>
       </div>
+      
+      <NewMessageModal 
+        isOpen={newMessageModal.isOpen} 
+        onClose={newMessageModal.close}
+        onStartChat={(friend) => {
+          // Logic to start chat with friend
+          setActiveConvId(friend.id);
+        }}
+      />
     </DashboardLayout>
   );
 }

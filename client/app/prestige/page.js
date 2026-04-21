@@ -6,6 +6,9 @@ import {
   Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Diamond, Zap, Activity
 } from "lucide-react";
 import { hallOfFame, gamesProgress, leaderboard, globalLeaderboard, currentUser } from "@/data/dummy";
+import { useModal } from "@/hooks/useModal";
+import { EditHallOfFameModal } from "@/components/modals/EditHallOfFameModal";
+import { InviteFriendsModal } from "@/components/modals/InviteFriendsModal";
 
 const iconMap = { Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Diamond, Zap, Activity };
 
@@ -18,6 +21,9 @@ const achievementTabs = [
 export default function Prestige() {
   const [activeAchTab, setActiveAchTab] = useState("steam");
   const [activeLeaderboard, setActiveLeaderboard] = useState("friends");
+
+  const editHofModal = useModal();
+  const inviteModal = useModal();
 
   const leaderboardData = activeLeaderboard === "global" ? globalLeaderboard : leaderboard;
 
@@ -53,7 +59,10 @@ export default function Prestige() {
           <section className="mt-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-[11px] font-bold text-plasma-text-secondary tracking-[0.2em] uppercase">HALL OF FAME ⭐</h2>
-              <button className="text-plasma-primary text-sm font-semibold hover:text-plasma-secondary transition-colors cursor-pointer">
+              <button 
+                onClick={() => editHofModal.open()}
+                className="text-plasma-primary text-sm font-semibold hover:text-plasma-secondary transition-colors cursor-pointer"
+              >
                 Edit Hall of Fame
               </button>
             </div>
@@ -193,13 +202,28 @@ export default function Prestige() {
             </div>
             
             {/* Bottom CTA */}
-            <button className="w-full mt-6 py-3 rounded-full bg-primary-gradient text-white font-bold text-sm tracking-widest uppercase hover:shadow-[0_0_20px_rgba(255,42,122,0.3)] transition-all cursor-pointer">
+            <button 
+              onClick={() => inviteModal.open()}
+              className="w-full mt-6 py-3 rounded-full bg-primary-gradient text-white font-bold text-sm tracking-widest uppercase hover:shadow-[0_0_20px_rgba(255,42,122,0.3)] transition-all cursor-pointer"
+            >
               Invite Friends
             </button>
           </div>
         </div>
 
       </div>
+      
+      <EditHallOfFameModal 
+        isOpen={editHofModal.isOpen} 
+        onClose={editHofModal.close}
+        onUpdate={(ids) => {
+          // Handle update
+        }}
+      />
+      <InviteFriendsModal 
+        isOpen={inviteModal.isOpen} 
+        onClose={inviteModal.close}
+      />
     </DashboardLayout>
   );
 }

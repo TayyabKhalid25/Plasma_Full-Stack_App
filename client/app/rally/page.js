@@ -4,6 +4,9 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PlusCircle, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 import { rallyEvents as initialEvents, rallyListEvents } from "@/data/dummy";
+import { useModal } from "@/hooks/useModal";
+import { CreateRallyModal } from "@/components/modals/CreateRallyModal";
+import { RsvpRoleModal } from "@/components/modals/RsvpRoleModal";
 
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const DAYS_IN_MONTH = [31,28,31,30,31,30,31,31,30,31,30,31];
@@ -27,6 +30,9 @@ export default function Rally() {
   const [intentFilter, setIntentFilter] = useState("All Intents");
   const [showIntentDropdown, setShowIntentDropdown] = useState(false);
   const [events, setEvents] = useState(initialEvents);
+
+  const createRallyModal = useModal();
+  const rsvpModal = useModal();
 
   const prevMonth = () => {
     if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(currentYear - 1); }
@@ -83,7 +89,10 @@ export default function Rally() {
               <p className="text-plasma-text-secondary font-medium mt-2">Coordinate, assemble, and conquer with your squad.</p>
             )}
           </div>
-          <button className="px-8 py-3 bg-primary-gradient rounded-full text-sm font-bold text-white shadow-[0_8px_30px_rgba(86,56,149,0.3)] flex items-center gap-2 hover:brightness-110 active:scale-95 transition-all cursor-pointer">
+          <button 
+            onClick={() => createRallyModal.open()}
+            className="px-8 py-3 bg-primary-gradient rounded-full text-sm font-bold text-white shadow-[0_8px_30px_rgba(86,56,149,0.3)] flex items-center gap-2 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+          >
             <PlusCircle className="w-4 h-4" />
             CREATE RALLY
           </button>
@@ -240,7 +249,7 @@ export default function Rally() {
                             <div className="w-7 h-7 rounded-full border-2 border-plasma-slate bg-plasma-slate-hover flex items-center justify-center text-[8px] font-bold text-plasma-text-primary">+2</div>
                           </div>
                           <button 
-                            onClick={() => toggleRSVP(event.id)}
+                            onClick={() => event.rsvpd ? toggleRSVP(event.id) : rsvpModal.open(event)}
                             className={`px-6 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
                               event.rsvpd
                                 ? "bg-plasma-success/15 text-plasma-success border border-plasma-success/30"
@@ -311,7 +320,10 @@ export default function Rally() {
                                 <span className="text-sm text-plasma-text-secondary font-bold">/ {item.slotsTotal}</span>
                               </div>
                             </div>
-                            <button className="bg-white/5 hover:bg-white/10 text-plasma-text-primary px-6 py-2.5 rounded-lg text-xs font-bold tracking-widest transition-all border border-white/10 uppercase cursor-pointer">
+                            <button 
+                              onClick={() => rsvpModal.open(item)}
+                              className="bg-white/5 hover:bg-white/10 text-plasma-text-primary px-6 py-2.5 rounded-lg text-xs font-bold tracking-widest transition-all border border-white/10 uppercase cursor-pointer"
+                            >
                               RSVP
                             </button>
                           </div>
@@ -330,6 +342,23 @@ export default function Rally() {
         )}
 
       </div>
+      
+      <CreateRallyModal 
+        isOpen={createRallyModal.isOpen} 
+        onClose={createRallyModal.close}
+        onRallyCreated={(rally) => {
+          // Dummy update list with new rally
+        }}
+      />
+      <RsvpRoleModal 
+        isOpen={rsvpModal.isOpen} 
+        onClose={rsvpModal.close}
+        event={rsvpModal.modalData}
+        onRsvp={(eventId, roleId) => {
+          // Add to RSVPs or handle role filling
+          toggleRSVP(eventId);
+        }}
+      />
     </DashboardLayout>
   );
 }

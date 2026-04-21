@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { games as initialGames, gameFilters } from "@/data/dummy";
+import { useModal } from "@/hooks/useModal";
+import { SearchIGDBGameModal } from "@/components/modals/SearchIGDBGameModal";
 
 const iconMap = { Gamepad2, Diamond, Cloud, Zap, Shield, Sparkles, Dog, Star, Castle, Cpu };
 
@@ -25,6 +27,8 @@ export default function Library() {
   const [games, setGames] = useState(initialGames);
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  
+  const addGameModal = useModal();
 
   const isEmpty = games.length === 0;
 
@@ -115,7 +119,10 @@ export default function Library() {
               <p className="font-sans font-normal text-[15px] text-plasma-text-secondary max-w-[320px] mx-auto mb-8">
                 Search for a game above to start building your collection.
               </p>
-              <button className="px-10 py-3 rounded-full bg-primary-gradient text-white font-sans font-bold text-sm uppercase tracking-widest shadow-[0_0_20px_rgba(255,42,122,0.3)] hover:shadow-[0_0_30px_rgba(255,42,122,0.5)] transition-all cursor-pointer">
+              <button 
+                onClick={() => addGameModal.open()}
+                className="px-10 py-3 rounded-full bg-primary-gradient text-white font-sans font-bold text-sm uppercase tracking-widest shadow-[0_0_20px_rgba(255,42,122,0.3)] hover:shadow-[0_0_30px_rgba(255,42,122,0.5)] transition-all cursor-pointer"
+              >
                 Search Games
               </button>
             </div>
@@ -131,6 +138,10 @@ export default function Library() {
                 <span>{games.filter(g => g.platform === "non-steam").length} Non-Steam</span>
                 <span className="w-1 h-1 rounded-full bg-plasma-text-secondary/30"></span>
                 <span>{games.filter(g => g.nowPlaying).length} Currently Playing</span>
+                <span className="w-1 h-1 rounded-full bg-plasma-text-secondary/30"></span>
+                <button onClick={() => addGameModal.open()} className="text-plasma-primary hover:text-plasma-secondary transition-colors font-bold ml-auto cursor-pointer flex items-center gap-1">
+                  + Add Game
+                </button>
               </div>
 
               {/* Game Grid */}
@@ -195,6 +206,14 @@ export default function Library() {
           )}
         </div>
       </div>
+      
+      <SearchIGDBGameModal 
+        isOpen={addGameModal.isOpen} 
+        onClose={addGameModal.close}
+        onAddGame={(game) => {
+          setGames(prev => [...prev, { ...game, nowPlaying: false, iconName: "Gamepad2" }]);
+        }}
+      />
     </DashboardLayout>
   );
 }

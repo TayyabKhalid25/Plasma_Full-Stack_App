@@ -6,10 +6,15 @@ import {
   Heart, 
   MessageSquare, 
   Share2,
-  ImageIcon
+  ImageIcon,
+  MoreHorizontal
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { feedPosts, feedNotifications, feedFilters } from "@/data/dummy";
+import { useModal } from "@/hooks/useModal";
+import { ShareModal } from "@/components/modals/ShareModal";
+import { PostOptionsModal } from "@/components/modals/PostOptionsModal";
+import { PostCommentsModal } from "@/components/modals/PostCommentsModal";
 
 // --- COMPONENTS ---
 
@@ -18,6 +23,10 @@ export const ActivityFeedSection = () => {
   const [posts, setPosts] = useState(feedPosts);
   const [postText, setPostText] = useState("");
   const [showPostFeedback, setShowPostFeedback] = useState(false);
+
+  const shareModal = useModal();
+  const optionsModal = useModal();
+  const commentsModal = useModal();
 
   // Filter logic
   const filteredPosts = posts.filter((post) => {
@@ -42,6 +51,14 @@ export const ActivityFeedSection = () => {
           : p
       )
     );
+  };
+
+  const handleDeletePost = (id) => {
+    setPosts(prev => prev.filter(p => p.id !== id));
+  };
+
+  const handleAddComment = (id) => {
+    setPosts(prev => prev.map(p => p.id === id ? { ...p, comments: p.comments + 1 } : p));
   };
 
   const handlePost = () => {
@@ -169,9 +186,15 @@ export const ActivityFeedSection = () => {
                     <span className="font-sans text-plasma-text-secondary text-[11px]">{post.time}</span>
                   </div>
                 </div>
-                <div className={`px-3 py-1 rounded-full ${post.intentColor}`}>
+                <div className={`px-3 py-1 rounded-full ${post.intentColor} flex items-center gap-2`}>
                   <span className="font-sans font-bold text-[10px]">{post.intent === "COMP" ? "⚔ COMP" : post.intent}</span>
                 </div>
+                <button 
+                  onClick={() => optionsModal.open(post)}
+                  className="p-1 ml-2 text-plasma-text-secondary hover:text-white transition-colors cursor-pointer"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
               </div>
               <p className="font-sans text-plasma-text-primary text-[15px]">
                 {post.text}
@@ -191,11 +214,17 @@ export const ActivityFeedSection = () => {
                   <Heart className={`w-4 h-4 ${post.liked ? "fill-plasma-secondary" : ""}`} />
                   <span className="text-xs">{post.likes}</span>
                 </button>
-                <button className="flex items-center gap-2 text-plasma-text-secondary hover:text-plasma-text-primary transition-colors cursor-pointer">
+                <button 
+                  onClick={() => commentsModal.open(post)}
+                  className="flex items-center gap-2 text-plasma-text-secondary hover:text-plasma-text-primary transition-colors cursor-pointer"
+                >
                   <MessageSquare className="w-4 h-4" />
                   <span className="text-xs">{post.comments}</span>
                 </button>
-                <button className="text-plasma-text-secondary hover:text-plasma-text-primary transition-colors cursor-pointer">
+                <button 
+                  onClick={() => shareModal.open({ type: 'post', id: post.id })}
+                  className="text-plasma-text-secondary hover:text-plasma-text-primary transition-colors cursor-pointer"
+                >
                   <Share2 className="w-4 h-4" />
                 </button>
               </div>
@@ -211,6 +240,26 @@ export const ActivityFeedSection = () => {
 
         </div>
       </div>
+
+      <ShareModal 
+        isOpen={shareModal.isOpen} 
+        onClose={shareModal.close} 
+        shareType={shareModal.modalData?.type} 
+        shareId={shareModal.modalData?.id} 
+      />
+      <PostOptionsModal 
+        isOpen={optionsModal.isOpen} 
+        onClose={optionsModal.close} 
+        post={optionsModal.modalData} 
+        onDelete={handleDeletePost}
+      />
+      <PostCommentsModal 
+        isOpen={commentsModal.isOpen} 
+        onClose={commentsModal.close} 
+        post={commentsModal.modalData} 
+        onAddComment={handleAddComment}
+        onToggleLike={toggleLike}
+      />
     </div>
   );
 };
