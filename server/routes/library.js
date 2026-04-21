@@ -88,28 +88,43 @@ router.get('/igdb/search', authenticateToken, async (req, res) => {
 
 // POST /api/library/manual
 router.post('/manual', authenticateToken, async (req, res) => {
-    const { gameId, title, coverArtURL, playStatus, rating, notes } = req.body;
+    let { gameId, title, coverArtURL, isCurrentlyPlaying } = req.body;
     
     try {
+        // Automatically find or generate a custom gameId if none is provided
+        if (!gameId) {
+            if (!title) return res.status(400).json({ success: false, message: 'Game ID or Title is required' });
+            
+            // Check if there's already a custom game with this exact title
+            const existingTitleCheck = await pool.query(
+                `SELECT "appID" FROM "games" WHERE "title" ILIKE $1 AND "isManualEntry" = TRUE`,
+                [title.trim()]
+            );
+            
+            if (existingTitleCheck.rows.length > 0) {
+                gameId = existingTitleCheck.rows[0].appID;
+            } else {
+                gameId = `custom_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+            }
+        }
+
         // 1. Ensure game exists in 'games' table
         const gameCheck = await pool.query(`SELECT "appID" FROM "games" WHERE "appID" = $1`, [gameId]);
         if (gameCheck.rows.length === 0) {
             await pool.query(`
-                INSERT INTO "games" ("appID", "title", "coverArtURL") 
-                VALUES ($1, $2, $3)
+                INSERT INTO "games" ("appID", "title", "coverArtURL", "platform", "isManualEntry") 
+                VALUES ($1, $2, $3, 'CUSTOM', TRUE)
             `, [gameId, title || 'Unknown Game', coverArtURL]);
         }
         
         // 2. Add to library_entries
         await pool.query(`
-            INSERT INTO "library_entries" ("userID", "appID", "playStatus", "rating", "notes")
-            VALUES ($1, $2, COALESCE($3, 'WANT_TO_PLAY'), $4, $5)
+            INSERT INTO "library_entries" ("userID", "appID", "isCurrentlyPlaying", "lastPlayedAt")
+            VALUES ($1, $2, COALESCE($3, FALSE), CURRENT_TIMESTAMP)
             ON CONFLICT ("userID", "appID") DO UPDATE SET
-                "playStatus" = EXCLUDED."playStatus",
-                "rating" = EXCLUDED."rating",
-                "notes" = EXCLUDED."notes",
-                "lastPlayedUTC" = CURRENT_TIMESTAMP
-        `, [req.userId, gameId, playStatus, rating, notes]);
+                "isCurrentlyPlaying" = EXCLUDED."isCurrentlyPlaying",
+                "lastPlayedAt" = EXCLUDED."lastPlayedAt"
+        `, [req.userId, gameId, isCurrentlyPlaying]);
         
         res.status(201).json({ success: true, message: 'Game added to library' });
     } catch (error) {
@@ -142,27 +157,64 @@ router.delete('/:gameId', authenticateToken, async (req, res) => {
 // PUT /api/library/:gameId/status
 router.put('/:gameId/status', authenticateToken, async (req, res) => {
     const { gameId } = req.params;
-    const { playStatus, rating, notes } = req.body;
+    const { isCurrentlyPlaying } = req.body;
     
+    if (typeof isCurrentlyPlaying !== 'boolean') {
+        return res.status(400).json({ success: false, message: 'isCurrentlyPlaying boolean flag is required' });
+    }
+
     try {
         const result = await pool.query(`
             UPDATE "library_entries"
             SET 
-                "playStatus" = COALESCE($1, "playStatus"),
-                "rating" = COALESCE($2, "rating"),
-                "notes" = COALESCE($3, "notes"),
-                "lastPlayedUTC" = CURRENT_TIMESTAMP
-            WHERE "userID" = $4 AND "appID" = $5
-            RETURNING "appID", "playStatus"
-        `, [playStatus, rating, notes, req.userId, gameId]);
+                "isCurrentlyPlaying" = $1,
+                "lastPlayedAt" = CURRENT_TIMESTAMP
+            WHERE "userID" = $2 AND "appID" = $3
+            RETURNING "appID", "isCurrentlyPlaying"
+        `, [isCurrentlyPlaying, req.userId, gameId]);
         
         if (result.rows.length === 0) {
             return res.status(404).json({ success: false, message: 'Game not found in library' });
+        }
+
+        // Broadcast to Pulse if started playing
+        if (isCurrentlyPlaying) {
+            const gameCheck = await pool.query('SELECT "title" FROM "games" WHERE "appID" = $1', [gameId]);
+            if (gameCheck.rows.length > 0) {
+                const title = gameCheck.rows[0].title;
+                const content = `Started playing ${title}`;
+                
+                await pool.query(`
+                    INSERT INTO "posts" ("userID", "type", "content")
+                    VALUES ($1, 'ACTIVITY_UPDATE', $2)
+                `, [req.userId, content]);
+            }
         }
         
         res.json({ success: true, message: 'Library entry updated successfully' });
     } catch (error) {
         console.error('Error updating game status:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+// GET /api/library/user/:userId
+router.get('/user/:userId', authenticateToken, async (req, res) => {
+    const { userId } = req.params;
+    
+    try {
+        const result = await pool.query(`
+            SELECT le."appID", le."hoursPlayed", le."isCurrentlyPlaying", le."lastPlayedAt",
+                   g."title", g."platform", g."coverArtURL"
+            FROM "library_entries" le
+            JOIN "games" g ON le."appID" = g."appID"
+            WHERE le."userID" = $1
+            ORDER BY le."lastPlayedAt" DESC NULLS LAST
+        `, [userId]);
+        
+        res.json({ success: true, data: result.rows });
+    } catch (error) {
+        console.error('Error fetching user library:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });

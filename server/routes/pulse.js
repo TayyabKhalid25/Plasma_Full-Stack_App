@@ -110,4 +110,40 @@ router.post('/posts/:postId/comments', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/pulse/user/:userId
+router.get('/user/:userId', authenticateToken, async (req, res) => {
+    const { userId } = req.params;
+    
+    try {
+        // Check if the requesting user is the same, or if they are mutual friends
+        if (req.userId !== userId) {
+            const friendCheck = await pool.query(`
+                SELECT "isMutual" FROM "follow_relationships"
+                WHERE ("followerID" = $1 AND "followedID" = $2)
+                   OR ("followerID" = $2 AND "followedID" = $1)
+                LIMIT 1
+            `, [req.userId, userId]);
+            
+            if (friendCheck.rows.length === 0 || !friendCheck.rows[0].isMutual) {
+                return res.status(403).json({ success: false, message: 'Pulse feed is only visible to mutual friends' });
+            }
+        }
+
+        const result = await pool.query(`
+            SELECT p."postID", p."type", p."content", p."mediaURL", p."timestampUTC", p."deepLinkURI",
+                   u."username", pr."avatarURL"
+            FROM "posts" p
+            JOIN "users" u ON p."userID" = u."plasmaUserID"
+            LEFT JOIN "profiles" pr ON u."plasmaUserID" = pr."plasmaUserID"
+            WHERE p."userID" = $1 AND p."isVisible" = TRUE
+            ORDER BY p."timestampUTC" DESC
+        `, [userId]);
+        
+        res.json({ success: true, data: result.rows });
+    } catch (error) {
+        console.error('Error fetching user pulse:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
 module.exports = router;

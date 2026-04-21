@@ -16,7 +16,6 @@ router.get('/:userId', authenticateToken, async (req, res) => {
                 u."plasmaUserID", 
                 u."username", 
                 u."intent", 
-                u."steamID64",
                 p."avatarURL", 
                 p."bio", 
                 p."totalPlasmaXP"

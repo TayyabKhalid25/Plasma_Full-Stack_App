@@ -113,19 +113,19 @@ router.post('/login', async (req, res) => {
         `, [identifier]);
 
         if (result.rows.length === 0) {
-            return res.status(401).json({ success: false, message: 'Invalid credentials' });
+            return res.status(404).json({ success: false, message: 'Account not found. Please check your username or email.' });
         }
 
         const user = result.rows[0];
 
         // 2. Verify password
         if (!user.passwordHash) {
-             return res.status(401).json({ success: false, message: 'Account requires Steam login' });
+             return res.status(401).json({ success: false, message: 'This account requires Steam login. Please login via Steam.' });
         }
 
         const isMatch = await bcrypt.compare(password, user.passwordHash);
         if (!isMatch) {
-            return res.status(401).json({ success: false, message: 'Invalid credentials' });
+            return res.status(401).json({ success: false, message: 'Incorrect password. Please try again.' });
         }
 
         // 3. Generate JWT
@@ -248,7 +248,6 @@ router.get('/me', authenticateToken, async (req, res) => {
                 u."plasmaUserID" AS id, 
                 u."username" AS name, 
                 u."intent",
-                u."steamID64",
                 p."avatarURL" AS avatar,
                 p."bio",
                 p."totalPlasmaXP"

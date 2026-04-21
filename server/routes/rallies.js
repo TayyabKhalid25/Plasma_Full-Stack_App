@@ -210,4 +210,39 @@ router.delete('/:eventId/rsvp', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/rallies/user/:userId
+router.get('/user/:userId', authenticateToken, async (req, res) => {
+    const { userId } = req.params;
+    
+    try {
+        if (req.userId !== userId) {
+            // Mutual friend check
+            const friendCheck = await pool.query(`
+                SELECT "isMutual" FROM "follow_relationships"
+                WHERE ("followerID" = $1 AND "followedID" = $2)
+                   OR ("followerID" = $2 AND "followedID" = $1)
+                LIMIT 1
+            `, [req.userId, userId]);
+            
+            if (friendCheck.rows.length === 0 || !friendCheck.rows[0].isMutual) {
+                return res.status(403).json({ success: false, message: 'Rallies are only visible to mutual friends' });
+            }
+        }
+
+        const result = await pool.query(`
+            SELECT 
+                e."eventID", e."title", e."description", e."scheduledStartUTC", e."maxCapacity", e."requiredIntent",
+                (SELECT COUNT(*) FROM "rsvps" r WHERE r."eventID" = e."eventID" AND r."status" = 'CONFIRMED') AS "currentAttendees"
+            FROM "rally_events" e
+            WHERE e."organizerID" = $1 AND e."scheduledStartUTC" > CURRENT_TIMESTAMP
+            ORDER BY e."scheduledStartUTC" ASC
+        `, [userId]);
+        
+        res.json({ success: true, data: result.rows });
+    } catch (error) {
+        console.error('Error fetching user rallies:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
 module.exports = router;

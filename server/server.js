@@ -33,7 +33,7 @@ connectToDatabase().catch(err => {
   process.exit(1); // Exit the application if the database connection fails
 });
 app.get('/', (req, res) => {
-  res.send('Backend server is running 🚀');
+  res.send('Backend server is running');
 });
 
 // Import and use routes
@@ -63,24 +63,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/admin', adminRoutes);
 
-// GET /api/trending - top games being played by the user's network
-app.get('/api/trending', require('./middleware/authMiddleware').authenticateToken, async (req, res) => {
-  const { pool } = require('./config/dbConfig');
-  try {
-    const result = await pool.query(`
-      SELECT g."title", g."coverArtURL", COUNT(l."userID") AS "playerCount"
-      FROM "library_entries" l
-      JOIN "games" g ON l."appID" = g."appID"
-      WHERE l."isCurrentlyPlaying" = TRUE
-      GROUP BY g."appID", g."title", g."coverArtURL"
-      ORDER BY "playerCount" DESC
-      LIMIT 5
-    `);
-    res.json({ success: true, data: result.rows });
-  } catch (e) {
-    res.status(500).json({ success: false, message: 'Internal server error' });
-  }
-});
+
 // New API Endpoints
 app.use('/api/feed', feedRoutes);
 app.use('/api/games', gamesRoutes);

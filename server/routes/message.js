@@ -15,6 +15,47 @@ async function checkMutualFollow(userA, userB) {
     return result.rows.some(row => row.isMutual === true);
 }
 
+// GET /api/messages
+// Retrieves inbox (latest message from all active conversations)
+router.get('/', authenticateToken, async (req, res) => {
+    const myId = req.userId;
+    try {
+        const result = await pool.query(`
+            WITH latest_messages AS (
+                SELECT DISTINCT ON (
+                    LEAST("senderID", "receiverID"),
+                    GREATEST("senderID", "receiverID")
+                )
+                    "messageID",
+                    "senderID",
+                    "receiverID",
+                    "content",
+                    "isLobbyInvite",
+                    "timestampUTC",
+                    CASE
+                        WHEN "senderID" = $1 THEN "receiverID"
+                        ELSE "senderID"
+                    END as "contactID"
+                FROM "direct_messages"
+                WHERE "senderID" = $1 OR "receiverID" = $1
+                ORDER BY
+                    LEAST("senderID", "receiverID"),
+                    GREATEST("senderID", "receiverID"),
+                    "timestampUTC" DESC
+            )
+            SELECT lm.*, u."plasmaUsername" as "contactUsername", u."avatarParams" as "contactAvatar"
+            FROM latest_messages lm
+            JOIN "users" u ON u."userID" = lm."contactID"
+            ORDER BY lm."timestampUTC" DESC
+        `, [myId]);
+        
+        res.json({ success: true, data: result.rows });
+    } catch (error) {
+        console.error('Error fetching inbox:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
 // GET /api/messages/:userId
 // Retrieves conversation with another user
 router.get('/:userId', authenticateToken, async (req, res) => {
