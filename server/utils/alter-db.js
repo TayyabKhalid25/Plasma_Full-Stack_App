@@ -5,6 +5,21 @@ async function alterDatabase() {
     console.log('🔧 Starting Database Schema Migration...');
 
     try {
+        console.log('Running pre-requisite ALTER commands (IGDB Enum, dropping Trust Factor columns)...');
+        // Add IGDB to Enum if it doesnt exist. In postgres, IF NOT EXISTS is not natively supported for ADD VALUE inside a block easily, so we catch duplicate errors.
+        try {
+            await pool.query(`ALTER TYPE platform_type ADD VALUE 'IGDB';`);
+        } catch (e) {
+            if (e.code !== '42710') { // 42710 is duplicate_object error
+                throw e;
+            }
+        }
+
+        await pool.query(`
+            ALTER TABLE IF EXISTS "users" DROP COLUMN IF EXISTS "trustFactor";
+            ALTER TABLE IF EXISTS "rally_events" DROP COLUMN IF EXISTS "minTrustFactor";
+        `);
+
         console.log('Adding new tables (user_settings, post_reactions, notifications, push_subscriptions, direct_messages)...');
         await pool.query(`
             CREATE TABLE IF NOT EXISTS "user_settings" (

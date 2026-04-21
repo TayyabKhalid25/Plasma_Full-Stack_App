@@ -1,12 +1,9 @@
 const express = require('express');
 const { pool } = require('../config/dbConfig');
 const { authenticateToken } = require('../middleware/authMiddleware');
-const axios = require('axios');
+const { getSteamPlayerSummaries, getSteamPlayerAchievements } = require('../utils/externalApis');
 
 const router = express.Router();
-
-// Utility for fetching Steam API Key (Replace with your actual dotenv fetch in prod)
-const STEAM_API_KEY = process.env.STEAM_API_KEY || 'STUB_API_KEY';
 
 // GET /api/steam/friends/status
 router.get('/friends/status', authenticateToken, async (req, res) => {
@@ -22,13 +19,8 @@ router.get('/friends/status', authenticateToken, async (req, res) => {
         const steamIds = result.rows.map(r => r.steamID64).join(',');
         if (!steamIds) return res.json({ success: true, data: [] });
         
-        /* Stub API call
-        const steamResponse = await axios.get(\`http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=\${STEAM_API_KEY}&steamids=\${steamIds}\`);
-        return res.json({ success: true, data: steamResponse.data.response.players });
-        */
-        
-        // Mock response
-        res.json({ success: true, data: [{ steamid: steamIds.split(',')[0], personastate: 1, gameextrainfo: 'Valorant' }] });
+        const summaries = await getSteamPlayerSummaries(steamIds);
+        res.json({ success: true, data: summaries });
     } catch (error) {
         console.error('Error fetching steam statuses:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
@@ -40,14 +32,13 @@ router.get('/player/:steamId64', authenticateToken, async (req, res) => {
     const { steamId64 } = req.params;
     
     try {
-        // Mock response
+        const summaries = await getSteamPlayerSummaries(steamId64);
+        if (!summaries || summaries.length === 0) {
+            return res.status(404).json({ success: false, message: 'Player not found on Steam' });
+        }
         res.json({
             success: true,
-            data: {
-                steamid: steamId64,
-                personaname: 'PlasmaUser123',
-                avatarfull: 'https://via.placeholder.com/150'
-            }
+            data: summaries[0]
         });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Internal server error' });
@@ -65,16 +56,12 @@ router.get('/achievements/:appId', authenticateToken, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Steam not linked' });
         }
         
-        // Mock parsing steam achievements
+        const steamId64 = user.rows[0].steamID64;
+        const achievements = await getSteamPlayerAchievements(steamId64, appId);
+        
         res.json({
             success: true,
-            data: {
-                gameName: 'Sample Game',
-                achievements: [
-                    { apiname: 'ACH_1', achieved: 1 },
-                    { apiname: 'ACH_2', achieved: 0 }
-                ]
-            }
+            data: achievements
         });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Internal server error' });

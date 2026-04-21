@@ -6,7 +6,7 @@ CREATE TYPE intent_mode AS ENUM ('COMPETITIVE', 'CHILL', 'OFFLINE');
 CREATE TYPE rsvp_status AS ENUM ('PENDING', 'CONFIRMED', 'DECLINED');
 
 -- Platform definitions for The Omni-Library
-CREATE TYPE platform_type AS ENUM ('STEAM', 'RIOT', 'EPIC', 'BATTLE_NET', 'CUSTOM');
+CREATE TYPE platform_type AS ENUM ('STEAM', 'RIOT', 'EPIC', 'BATTLE_NET', 'CUSTOM', 'IGDB');
 
 -- Claim States for The Prestige manual milestones
 CREATE TYPE claim_state AS ENUM ('PENDING', 'VERIFIED', 'REJECTED');
@@ -23,7 +23,6 @@ CREATE TABLE "users" (
     "dateOfBirth" DATE,
     "username" VARCHAR(255) UNIQUE NOT NULL,
     "intent" intent_mode DEFAULT 'OFFLINE',
-    "trustFactor" INTEGER DEFAULT 100,
     "accountAgeDays" INTEGER DEFAULT 0,
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -53,7 +52,6 @@ CREATE TABLE "rally_events" (
     "description" TEXT,
     "scheduledStartUTC" TIMESTAMP WITH TIME ZONE NOT NULL,
     "maxCapacity" INTEGER NOT NULL,
-    "minTrustFactor" INTEGER DEFAULT 0,
     "requiredIntent" intent_mode DEFAULT 'CHILL',
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

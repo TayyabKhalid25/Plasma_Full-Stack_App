@@ -1,13 +1,66 @@
 const express = require('express');
 const { pool } = require('../config/dbConfig');
 const { authenticateToken } = require('../middleware/authMiddleware');
+const { getSteamOwnedGames, getSteamPlayerSummaries, searchIgdbGames, fetchHighResCover } = require('../utils/externalApis');
 
 const router = express.Router();
 
-// POST /api/library/sync/steam
+// POST /api/library/sync/steam (Unified Sync Endpoint)
 router.post('/sync/steam', authenticateToken, async (req, res) => {
-    // Stub for Steam Sync API
-    res.json({ success: true, message: 'Steam library synced successfully', addedCount: 0 });
+    try {
+        // 1. Get user's steamId64
+        const user = await pool.query('SELECT "steamID64" FROM "users" WHERE "plasmaUserID" = $1', [req.userId]);
+        if (user.rows.length === 0 || !user.rows[0].steamID64) {
+            return res.status(400).json({ success: false, message: 'Steam account not linked' });
+        }
+        const steamId = user.rows[0].steamID64;
+
+        // 2. Fetch Player Summary (Profile Update)
+        const summaries = await getSteamPlayerSummaries(steamId);
+        if (summaries && summaries.length > 0) {
+            const avatarURL = summaries[0].avatarfull;
+            await pool.query('UPDATE "profiles" SET "avatarURL" = $1 WHERE "plasmaUserID" = $2', [avatarURL, req.userId]);
+        }
+
+        // 3. Fetch Owned Games (Library Sync)
+        const games = await getSteamOwnedGames(steamId);
+        
+        let addedCount = 0;
+        for (const game of games) {
+            const appId = game.appid.toString();
+            // Check if game exists in our global DB
+            const gameCheck = await pool.query('SELECT "appID" FROM "games" WHERE "appID" = $1', [appId]);
+            if (gameCheck.rows.length === 0) {
+                // Upscale art using IGDB Double-Lookup
+                let coverArt = null;
+                if (game.img_icon_url) {
+                    coverArt = `https://media.steampowered.com/steamcommunity/public/images/apps/${appId}/${game.img_icon_url}.jpg`;
+                }
+                const highResCover = await fetchHighResCover(appId);
+                if (highResCover) coverArt = highResCover;
+
+                await pool.query(`
+                    INSERT INTO "games" ("appID", "title", "platform", "coverArtURL")
+                    VALUES ($1, $2, 'STEAM', $3)
+                `, [appId, game.name, coverArt]);
+            }
+
+            // Upsert into library_entries
+            const playtimeHours = (game.playtime_forever / 60).toFixed(2);
+            await pool.query(`
+                INSERT INTO "library_entries" ("userID", "appID", "hoursPlayed")
+                VALUES ($1, $2, $3)
+                ON CONFLICT ("userID", "appID") DO UPDATE SET
+                    "hoursPlayed" = EXCLUDED."hoursPlayed"
+            `, [req.userId, appId, playtimeHours]);
+            addedCount++;
+        }
+
+        res.json({ success: true, message: 'Steam library and profile synced successfully', syncedGames: addedCount });
+    } catch (error) {
+        console.error('Steam Sync Error:', error.message);
+        res.status(500).json({ success: false, message: 'Failed to sync with Steam' });
+    }
 });
 
 // GET /api/library/igdb/search
@@ -16,14 +69,21 @@ router.get('/igdb/search', authenticateToken, async (req, res) => {
     
     if (!q) return res.status(400).json({ success: false, message: 'Query string required' });
     
-    // Stub for IGDB search
-    res.json({
-        success: true,
-        data: [
-            { id: 101, title: `${q} - IGDB Mock Result 1`, coverArtURL: 'https://via.placeholder.com/150' },
-            { id: 102, title: `${q} - IGDB Mock Result 2`, coverArtURL: 'https://via.placeholder.com/150' }
-        ]
-    });
+    try {
+        const results = await searchIgdbGames(q);
+        res.json({
+            success: true,
+            data: results.map(game => ({
+                id: `igdb_${game.id}`,
+                title: game.name,
+                coverArtURL: game.cover ? game.cover.url : null,
+                url: game.url
+            }))
+        });
+    } catch (error) {
+        console.error('IGDB Search Route Error:', error.message);
+        res.status(500).json({ success: false, message: 'Failed to search IGDB' });
+    }
 });
 
 // POST /api/library/manual
