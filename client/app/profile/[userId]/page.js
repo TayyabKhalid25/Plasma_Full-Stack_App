@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { 
-  Gamepad2, MoreHorizontal, PlayCircle, Heart, MessageCircle, Share2, Play, Medal, Trophy, Swords, Shield, Target, Calendar, Users, User
+  Gamepad2, MoreHorizontal, PlayCircle, Heart, MessageCircle, Share2, Play, Medal, Trophy, Swords, Shield, Target, Calendar, Users, UserPlus
 } from "lucide-react";
 import Link from "next/link";
 import { currentUser, hallOfFame, games, rallyEvents } from "@/data/dummy";
@@ -17,8 +17,10 @@ const userStats = [
   { label: "Library", value: String(currentUser.stats.library) },
 ];
 
-export default function Profile() {
+export default function UserProfile({ params }) {
   const [activeTab, setActiveTab] = useState("Activity");
+
+  // In the future, use params.userId to fetch user data
 
   return (
     <DashboardLayout showRightRail={false}>
@@ -63,12 +65,9 @@ export default function Profile() {
               </div>
             </div>
             
-            <Link 
-              href="/settings" 
-              className="flex items-center gap-2 px-8 py-3 rounded-full bg-primary-gradient text-white font-bold text-sm transition-all hover:shadow-card-glow hover:scale-[1.02] shrink-0 cursor-pointer"
-            >
-              <User className="w-4 h-4" /> Edit Profile
-            </Link>
+            <button className="flex items-center gap-2 px-8 py-3 rounded-full bg-primary-gradient text-white font-bold text-sm transition-all hover:shadow-card-glow hover:scale-[1.02] shrink-0 cursor-pointer">
+              <UserPlus className="w-4 h-4" /> Follow
+            </button>
           </div>
         </header>
 

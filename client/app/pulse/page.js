@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth, API_BASE } from "@/context/AuthContext";
 import { 
   Gamepad2, 
   Heart, 
@@ -19,22 +20,48 @@ export const ActivityFeedSection = () => {
   const [postText, setPostText] = useState("");
   const [showPostFeedback, setShowPostFeedback] = useState(false);
 
+  const { token, user } = useAuth();
+
+  useEffect(() => {
+    if (!token) return;
+    const fetchFeed = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/feed?filter=${activeFilter}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          const mapped = data.data.map(p => ({
+            id: p.postID,
+            type: "post",
+            user: { name: p.username, avatar: p.avatarURL || "https://api.dicebear.com/7.x/avataaars/svg?seed=Me", borderColor: "#2ecc71" },
+            intent: p.intent || "CHILL",
+            intentColor: "bg-plasma-success/10 text-plasma-success",
+            text: p.content,
+            image: p.mediaURL,
+            likes: 0,
+            comments: 0,
+            time: new Date(p.timestampUTC).toLocaleString(),
+            liked: false,
+          }));
+          setPosts(mapped);
+        }
+      } catch (err) {
+        console.error("Failed to fetch feed", err);
+      }
+    };
+    fetchFeed();
+  }, [token, activeFilter]);
+
   // Filter logic
-  const filteredPosts = posts.filter((post) => {
-    if (activeFilter === "all") return true;
-    if (activeFilter === "friends") return true;
-    if (activeFilter === "my-posts") return post.user.name === "Wahaj";
-    if (activeFilter === "comp") return post.intent === "COMP";
-    if (activeFilter === "chill") return post.intent === "CHILL";
-    return true;
-  });
+  const filteredPosts = posts;
 
   const filteredNotifications = feedNotifications.filter((n) => {
     if (activeFilter === "all" || activeFilter === "friends") return true;
     return false;
   });
 
-  const toggleLike = (postId) => {
+  const toggleLike = async (postId) => {
     setPosts((prev) =>
       prev.map((p) =>
         p.id === postId
@@ -42,27 +69,48 @@ export const ActivityFeedSection = () => {
           : p
       )
     );
+    try {
+      await fetch(`${API_BASE}/api/pulse/posts/${postId}/react`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ reactionType: "LIKE" })
+      });
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handlePost = () => {
+  const handlePost = async () => {
     if (!postText.trim()) return;
-    const newPost = {
-      id: `post-${Date.now()}`,
-      type: "post",
-      user: { name: "Wahaj", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Me", borderColor: "#2ecc71" },
-      intent: "CHILL",
-      intentColor: "bg-plasma-success/10 text-plasma-success",
-      text: postText,
-      image: null,
-      likes: 0,
-      comments: 0,
-      time: "Just now",
-      liked: false,
-    };
-    setPosts((prev) => [newPost, ...prev]);
-    setPostText("");
-    setShowPostFeedback(true);
-    setTimeout(() => setShowPostFeedback(false), 2000);
+    try {
+      const res = await fetch(`${API_BASE}/api/pulse/posts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ content: postText, mediaUrl: null })
+      });
+      const data = await res.json();
+      if (data.success) {
+        const newPost = {
+          id: data.data.postID,
+          type: "post",
+          user: { name: user?.username || "You", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Me", borderColor: "#2ecc71" },
+          intent: user?.intent || "CHILL",
+          intentColor: "bg-plasma-success/10 text-plasma-success",
+          text: data.data.content,
+          image: null,
+          likes: 0,
+          comments: 0,
+          time: "Just now",
+          liked: false,
+        };
+        setPosts((prev) => [newPost, ...prev]);
+        setPostText("");
+        setShowPostFeedback(true);
+        setTimeout(() => setShowPostFeedback(false), 2000);
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (

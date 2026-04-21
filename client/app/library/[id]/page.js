@@ -1,16 +1,47 @@
 "use client";
 
-import { use } from "react";
-import { useState } from "react";
+import { use, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ArrowLeft, Clock, Trophy, Users, Play, Calendar } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { games } from "@/data/dummy";
+import { useAuth, API_BASE } from "@/context/AuthContext";
 
 export default function GameDetailPage({ params }) {
   const { id } = use(params);
   const game = games.find((g) => g.id === id);
   const [isPlaying, setIsPlaying] = useState(game?.nowPlaying || false);
+  const { token } = useAuth();
+  const router = useRouter();
+
+  const togglePlaying = async () => {
+    setIsPlaying(!isPlaying);
+    try {
+      await fetch(`${API_BASE}/api/library/${id}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ playStatus: !isPlaying ? "PLAYING" : "WANT_TO_PLAY" })
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleRemove = async () => {
+    if (!confirm("Remove this game from your library?")) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/library/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        router.push("/library");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   if (!game) {
     return (
@@ -59,17 +90,25 @@ export default function GameDetailPage({ params }) {
               <p className="text-sm text-plasma-text-secondary">{game.description}</p>
             </div>
 
-            <button
-              onClick={() => setIsPlaying(!isPlaying)}
-              className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold text-sm transition-all cursor-pointer shrink-0 ${
-                isPlaying
-                  ? "bg-plasma-secondary text-white shadow-[0_0_20px_rgba(255,42,122,0.3)]"
-                  : "bg-primary-gradient text-white hover:shadow-card-glow hover:scale-[1.02]"
-              }`}
-            >
-              <Play className={`w-4 h-4 ${isPlaying ? "fill-white" : ""}`} />
-              {isPlaying ? "NOW PLAYING" : "Set Playing"}
-            </button>
+            <div className="flex items-center gap-3 shrink-0">
+              <button
+                onClick={handleRemove}
+                className="px-4 py-3 rounded-full font-bold text-sm bg-plasma-error/20 text-plasma-error border border-plasma-error/50 hover:bg-plasma-error hover:text-white transition-colors cursor-pointer"
+              >
+                Remove
+              </button>
+              <button
+                onClick={togglePlaying}
+                className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold text-sm transition-all cursor-pointer ${
+                  isPlaying
+                    ? "bg-plasma-secondary text-white shadow-[0_0_20px_rgba(255,42,122,0.3)]"
+                    : "bg-primary-gradient text-white hover:shadow-card-glow hover:scale-[1.02]"
+                }`}
+              >
+                <Play className={`w-4 h-4 ${isPlaying ? "fill-white" : ""}`} />
+                {isPlaying ? "NOW PLAYING" : "Set Playing"}
+              </button>
+            </div>
           </div>
         </div>
 

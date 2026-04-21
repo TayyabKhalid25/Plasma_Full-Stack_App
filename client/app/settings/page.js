@@ -8,12 +8,13 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { userSettings as initialSettings } from "@/data/dummy";
+import { useAuth, API_BASE } from "@/context/AuthContext";
+import { useEffect } from "react";
 
 const sectionNav = [
   { id: "account", label: "Account", icon: User },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "privacy", label: "Privacy", icon: Shield },
-  { id: "connections", label: "Connected Accounts", icon: Link2 },
 
   { id: "danger", label: "Danger Zone", icon: Trash2 },
 ];
@@ -45,11 +46,40 @@ export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState("account");
   const [settings, setSettings] = useState(initialSettings);
   const [saved, setSaved] = useState(false);
+  const { token, logout } = useAuth();
+  const [isFetching, setIsFetching] = useState(true);
 
-  const toggleNotif = (key) => {
+  useEffect(() => {
+    if (!token) return;
+    const loadSettings = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/settings`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setSettings(s => ({
+            ...s,
+            notificationsEnabled: data.data.notificationsEnabled,
+            privacy: {
+              ...s.privacy,
+              profileVisibility: data.data.privacy.toLowerCase(),
+            }
+          }));
+        }
+      } catch (err) {
+        console.error("Failed to fetch settings", err);
+      } finally {
+        setIsFetching(false);
+      }
+    };
+    loadSettings();
+  }, [token]);
+
+  const toggleNotif = () => {
     setSettings((s) => ({
       ...s,
-      notifications: { ...s.notifications, [key]: !s.notifications[key] },
+      notificationsEnabled: !s.notificationsEnabled,
     }));
   };
 
@@ -60,9 +90,44 @@ export default function SettingsPage() {
     }));
   };
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  const handleSave = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/settings`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          notificationsEnabled: settings.notificationsEnabled,
+          timezone: "UTC",
+          privacy: settings.privacy.profileVisibility === "public" ? "Public" : settings.privacy.profileVisibility === "friends" ? "Friends Only" : "Private"
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
+    } catch (err) {
+      console.error("Failed to save settings", err);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!confirm("Are you sure you want to permanently delete your account? This action cannot be undone.")) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/users/me`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        logout();
+      }
+    } catch (err) {
+      console.error("Failed to delete account", err);
+    }
   };
 
   return (
@@ -146,20 +211,8 @@ export default function SettingsPage() {
               <section className="bg-plasma-slate rounded-2xl border border-white/5 p-6 animate-fade-in">
                 <h2 className="font-display font-bold text-lg text-plasma-text-primary mb-6">Notification Preferences</h2>
 
-                <SettingRow label="Friend Requests" description="Get notified when someone adds you">
-                  <ToggleSwitch enabled={settings.notifications.friendRequests} onToggle={() => toggleNotif("friendRequests")} />
-                </SettingRow>
-                <SettingRow label="Achievement Alerts" description="Celebrate when you or friends unlock trophies">
-                  <ToggleSwitch enabled={settings.notifications.achievementAlerts} onToggle={() => toggleNotif("achievementAlerts")} />
-                </SettingRow>
-                <SettingRow label="Rally Reminders" description="Get reminded before scheduled rallies">
-                  <ToggleSwitch enabled={settings.notifications.rallyReminders} onToggle={() => toggleNotif("rallyReminders")} />
-                </SettingRow>
-                <SettingRow label="Email Digest" description="Weekly summary of activity">
-                  <ToggleSwitch enabled={settings.notifications.emailDigest} onToggle={() => toggleNotif("emailDigest")} />
-                </SettingRow>
-                <SettingRow label="Push Notifications" description="Browser and mobile push alerts">
-                  <ToggleSwitch enabled={settings.notifications.pushNotifications} onToggle={() => toggleNotif("pushNotifications")} />
+                <SettingRow label="Global Notifications" description="Enable or disable all notifications across Plasma">
+                  <ToggleSwitch enabled={settings.notificationsEnabled} onToggle={toggleNotif} />
                 </SettingRow>
               </section>
             )}
@@ -199,37 +252,7 @@ export default function SettingsPage() {
               </section>
             )}
 
-            {/* Connected Accounts */}
-            {activeSection === "connections" && (
-              <section className="bg-plasma-slate rounded-2xl border border-white/5 p-6 animate-fade-in">
-                <h2 className="font-display font-bold text-lg text-plasma-text-primary mb-6">Connected Accounts</h2>
 
-                {Object.entries(settings.connectedAccounts).map(([platform, data]) => (
-                  <div key={platform} className="flex items-center justify-between py-4 border-b border-white/5 last:border-b-0">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${data.connected ? "bg-plasma-primary/15" : "bg-white/5"}`}>
-                        <Link2 className={`w-5 h-5 ${data.connected ? "text-plasma-primary" : "text-plasma-text-secondary"}`} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-plasma-text-primary capitalize">{platform}</p>
-                        {data.connected ? (
-                          <p className="text-xs text-plasma-success">{data.username}</p>
-                        ) : (
-                          <p className="text-xs text-plasma-text-secondary">Not connected</p>
-                        )}
-                      </div>
-                    </div>
-                    <button className={`px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
-                      data.connected
-                        ? "border border-plasma-error/30 text-plasma-error hover:bg-plasma-error/10"
-                        : "bg-plasma-primary text-white hover:bg-plasma-primary/80"
-                    }`}>
-                      {data.connected ? "Disconnect" : "Connect"}
-                    </button>
-                  </div>
-                ))}
-              </section>
-            )}
 
 
             {/* Danger Zone */}
@@ -254,7 +277,10 @@ export default function SettingsPage() {
                       <p className="text-sm font-medium text-plasma-error">Delete Account</p>
                       <p className="text-xs text-plasma-text-secondary">Permanently delete your account and all data</p>
                     </div>
-                    <button className="px-4 py-2 rounded-lg bg-plasma-error text-white text-sm font-bold hover:bg-plasma-error/80 transition-colors cursor-pointer">
+                    <button 
+                      onClick={handleDeleteAccount}
+                      className="px-4 py-2 rounded-lg bg-plasma-error text-white text-sm font-bold hover:bg-plasma-error/80 transition-colors cursor-pointer"
+                    >
                       Delete Account
                     </button>
                   </div>
