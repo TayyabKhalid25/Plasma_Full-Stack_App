@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AlertCircle } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -15,17 +16,23 @@ import { useAuth } from "@/context/AuthContext";
 
 
 export default function LoginPage() {
-  const [username, setUsername] = useState("Wahaj");
-  const [steamID, setSteamID] = useState("76561198000000001");
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [legalModal, setLegalModal] = useState({ isOpen: false, type: null });
-  const { login } = useAuth();
+  const { login, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      router.push("/pulse");
+    }
+  }, [isAuthenticated, authLoading, router]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (!username || !steamID) {
+    if (!identifier || !password) {
       setError("Please fill in both fields");
       return;
     }
@@ -33,10 +40,24 @@ export default function LoginPage() {
     try {
       setLoading(true);
       setError(null);
-      await login(username, steamID);
+      await login(identifier, password);
       router.push("/pulse");
     } catch (err) {
       setError(err.message || "Failed to login");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDevLogin = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      // Hardcoded credentials: Wahaj / password123
+      await login("Wahaj", "password123");
+      router.push("/pulse");
+    } catch (err) {
+      setError(err.message || "Dev Login failed");
     } finally {
       setLoading(false);
     }
@@ -97,12 +118,13 @@ export default function LoginPage() {
                 htmlFor="username"
                 className="font-sans font-medium text-plasma-text-muted text-[13px] tracking-[0] leading-[19.5px]"
               >
-                Username
+                Username or Email
               </Label>
               <Input
                 id="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter your username or email"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 className="w-full bg-plasma-slate/50 text-white rounded-xl border border-solid border-plasma-text-muted/25 font-sans font-normal text-plasma-text-muted text-sm py-[11px] px-4 h-[44px] transition-all focus-visible:border-plasma-primary"
               />
             </div>
@@ -113,13 +135,14 @@ export default function LoginPage() {
                 htmlFor="steamID"
                 className="font-sans font-medium text-plasma-text-muted text-[13px] tracking-[0] leading-[19.5px]"
               >
-                Steam ID (Dev Login)
+                Password
               </Label>
               <Input
-                id="steamID"
-                type="text"
-                value={steamID}
-                onChange={(e) => setSteamID(e.target.value)}
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-plasma-slate/50 text-white rounded-xl border border-solid border-plasma-text-muted/25 font-sans font-normal text-plasma-text-muted text-sm py-[11px] px-4 h-[44px] transition-all focus-visible:border-plasma-primary"
               />
             </div>
@@ -149,15 +172,28 @@ export default function LoginPage() {
           <div className="w-full pt-4 pb-0 px-0 flex flex-col max-w-[380px] items-start flex-[0_0_auto]">
             <div className="gap-[24px] w-full flex flex-col max-w-[380px] items-start flex-[0_0_auto]">
               {/* Steam button */}
+              <button
+                disabled={true}
+                className="w-full flex items-center justify-center cursor-not-allowed transition-opacity"
+              >
+                <Image
+                  src="/images/sits_01.png"
+                  alt="Sign in through Steam"
+                  width={180}
+                  height={35}
+                  className="object-contain"
+                />
+              </button>
+
               <Button
-                onClick={handleLogin}
+                onClick={handleDevLogin}
                 disabled={loading}
                 className="w-full h-[50px] bg-plasma-primary rounded-[32px] font-sans font-normal text-white text-[15px] text-center tracking-[0] leading-[22.5px] whitespace-nowrap hover:bg-plasma-slate-hover border-0 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
                   <path d="M12.001 22.502c-5.748 0-10.424-4.63-10.498-10.366L4.747 9.87l1.094 2.87c.801-1.636 2.37-2.651 4.195-2.651 2.222 0 4.103 1.543 4.675 3.655.857-1.571 2.505-2.641 4.414-2.641 2.766 0 5.012 2.247 5.012 5.013 0 2.768-2.246 5.015-5.012 5.015-2.31 0-4.254-1.59-4.836-3.702-.634 1.258-1.921 2.112-3.411 2.112-1.97 0-3.626-1.523-3.86-3.456l-1.077 3.037c1.332 2.453 3.972 4.181 7.054 4.181 4.29 0 7.781-3.491 7.781-7.781 0-4.29-3.491-7.781-7.781-7.781-1.644 0-3.172.518-4.42 1.398l-3.565-9.336H.482l1.625 4.258C1.463 3.42 6.273.5 12.002.5c5.798 0 10.498 4.7 10.498 10.499s-4.7 10.499-10.499 10.499L12.001 22.502h0z" />
                 </svg>
-                Sign in with Steam (Dev Mode)
+                Dev Mode Login
               </Button>
               {/* Sign Up link */}
               <div className="flex flex-col w-full items-center flex-[0_0_auto]">
@@ -176,7 +212,7 @@ export default function LoginPage() {
             <span className="font-sans font-normal text-plasma-text-secondary text-xs leading-[19.5px]">
               By signing in, you agree to our{" "}
             </span>
-            <span 
+            <span
               onClick={() => setLegalModal({ isOpen: true, type: 'terms' })}
               className="font-sans font-medium text-plasma-primary text-xs leading-[19.5px] mx-1 cursor-pointer hover:underline"
             >
@@ -185,7 +221,7 @@ export default function LoginPage() {
             <span className="font-sans font-normal text-plasma-text-secondary text-xs leading-[19.5px]">
               and{" "}
             </span>
-            <span 
+            <span
               onClick={() => setLegalModal({ isOpen: true, type: 'privacy' })}
               className="font-sans font-medium text-plasma-primary text-xs leading-[19.5px] mx-1 cursor-pointer hover:underline"
             >
@@ -199,10 +235,10 @@ export default function LoginPage() {
       <AuthRightPanel />
 
       {/* Legal Modal */}
-      <LegalModal 
-        isOpen={legalModal.isOpen} 
-        type={legalModal.type} 
-        onClose={() => setLegalModal({ isOpen: false, type: null })} 
+      <LegalModal
+        isOpen={legalModal.isOpen}
+        type={legalModal.type}
+        onClose={() => setLegalModal({ isOpen: false, type: null })}
       />
     </div>
   );

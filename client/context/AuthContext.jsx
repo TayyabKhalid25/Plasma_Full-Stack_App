@@ -53,12 +53,22 @@ export function AuthProvider({ children }) {
     init();
   }, [fetchUser]);
 
-  // Login via dev-login
-  const login = async (username, steamID64) => {
-    const res = await fetch(`${API_BASE}/api/auth/dev-login`, {
+  // Route protection
+  useEffect(() => {
+    if (!loading) {
+      const isAuthenticated = !!token && !!user;
+      if (!isAuthenticated && !isPublicRoute) {
+        router.push("/login");
+      }
+    }
+  }, [loading, token, user, isPublicRoute, router]);
+
+  // Login via traditional credentials
+  const login = async (identifier, password) => {
+    const res = await fetch(`${API_BASE}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, steamID64 }),
+      body: JSON.stringify({ username: identifier, password }),
     });
 
     const data = await res.json();
@@ -75,12 +85,34 @@ export function AuthProvider({ children }) {
     return data;
   };
 
+  // Register new user
+  const register = async (username, email, password, dateOfBirth) => {
+    const res = await fetch(`${API_BASE}/api/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, email, password, dateOfBirth }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || "Registration failed");
+    }
+
+    // Store token and user
+    localStorage.setItem("plasma_token", data.token);
+    setToken(data.token);
+    setUser(data.user);
+
+    return data;
+  };
+
   // Logout
   const logout = () => {
     localStorage.removeItem("plasma_token");
     setToken(null);
     setUser(null);
-    router.push("/login");
+    router.push("/");
   };
 
   const isAuthenticated = !!token && !!user;
@@ -93,6 +125,7 @@ export function AuthProvider({ children }) {
         loading,
         isAuthenticated,
         login,
+        register,
         logout,
         fetchUser,
       }}

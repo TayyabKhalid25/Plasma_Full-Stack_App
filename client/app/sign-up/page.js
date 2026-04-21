@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AlertCircle } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -17,13 +17,20 @@ const SectionLeftSideSubsection = () => {
   const [formData, setFormData] = useState({
     username: "",
     email: "",
-    steamID: ""
+    password: "",
+    dateOfBirth: ""
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [legalModal, setLegalModal] = useState({ isOpen: false, type: null });
-  const { login } = useAuth();
+  const { register, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      router.push("/pulse");
+    }
+  }, [isAuthenticated, authLoading, router]);
 
   const handleInputChange = (e) => {
     const { id, value } = e.target;
@@ -32,16 +39,20 @@ const SectionLeftSideSubsection = () => {
 
   const handleSignUp = async (e) => {
     e.preventDefault();
-    if (!formData.username || !formData.steamID) {
-      setError("Please fill in Username and Steam ID");
+    if (!formData.username || !formData.email || !formData.password || !formData.dateOfBirth) {
+      setError("Please fill in all fields");
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters long");
       return;
     }
 
     try {
       setLoading(true);
       setError(null);
-      // We use the dev-login endpoint which creates an account if it doesn't exist
-      await login(formData.username, formData.steamID);
+      await register(formData.username, formData.email, formData.password, formData.dateOfBirth);
       router.push("/pulse");
     } catch (err) {
       setError(err.message || "Failed to create account");
@@ -132,20 +143,38 @@ const SectionLeftSideSubsection = () => {
             />
           </div>
 
-          {/* Steam ID field */}
+          {/* Password field */}
           <div className="flex flex-col gap-1.5 self-stretch w-full">
             <Label
-              htmlFor="steamID"
+              htmlFor="password"
               className="font-sans font-medium text-plasma-text-muted text-[13px] tracking-[0] leading-[19.5px]"
             >
-              Steam ID64 (Dev Account Creation)
+              Password
             </Label>
             <Input
-              id="steamID"
-              value={formData.steamID}
+              id="password"
+              type="password"
+              value={formData.password}
               onChange={handleInputChange}
-              placeholder="76561198..."
+              placeholder="Enter your password"
               className="w-full bg-plasma-slate/50 text-white rounded-xl border border-solid border-plasma-text-muted/25 font-sans font-normal text-plasma-text-muted text-sm py-[11px] px-4 h-[44px] transition-all focus-visible:border-plasma-primary"
+            />
+          </div>
+
+          {/* Date of Birth field */}
+          <div className="flex flex-col gap-1.5 self-stretch w-full">
+            <Label
+              htmlFor="dateOfBirth"
+              className="font-sans font-medium text-plasma-text-muted text-[13px] tracking-[0] leading-[19.5px]"
+            >
+              Date of Birth
+            </Label>
+            <Input
+              id="dateOfBirth"
+              type="date"
+              value={formData.dateOfBirth}
+              onChange={handleInputChange}
+              className="w-full bg-plasma-slate/50 text-white rounded-xl border border-solid border-plasma-text-muted/25 font-sans font-normal text-plasma-text-muted text-sm py-[11px] px-4 h-[44px] transition-all focus-visible:border-plasma-primary [color-scheme:dark]"
             />
           </div>
 
