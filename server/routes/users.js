@@ -72,7 +72,7 @@ router.put('/me/intent', authenticateToken, async (req, res) => {
     const allowedIntents = ['COMPETITIVE', 'CHILL', 'OFFLINE', 'COMP']; 
     // The Postman spec mentioned "COMP", mapping it to "COMPETITIVE"
     
-    let dbIntent = intent;
+    let dbIntent = intent.toUpperCase();
     if (dbIntent === 'COMP') dbIntent = 'COMPETITIVE';
 
     if (!allowedIntents.includes(dbIntent)) {
