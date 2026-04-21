@@ -5,7 +5,7 @@ import { Search, Bell, Trophy, UserPlus, Calendar, AlertCircle } from "lucide-re
 import Link from "next/link";
 import Image from "next/image";
 import { notifications } from "@/data/dummy";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, API_BASE } from "@/context/AuthContext";
 import { LogOut } from "lucide-react";
 
 const statusModes = [
@@ -29,7 +29,7 @@ const notifColorMap = {
 };
 
 export const TopNav = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, token } = useAuth();
   const [activeMode, setActiveMode] = useState("chill");
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
@@ -50,10 +50,22 @@ export const TopNav = () => {
   }, [user]);
 
   // Handle mode change
-  const handleModeChange = (modeId) => {
+  const handleModeChange = async (modeId) => {
     setActiveMode(modeId);
     localStorage.setItem("plasma_active_mode", modeId);
-    // Future: Update backend intent via API here
+    
+    try {
+      await fetch(`${API_BASE}/api/users/me/intent`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ intent: modeId.toUpperCase() })
+      });
+    } catch (error) {
+      console.error("Failed to update intent:", error);
+    }
   };
 
   // Close dropdowns on outside click

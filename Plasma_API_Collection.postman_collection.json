@@ -1,9 +1,11 @@
 {
   "info": {
-    "_postman_id": "a97d16ee-d308-4bc2-91f5-aa91069cf870",
+    "_postman_id": "85042375-74f2-4765-9cd7-a627867b9f5c",
     "name": "Combined Plasma APIs — Complete",
     "description": "Unified API Documentation for the Plasma backend. Merges the robust SRS v1.0 IDEAL definitions with the traditional standard routes. Covers Authentication (Steam + Traditional), Social Feed, Games Library, Rallies, Prestige, Notifications, and Direct Messaging.",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "54201032",
+    "_collection_link": "https://go.postman.co/collection/54201099-85042375-74f2-4765-9cd7-a627867b9f5c?source=collection_link"
   },
   "item": [
     {
@@ -37,7 +39,8 @@
               ]
             },
             "description": "Registers a new user with an email and password. Returns a JWT token."
-          }
+          },
+          "response": []
         },
         {
           "name": "Traditional Login",
@@ -67,7 +70,8 @@
               ]
             },
             "description": "Logs in an existing user using email or username, and their password. Returns a JWT token."
-          }
+          },
+          "response": []
         },
         {
           "name": "Dev Login (Generate Token)",
@@ -97,7 +101,8 @@
               ]
             },
             "description": "Dev-only login. Returns a JWT token. Seeded users: Wahaj, Ahmed, Sarah, Ali, Omar. Copy the `token` and set it in the Authorization header for all further requests."
-          }
+          },
+          "response": []
         },
         {
           "name": "Steam OpenID — Initiate Login",
@@ -118,7 +123,8 @@
               ]
             },
             "description": "Redirects the browser to Valve's OpenID 2.0 endpoint to begin Steam authentication (BR-1). No password is ever stored by Plasma."
-          }
+          },
+          "response": []
         },
         {
           "name": "Steam OpenID — Callback",
@@ -140,7 +146,8 @@
               ]
             },
             "description": "Valve redirects here after the user approves the OpenID login. The backend validates the assertion, creates/fetches the PlasmaUser mapped to the SteamID64, and returns a session JWT."
-          }
+          },
+          "response": []
         },
         {
           "name": "Get Current User Profile (/me)",
@@ -166,7 +173,8 @@
               ]
             },
             "description": "Returns the authenticated user's full profile including SteamID64, PlasmaUserID, linked Steam data, current Intent Mode, and Plasma XP total."
-          }
+          },
+          "response": []
         },
         {
           "name": "Logout User",
@@ -191,7 +199,8 @@
                 "logout"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Verify Token",
@@ -217,7 +226,8 @@
               ]
             },
             "description": "Checks if the supplied JWT token is still valid. Returns 200 if valid, 401 if expired or tampered. Useful for the frontend to gate protected routes on page load without fetching the full /me profile."
-          }
+          },
+          "response": []
         }
       ]
     },
@@ -249,12 +259,13 @@
               "variable": [
                 {
                   "key": "userId",
-                  "value": "12345"
+                  "value": "1a05f7c7-cb52-430d-add5-6f4f05b15f6b"
                 }
               ]
             },
             "description": "Returns another user's public profile: username, Steam status, Intent Mode badge, Hall of Fame, Plasma XP, and mutual follow status."
-          }
+          },
+          "response": []
         },
         {
           "name": "Update My Profile",
@@ -288,7 +299,8 @@
                 "profile"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Search Users",
@@ -319,7 +331,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Get User Settings",
@@ -344,7 +357,8 @@
               ]
             },
             "description": "Retrieves the authenticated user's application settings (notifications, privacy preferences, timezone, etc.)."
-          }
+          },
+          "response": []
         },
         {
           "name": "Update User Settings",
@@ -377,7 +391,8 @@
               ]
             },
             "description": "Persists user application settings."
-          }
+          },
+          "response": []
         },
         {
           "name": "Update Intent Mode (REQ-12)",
@@ -395,7 +410,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"intent\": \"COMPETITIVE\"\n}"
+              "raw": "{\n    \"intent\": \"CHILL\"\n}"
             },
             "url": {
               "raw": "http://localhost:5000/api/users/me/intent",
@@ -412,7 +427,8 @@
               ]
             },
             "description": "Toggles the user's global Intent Mode. Options: COMP, CHILL, OFFLINE. Broadcasts a status change event to The Pulse (REQ-12, REQ-13)."
-          }
+          },
+          "response": []
         },
         {
           "name": "Delete Account (GDPR — Right to be Forgotten)",
@@ -438,7 +454,8 @@
               ]
             },
             "description": "Permanently queues the authenticated user's data for deletion within 30 days: SteamID64, social graph, posts, RSVPs, and Rally history. Satisfies GDPR/CCPA Right to be Forgotten requirement."
-          }
+          },
+          "response": []
         }
       ]
     },
@@ -456,7 +473,7 @@
               }
             ],
             "url": {
-              "raw": "http://localhost:5000/api/feed?filter=all",
+              "raw": "http://localhost:5000/api/feed?filter=all&intent=COMP",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -480,7 +497,8 @@
               ]
             },
             "description": "Returns the unified activity feed. Merges live Steam status events with user-generated Moments."
-          }
+          },
+          "response": []
         },
         {
           "name": "Create Post / Moment",
@@ -514,7 +532,50 @@
               ]
             },
             "description": "Publishes a text, image, or video clip Moment to the author's followers' Pulse feed."
-          }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Post",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"content\": \"Updated content!\",\n    \"mediaURL\": \"https://example.com/new-image.png\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/pulse/posts/:postId",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "pulse",
+                "posts",
+                ":postId"
+              ],
+              "variable": [
+                {
+                  "key": "postId",
+                  "value": "98765"
+                }
+              ]
+            },
+            "description": "Updates an existing post. Only the author can update. Body can include content and/or mediaURL."
+          },
+          "response": []
         },
         {
           "name": "Delete Post",
@@ -547,7 +608,8 @@
               ]
             },
             "description": "Permanently removes a post authored by the authenticated user."
-          }
+          },
+          "response": []
         },
         {
           "name": "React to Post",
@@ -580,7 +642,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Get Comments on Post",
@@ -613,7 +676,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Add Comment to Post",
@@ -654,7 +718,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Get Friends List",
@@ -679,7 +744,8 @@
               ]
             },
             "description": "Returns the authenticated user's friends who are on Plasma."
-          }
+          },
+          "response": []
         },
         {
           "name": "Get Online Squad",
@@ -704,7 +770,8 @@
               ]
             },
             "description": "Returns the subset of followed users who are currently online/active."
-          }
+          },
+          "response": []
         },
         {
           "name": "Send Friend Request",
@@ -736,7 +803,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Unfollow / Remove Friend (friends router)",
@@ -768,7 +836,8 @@
               ]
             },
             "description": "Removes a follow relationship via the /api/friends router. Also clears the isMutual flag on the reverse relationship if it existed. Note: there is also DELETE /api/users/:userId/follow on the users router — both do the same thing but are separate route handlers."
-          }
+          },
+          "response": []
         },
         {
           "name": "Follow User",
@@ -801,7 +870,8 @@
               ]
             },
             "description": "Follows a user. Mutual following unlocks Double Opt-In private interaction."
-          }
+          },
+          "response": []
         },
         {
           "name": "Unfollow User / Remove Friend",
@@ -833,7 +903,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Get Followers for User",
@@ -865,7 +936,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Get Following for User",
@@ -897,7 +969,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         }
       ]
     },
@@ -929,7 +1002,8 @@
               ]
             },
             "description": "Triggers a manual re-poll of the Steam Web API to sync the user's owned games and playtime data into the Plasma database."
-          }
+          },
+          "response": []
         },
         {
           "name": "Get Live Steam Status (Friends)",
@@ -956,7 +1030,8 @@
               ]
             },
             "description": "Polls (or returns cached) live Steam statuses for the user's friend network via the Steam Web API."
-          }
+          },
+          "response": []
         },
         {
           "name": "Get Steam Player Summary (by SteamID64)",
@@ -988,7 +1063,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Get Steam Achievements for Game",
@@ -1020,7 +1096,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         }
       ]
     },
@@ -1062,7 +1139,8 @@
               ]
             },
             "description": "Returns the combined library of Steam-synced and manually added games for the authenticated user."
-          }
+          },
+          "response": []
         },
         {
           "name": "Get Trending Games",
@@ -1086,7 +1164,8 @@
                 "trending"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Search IGDB (Manual Entry)",
@@ -1118,7 +1197,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Add Manual Game (Omni-Library)",
@@ -1151,7 +1231,8 @@
                 "manual"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Remove Manual Game from Omni-Library",
@@ -1182,7 +1263,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Toggle Manual Playing Status (REQ-8)",
@@ -1222,7 +1304,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         }
       ]
     },
@@ -1252,7 +1335,8 @@
                 "me"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Get User Prestige Profile (by userId)",
@@ -1283,7 +1367,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Get Prestige Achievements",
@@ -1314,7 +1399,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Update Hall of Fame",
@@ -1348,7 +1434,8 @@
                 "hall-of-fame"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Submit Manual Milestone Claim",
@@ -1381,7 +1468,8 @@
                 "milestones"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Endorse a Pending Milestone Claim",
@@ -1414,7 +1502,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Get Leaderboard",
@@ -1445,7 +1534,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         }
       ]
     },
@@ -1486,7 +1576,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Get Upcoming Rallies (Right Rail Widget)",
@@ -1511,7 +1602,8 @@
                 "upcoming"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Get Event Intel / Rally Detail",
@@ -1542,7 +1634,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Create Rally",
@@ -1574,7 +1667,8 @@
                 "rallies"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Update Rally",
@@ -1613,7 +1707,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Delete / Cancel Rally",
@@ -1644,7 +1739,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "RSVP to Rally",
@@ -1684,7 +1780,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Cancel RSVP",
@@ -1716,7 +1813,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         }
       ]
     },
@@ -1754,7 +1852,8 @@
                 "subscribe"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Unregister Push Subscription",
@@ -1779,7 +1878,8 @@
                 "subscribe"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Get In-App Notifications",
@@ -1810,7 +1910,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Mark Notification as Read",
@@ -1842,7 +1943,8 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         }
       ]
     },
@@ -1872,7 +1974,8 @@
               ]
             },
             "description": "Retrieves the Inbox summary for the logged-in user. Provides the latest message for every active conversation they have, alongside the username and avatar of the person they are talking to."
-          }
+          },
+          "response": []
         },
         {
           "name": "Create Post via Feed Router (POST /api/feed/posts)",
@@ -1906,7 +2009,8 @@
               ]
             },
             "description": "Alternative post creation endpoint on the feed router (feed.js). Accepts the same body as POST /api/pulse/posts but is a separate route handler. Valid types: MOMENT, ACHIEVEMENT_UNLOCK, ACTIVITY_UPDATE, RALLY_BROADCAST. Both /api/feed/posts and /api/pulse/posts are live."
-          }
+          },
+          "response": []
         },
         {
           "name": "Delete Post via Feed Router (DELETE /api/feed/posts/:postId)",
@@ -1939,7 +2043,8 @@
               ]
             },
             "description": "Alternative post deletion endpoint on the feed router (feed.js). Only the post author can delete. Returns 404 if the post doesn't exist or doesn't belong to the caller. Mirrors DELETE /api/pulse/posts/:postId."
-          }
+          },
+          "response": []
         },
         {
           "name": "Get Conversation with a Friend",
@@ -1971,7 +2076,8 @@
               ]
             },
             "description": "Retrieves direct messages between the authenticated user and the target user. Will return 403 Forbidden if Double Opt-In rules (BR-2) are not met."
-          }
+          },
+          "response": []
         },
         {
           "name": "Send Direct Message / Lobby Invite",
@@ -2011,7 +2117,8 @@
               ]
             },
             "description": "Sends a direct message or external lobby invite. Strictly blocked by the backend if Double Opt-In rules (BR-2) are not satisfied."
-          }
+          },
+          "response": []
         }
       ]
     }

@@ -2,60 +2,105 @@
 
 import { useState, useEffect } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
-import { 
-  Gamepad2, 
-  Heart, 
-  MessageSquare, 
+import {
+  Gamepad2,
+  Heart,
+  MessageSquare,
   Share2,
   ImageIcon,
-  MoreHorizontal
+  MoreHorizontal,
+  X,
+  Edit2,
+  Trash2
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { feedPosts, feedNotifications, feedFilters } from "@/data/dummy";
+import { feedFilters } from "@/data/dummy";
 import { useModal } from "@/hooks/useModal";
 import { ShareModal } from "@/components/modals/ShareModal";
-import { PostOptionsModal } from "@/components/modals/PostOptionsModal";
+import { ConfirmDeleteModal } from "@/components/modals/ConfirmDeleteModal";
 import { PostCommentsModal } from "@/components/modals/PostCommentsModal";
+import { UploadMediaModal } from "@/components/modals/UploadMediaModal";
+import { EditPostModal } from "@/components/modals/EditPostModal";
+
+// --- HELPERS ---
+
+const getIntentStyle = (intent) => {
+  const normalized = intent?.toUpperCase();
+  if (normalized === "COMPETITIVE" || normalized === "COMP") {
+    return {
+      border: "border-plasma-secondary",
+      badge: "bg-plasma-secondary/10 text-plasma-secondary",
+      label: "⚔ COMP"
+    };
+  }
+  if (normalized === "OFFLINE") {
+    return {
+      border: "border-slate-500",
+      badge: "bg-slate-500/10 text-slate-400",
+      label: "OFFLINE"
+    };
+  }
+  return {
+    border: "border-plasma-success",
+    badge: "bg-plasma-success/10 text-plasma-success",
+    label: "CHILL"
+  };
+};
 
 // --- COMPONENTS ---
 
 export const ActivityFeedSection = () => {
   const [activeFilter, setActiveFilter] = useState("all");
-  const [posts, setPosts] = useState(feedPosts);
+  const [posts, setPosts] = useState([]);
   const [postText, setPostText] = useState("");
+  const [mediaUrl, setMediaUrl] = useState(null);
   const [showPostFeedback, setShowPostFeedback] = useState(false);
+  const [openDropdownId, setOpenDropdownId] = useState(null);
+  const [loadingFeed, setLoadingFeed] = useState(true);
 
   const { token, user } = useAuth();
   const shareModal = useModal();
-  const optionsModal = useModal();
+  const deleteModal = useModal();
   const commentsModal = useModal();
+  const uploadModal = useModal();
+  const editModal = useModal();
 
   useEffect(() => {
     if (!token) return;
     const fetchFeed = async () => {
+      setLoadingFeed(true);
       try {
         const res = await fetch(`${API_BASE}/api/feed?filter=${activeFilter}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
         if (data.success) {
-          const mapped = data.data.map(p => ({
-            id: p.postID,
-            type: "post",
-            user: { name: p.username, avatar: p.avatarURL || "https://api.dicebear.com/7.x/avataaars/svg?seed=Me", borderColor: "#2ecc71" },
-            intent: p.intent || "CHILL",
-            intentColor: "bg-plasma-success/10 text-plasma-success",
-            text: p.content,
-            image: p.mediaURL,
-            likes: 0,
-            comments: 0,
-            time: new Date(p.timestampUTC).toLocaleString(),
-            liked: false,
-          }));
+          const mapped = data.data.map(p => {
+            const style = getIntentStyle(p.intent);
+            return {
+              id: p.postID,
+              type: "post",
+              user: { 
+                name: p.username, 
+                avatar: p.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.username}`, 
+                borderColor: style.border 
+              },
+              intent: style.label,
+              intentColor: style.badge,
+              text: p.content,
+              image: p.mediaURL,
+              likes: 0,
+              comments: 0,
+              time: new Date(p.timestampUTC).toLocaleString(),
+              liked: false,
+            };
+          });
           setPosts(mapped);
         }
       } catch (err) {
         console.error("Failed to fetch feed", err);
+      } finally {
+        setLoadingFeed(false);
       }
     };
     fetchFeed();
@@ -63,11 +108,6 @@ export const ActivityFeedSection = () => {
 
   // Filter logic
   const filteredPosts = posts;
-
-  const filteredNotifications = feedNotifications.filter((n) => {
-    if (activeFilter === "all" || activeFilter === "friends") return true;
-    return false;
-  });
 
   const toggleLike = async (postId) => {
     setPosts((prev) =>
@@ -88,8 +128,33 @@ export const ActivityFeedSection = () => {
     }
   };
 
-  const handleDeletePost = (id) => {
-    setPosts(prev => prev.filter(p => p.id !== id));
+  const handleDeletePost = async (id) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/pulse/posts/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setPosts(prev => prev.filter(p => p.id !== id));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleEditPost = async (postId, content, mediaURL) => {
+    const res = await fetch(`${API_BASE}/api/pulse/posts/${postId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ content, mediaURL })
+    });
+    const data = await res.json();
+    if (data.success) {
+      setPosts(prev => prev.map(p => p.id === postId
+        ? { ...p, text: data.data.content, image: data.data.mediaURL }
+        : p
+      ));
+    }
   };
 
   const handleAddComment = (id) => {
@@ -97,23 +162,28 @@ export const ActivityFeedSection = () => {
   };
 
   const handlePost = async () => {
-    if (!postText.trim()) return;
+    if (!postText.trim() && !mediaUrl) return;
     try {
       const res = await fetch(`${API_BASE}/api/pulse/posts`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ content: postText, mediaUrl: null })
+        body: JSON.stringify({ content: postText, mediaURL: mediaUrl })
       });
       const data = await res.json();
       if (data.success) {
+        const style = getIntentStyle(user?.intent);
         const newPost = {
           id: data.data.postID,
           type: "post",
-          user: { name: user?.username || "You", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Me", borderColor: "#2ecc71" },
-          intent: user?.intent || "CHILL",
-          intentColor: "bg-plasma-success/10 text-plasma-success",
+          user: { 
+            name: user?.username || "You", 
+            avatar: user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || 'You'}`, 
+            borderColor: style.border 
+          },
+          intent: style.label,
+          intentColor: style.badge,
           text: data.data.content,
-          image: null,
+          image: data.data.mediaURL,
           likes: 0,
           comments: 0,
           time: "Just now",
@@ -121,6 +191,7 @@ export const ActivityFeedSection = () => {
         };
         setPosts((prev) => [newPost, ...prev]);
         setPostText("");
+        setMediaUrl(null);
         setShowPostFeedback(true);
         setTimeout(() => setShowPostFeedback(false), 2000);
       }
@@ -132,38 +203,58 @@ export const ActivityFeedSection = () => {
   return (
     <div className="flex flex-col items-center pt-8 pb-12 px-12 relative flex-1 grow max-w-3xl mx-auto">
       <div className="flex flex-col w-full items-start gap-6 relative">
-        
+
         {/* Post Composer */}
         <div className="flex flex-col items-start gap-4 p-4 relative self-stretch w-full bg-plasma-slate rounded-xl border border-white/5">
           <div className="flex items-start gap-4 relative self-stretch w-full">
-            <div className="relative w-10 h-10 rounded-full bg-[url(https://api.dicebear.com/7.x/avataaars/svg?seed=Me)] bg-cover bg-center border-2 border-plasma-success" />
-            <div className="flex items-center justify-center px-4 py-2 relative flex-1 self-stretch bg-plasma-slate-hover rounded-full">
-              <input 
-                type="text"
-                value={postText}
-                onChange={(e) => setPostText(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handlePost()}
-                placeholder="Share a moment..." 
-                className="w-full bg-transparent border-none text-sm text-plasma-text-primary placeholder:text-plasma-text-secondary outline-none"
-              />
+            <div 
+              className={`relative shrink-0 w-10 h-10 rounded-full bg-cover bg-center border-2 ${getIntentStyle(user?.intent).border}`} 
+              style={{ backgroundImage: `url(${user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || 'Me'}`})` }} 
+            />
+            <div className="flex flex-col flex-1 gap-3 w-full">
+              <div className="flex items-center justify-center px-4 py-2 relative self-stretch bg-plasma-slate-hover rounded-full">
+                <input
+                  type="text"
+                  value={postText}
+                  onChange={(e) => setPostText(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handlePost()}
+                  placeholder="Share a moment..."
+                  className="w-full bg-transparent border-none text-sm text-plasma-text-primary placeholder:text-plasma-text-secondary outline-none"
+                />
+              </div>
+              {mediaUrl && (
+                <div className="relative w-48 h-32 rounded-xl overflow-hidden border border-white/10 group">
+                  {mediaUrl.match(/\.(mp4|webm|ogg|mov)$/i) ? (
+                    <video src={mediaUrl} className="w-full h-full object-cover" />
+                  ) : (
+                    <img src={mediaUrl} alt="Attached Media" className="w-full h-full object-cover" />
+                  )}
+                  <button
+                    onClick={() => setMediaUrl(null)}
+                    className="absolute top-1 right-1 p-1 bg-black/60 hover:bg-black/80 rounded-full text-white transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           <div className="flex items-center justify-between relative self-stretch w-full">
             <div className="flex gap-2">
-              <button className="p-2 text-plasma-text-secondary hover:text-plasma-text-primary transition-colors cursor-pointer">
-                <Gamepad2 className="w-5 h-5" />
-              </button>
-              <button className="p-2 text-plasma-text-secondary hover:text-plasma-text-primary transition-colors cursor-pointer">
+              <button
+                onClick={() => uploadModal.open()}
+                data-tooltip="Upload Media"
+                className="p-2 text-plasma-text-secondary hover:text-plasma-text-primary transition-colors cursor-pointer"
+              >
                 <ImageIcon className="w-5 h-5" />
               </button>
             </div>
-            <button 
+            <button
               onClick={handlePost}
-              className={`flex justify-center px-6 py-1.5 rounded-full items-center transition-all cursor-pointer ${
-                showPostFeedback 
-                  ? "bg-plasma-success text-white" 
+              className={`flex justify-center px-6 py-1.5 rounded-full items-center transition-all cursor-pointer ${showPostFeedback
+                  ? "bg-plasma-success text-white"
                   : "bg-primary-gradient text-white hover:opacity-90"
-              }`}
+                }`}
             >
               <span className="font-display font-bold text-sm tracking-[0.35px]">
                 {showPostFeedback ? "Posted! ✓" : "Post"}
@@ -178,9 +269,8 @@ export const ActivityFeedSection = () => {
             <button
               key={tab.id}
               onClick={() => setActiveFilter(tab.id)}
-              className={`flex-col justify-center px-5 py-1.5 rounded-full inline-flex items-center transition-colors cursor-pointer ${
-                activeFilter === tab.id ? "bg-plasma-primary text-white" : "bg-plasma-slate-hover text-plasma-text-secondary hover:bg-white/10"
-              }`}
+              className={`flex-col justify-center px-5 py-1.5 rounded-full inline-flex items-center transition-colors cursor-pointer ${activeFilter === tab.id ? "bg-plasma-primary text-white" : "bg-plasma-slate-hover text-plasma-text-secondary hover:bg-white/10"
+                }`}
             >
               <div className="font-sans font-bold text-xs tracking-[0] leading-4 whitespace-nowrap">
                 {tab.label}
@@ -191,84 +281,115 @@ export const ActivityFeedSection = () => {
 
         {/* Feed Items */}
         <div className="flex flex-col items-start gap-4 relative self-stretch w-full">
-          
-          {/* Activity Notifications */}
-          {filteredNotifications.map((notif) => (
-            <div key={notif.id} className={`flex items-center justify-between p-4 relative self-stretch w-full rounded-xl border-l-4 transition-colors ${
-              notif.type === "offline" 
-                ? "bg-plasma-slate/40 opacity-60 border-transparent" 
-                : "bg-plasma-slate border-plasma-primary hover:bg-white/5"
-            }`}>
-              <div className="inline-flex items-center gap-4">
-                <div className={`w-8 h-8 rounded-full ${notif.user.avatar ? `bg-[url(${notif.user.avatar})] bg-cover bg-center` : "bg-white/10"}`} />
-                <div>
-                  <p className="font-sans text-sm text-plasma-text-secondary">
-                    {notif.type === "offline" ? (
-                      <span className="font-medium">{notif.user.name} went offline</span>
-                    ) : (
-                      <>
-                        <span className="font-bold text-plasma-text-primary">{notif.user.name}</span> started playing <span className="font-bold text-plasma-text-primary">{notif.game}</span>
-                      </>
-                    )}
-                  </p>
-                  <div className="font-sans text-[10px] text-plasma-text-secondary">{notif.time}</div>
+
+          {/* Loading Skeletons */}
+          {loadingFeed && (
+            <>
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex flex-col gap-4 p-5 self-stretch w-full bg-plasma-slate rounded-xl border border-white/5 animate-pulse">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-plasma-slate-hover" />
+                    <div className="flex flex-col gap-2">
+                      <div className="w-28 h-3.5 rounded-full bg-plasma-slate-hover" />
+                      <div className="w-16 h-2.5 rounded-full bg-plasma-slate-hover" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="w-full h-3 rounded-full bg-plasma-slate-hover" />
+                    <div className="w-3/4 h-3 rounded-full bg-plasma-slate-hover" />
+                  </div>
+                  {i === 1 && <div className="w-full h-48 rounded-xl bg-plasma-slate-hover" />}
+                  <div className="flex gap-8 pt-1">
+                    <div className="w-12 h-3 rounded-full bg-plasma-slate-hover" />
+                    <div className="w-12 h-3 rounded-full bg-plasma-slate-hover" />
+                    <div className="w-6 h-3 rounded-full bg-plasma-slate-hover" />
+                  </div>
                 </div>
-              </div>
-              {notif.type !== "offline" && (
-                <button className="px-4 py-1 bg-plasma-primary rounded-full hover:bg-plasma-primary/80 transition-colors cursor-pointer">
-                  <span className="font-sans font-bold text-white text-[11px] tracking-[0.55px]">JOIN</span>
-                </button>
-              )}
-            </div>
-          ))}
+              ))}
+            </>
+          )}
 
           {/* Posts */}
           {filteredPosts.map((post) => (
             <div key={post.id} className="flex flex-col items-start gap-4 p-5 relative self-stretch w-full bg-plasma-slate rounded-xl border border-white/5">
               <div className="flex items-start justify-between relative self-stretch w-full">
                 <div className="inline-flex items-start gap-3">
-                  <div className={`w-10 h-10 rounded-full border-2 bg-[url(${post.user.avatar})] bg-cover bg-center`} style={{ borderColor: post.user.borderColor }} />
+                  <div 
+                    className={`w-10 h-10 shrink-0 rounded-full border-2 bg-cover bg-center ${post.user.borderColor}`} 
+                    style={{ backgroundImage: `url('${post.user.avatar}')` }} 
+                  />
                   <div className="flex flex-col">
                     <span className="font-sans font-semibold text-plasma-text-primary text-base">{post.user.name}</span>
                     <span className="font-sans text-plasma-text-secondary text-[11px]">{post.time}</span>
                   </div>
                 </div>
                 <div className={`px-3 py-1 rounded-full ${post.intentColor} flex items-center gap-2`}>
-                  <span className="font-sans font-bold text-[10px]">{post.intent === "COMP" ? "⚔ COMP" : post.intent}</span>
+                  <span className="font-sans font-bold text-[10px]">{post.intent}</span>
                 </div>
-                <button 
-                  onClick={() => optionsModal.open(post)}
-                  className="p-1 ml-2 text-plasma-text-secondary hover:text-white transition-colors cursor-pointer"
-                >
-                  <MoreHorizontal className="w-4 h-4" />
-                </button>
+                <div className="relative">
+                  <button
+                    onClick={() => setOpenDropdownId(openDropdownId === post.id ? null : post.id)}
+                    className="p-1 ml-2 text-plasma-text-secondary hover:text-white transition-colors cursor-pointer"
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                  </button>
+                  {openDropdownId === post.id && (
+                    <div className="absolute right-0 mt-2 w-48 bg-plasma-slate border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden animate-fade-in">
+                      <button 
+                        onClick={() => {
+                          setOpenDropdownId(null);
+                          editModal.open(post);
+                        }}
+                        className="w-full flex items-center gap-3 p-3 hover:bg-white/5 transition-colors text-left text-plasma-text-primary text-sm font-semibold"
+                      >
+                        <Edit2 className="w-4 h-4" /> Edit Post
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setOpenDropdownId(null);
+                          deleteModal.open(post);
+                        }}
+                        className="w-full flex items-center gap-3 p-3 hover:bg-plasma-error/10 transition-colors text-left text-plasma-error text-sm font-semibold"
+                      >
+                        <Trash2 className="w-4 h-4" /> Delete Post
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
               <p className="font-sans text-plasma-text-primary text-[15px]">
                 {post.text}
               </p>
               {post.image && (
-                <div className="relative w-full h-[300px] rounded-2xl overflow-hidden bg-cover bg-center" style={{ backgroundImage: `url(${post.image})` }}>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                <div className="relative w-full rounded-2xl overflow-hidden border border-white/10 mt-2 bg-black">
+                  {post.image.match(/\.(mp4|webm|ogg|mov)$/i) ? (
+                    <video 
+                      src={post.image} 
+                      controls 
+                      className="w-full max-h-[500px] object-contain"
+                    />
+                  ) : (
+                    <img src={post.image} alt="Post media" className="w-full max-h-[500px] object-contain" />
+                  )}
                 </div>
               )}
               <div className="flex items-center gap-8 pt-2">
-                <button 
+                <button
                   onClick={() => toggleLike(post.id)}
-                  className={`flex items-center gap-2 transition-colors cursor-pointer ${
-                    post.liked ? "text-plasma-secondary" : "text-plasma-text-secondary hover:text-plasma-text-primary"
-                  }`}
+                  className={`flex items-center gap-2 transition-colors cursor-pointer ${post.liked ? "text-plasma-secondary" : "text-plasma-text-secondary hover:text-plasma-text-primary"
+                    }`}
                 >
                   <Heart className={`w-4 h-4 ${post.liked ? "fill-plasma-secondary" : ""}`} />
                   <span className="text-xs">{post.likes}</span>
                 </button>
-                <button 
+                <button
                   onClick={() => commentsModal.open(post)}
                   className="flex items-center gap-2 text-plasma-text-secondary hover:text-plasma-text-primary transition-colors cursor-pointer"
                 >
                   <MessageSquare className="w-4 h-4" />
                   <span className="text-xs">{post.comments}</span>
                 </button>
-                <button 
+                <button
                   onClick={() => shareModal.open({ type: 'post', id: post.id })}
                   className="text-plasma-text-secondary hover:text-plasma-text-primary transition-colors cursor-pointer"
                 >
@@ -279,33 +400,43 @@ export const ActivityFeedSection = () => {
           ))}
 
           {/* Empty state */}
-          {filteredPosts.length === 0 && filteredNotifications.length === 0 && (
+          {!loadingFeed && filteredPosts.length === 0 && (
             <div className="text-center py-16 w-full">
-              <p className="text-plasma-text-secondary text-sm">No posts match this filter.</p>
+              <p className="text-plasma-text-secondary text-sm">No posts yet. Share a moment above!</p>
             </div>
           )}
 
         </div>
       </div>
 
-      <ShareModal 
-        isOpen={shareModal.isOpen} 
-        onClose={shareModal.close} 
-        shareType={shareModal.modalData?.type} 
-        shareId={shareModal.modalData?.id} 
+      <ShareModal
+        isOpen={shareModal.isOpen}
+        onClose={shareModal.close}
+        shareType={shareModal.modalData?.type}
+        shareId={shareModal.modalData?.id}
       />
-      <PostOptionsModal 
-        isOpen={optionsModal.isOpen} 
-        onClose={optionsModal.close} 
-        post={optionsModal.modalData} 
-        onDelete={handleDeletePost}
+      <ConfirmDeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={deleteModal.close}
+        onConfirm={() => handleDeletePost(deleteModal.modalData?.id)}
       />
-      <PostCommentsModal 
-        isOpen={commentsModal.isOpen} 
-        onClose={commentsModal.close} 
-        post={commentsModal.modalData} 
+      <PostCommentsModal
+        isOpen={commentsModal.isOpen}
+        onClose={commentsModal.close}
+        post={commentsModal.modalData}
         onAddComment={handleAddComment}
         onToggleLike={toggleLike}
+      />
+      <UploadMediaModal
+        isOpen={uploadModal.isOpen}
+        onClose={uploadModal.close}
+        onUploadComplete={(url) => setMediaUrl(url)}
+      />
+      <EditPostModal
+        isOpen={editModal.isOpen}
+        onClose={editModal.close}
+        post={editModal.modalData}
+        onSave={handleEditPost}
       />
     </div>
   );

@@ -159,6 +159,38 @@
     color: transparent;
   }
 
+  /* Tooltip System */
+  [data-tooltip] {
+    position: relative;
+  }
+  [data-tooltip]::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    background: rgba(26, 23, 38, 0.95);
+    backdrop-filter: blur(8px);
+    color: var(--color-plasma-text-primary);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(86, 56, 149, 0.4);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+    z-index: 50;
+  }
+  [data-tooltip]:hover::before {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
   .all-\[unset\] {
     all: unset;
   }
