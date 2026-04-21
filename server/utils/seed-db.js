@@ -51,7 +51,8 @@ async function seedDatabase() {
             INSERT INTO "games" ("appID", "title", "platform", "coverArtURL") VALUES
             ('valorant', 'Valorant', 'RIOT', 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070&auto=format&fit=crop'),
             ('cs2', 'Counter-Strike 2', 'STEAM', 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=2165&auto=format&fit=crop'),
-            ('helldivers2', 'Helldivers 2', 'STEAM', 'https://images.unsplash.com/photo-1605901309584-818e25960b8f?q=80&w=2119&auto=format&fit=crop')
+            ('helldivers2', 'Helldivers 2', 'STEAM', 'https://images.unsplash.com/photo-1605901309584-818e25960b8f?q=80&w=2119&auto=format&fit=crop'),
+            ('igdb_114283', 'The Legend of Zelda: Tears of the Kingdom', 'IGDB', 'https://images.igdb.com/igdb/image/upload/t_1080p/co5vbg.jpg')
         `);
 
         // 5. Insert Library Entries (Wahaj plays Valorant & CS2)

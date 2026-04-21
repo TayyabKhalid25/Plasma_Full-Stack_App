@@ -15,6 +15,18 @@ app.use(cors({
 app.use(express.json()); // Middleware to parse JSON request bodies
 app.use(express.urlencoded({ extended: true })); // For parsing application/x-www-form-urlencoded
 
+const session = require('express-session');
+const passport = require('passport');
+
+app.use(session({
+    secret: process.env.JWT_SECRET || 'fallback_session_secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 1000 * 60 * 60 } // 1 hour
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+
 // Connect to the database
 connectToDatabase().catch(err => {
   console.error('Failed to initialize the server due to database connection issues.');

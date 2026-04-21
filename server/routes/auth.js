@@ -1,20 +1,51 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
+const passport = require('passport');
+const SteamStrategy = require('passport-steam').Strategy;
 const { jwt, authenticateToken } = require('../middleware/authMiddleware');
 const { pool } = require('../config/dbConfig');
 const router = express.Router();
+
+passport.serializeUser((user, done) => {
+  done(null, user);
+});
+passport.deserializeUser((obj, done) => {
+  done(null, obj);
+});
+
+passport.use(new SteamStrategy({
+    returnURL: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/auth/steam/callback`,
+    realm: `${process.env.BACKEND_URL || 'http://localhost:5000'}/`,
+    apiKey: process.env.STEAM_API_KEY || 'STUB'
+  },
+  function(identifier, profile, done) {
+    process.nextTick(function () {
+      profile.identifier = identifier;
+      return done(null, profile);
+    });
+  }
+));
 
 // ==========================================
 // NEW AUTHENTICATION SYSTEM (TRADITIONAL & UUID SCHEMA)
 // ==========================================
 
 // POST /api/auth/register
-// Traditional Registration (Email, Username, Password, DOB)
+// Traditional Registration (requires pre-validated Steam Token)
 router.post('/register', async (req, res) => {
-    const { username, email, password, dateOfBirth } = req.body;
+    const { username, email, password, dateOfBirth, steamToken } = req.body;
 
-    if (!username || !email || !password) {
-        return res.status(400).json({ success: false, message: 'Username, email, and password are required' });
+    if (!username || !email || !password || !steamToken) {
+        return res.status(400).json({ success: false, message: 'Username, email, password, and Steam linking are required' });
+    }
+
+    let steamID64;
+    try {
+        const decoded = jwt.verify(steamToken, process.env.JWT_SECRET);
+        if (!decoded.isRegistration) throw new Error('Invalid token');
+        steamID64 = decoded.steamID64;
+    } catch (err) {
+        return res.status(401).json({ success: false, message: 'Invalid or expired Steam linking session' });
     }
 
     try {
@@ -32,20 +63,20 @@ router.post('/register', async (req, res) => {
         const saltRounds = 10;
         const passwordHash = await bcrypt.hash(password, saltRounds);
 
-        // 3. Insert new user
+        // 3. Insert new user with SteamID linked
         const insertResult = await pool.query(`
-            INSERT INTO "users" ("username", "email", "passwordHash", "dateOfBirth", "intent")
-            VALUES ($1, $2, $3, $4, 'OFFLINE')
+            INSERT INTO "users" ("steamID64", "username", "email", "passwordHash", "dateOfBirth", "intent")
+            VALUES ($1, $2, $3, $4, $5, 'OFFLINE')
             RETURNING "plasmaUserID", "username", "email"
-        `, [username, email, passwordHash, dateOfBirth || null]);
+        `, [steamID64, username, email, passwordHash, dateOfBirth || null]);
 
         const user = insertResult.rows[0];
 
-        // 4. Create blank profile
+        // 4. Create blank profile using Steam avatar if possible, or placeholder
         await pool.query(`
             INSERT INTO "profiles" ("plasmaUserID", "bio", "avatarURL", "totalPlasmaXP")
-            VALUES ($1, 'New to Plasma', 'https://api.dicebear.com/7.x/avataaars/svg?seed=' || $2, 0)
-        `, [user.plasmaUserID, username]);
+            VALUES ($1, 'New to Plasma', '', 0)
+        `, [user.plasmaUserID]);
 
         // 5. Generate JWT
         const payload = { userId: user.plasmaUserID };
@@ -170,16 +201,34 @@ router.post('/dev-login', async (req, res) => {
 
 // GET /api/auth/steam
 // Redirects the browser to Valve's OpenID 2.0 endpoint
-router.get('/steam', (req, res) => {
-    // Stub for passport-steam integration
-    // res.redirect('https://steamcommunity.com/openid/login?...');
-    res.status(501).json({ success: false, message: 'Steam OpenID redirect unimplemented. Use /dev-login for now.' });
-});
+router.get('/steam', passport.authenticate('steam', { failureRedirect: '/' }));
 
 // GET /api/auth/steam/callback
 // Valve redirects here after login to validate assertion, issue JWT
-router.get('/steam/callback', (req, res) => {
-    res.status(501).json({ success: false, message: 'Steam OpenID callback unimplemented.' });
+router.get('/steam/callback', passport.authenticate('steam', { failureRedirect: '/' }), async (req, res) => {
+    try {
+        const steamID64 = req.user._json.steamid;
+        const avatarURL = req.user._json.avatarfull;
+
+        // Check if user exists
+        const result = await pool.query('SELECT "plasmaUserID" FROM "users" WHERE "steamID64" = $1', [steamID64]);
+        
+        if (result.rows.length > 0) {
+            // Already registered, automatically log them in
+            const payload = { userId: result.rows[0].plasmaUserID };
+            const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '60d' });
+            
+            // Redirect to frontend dashboard or login success page with token
+            res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?token=${token}`);
+        } else {
+            // New user, needs full registration
+            const tempToken = jwt.sign({ steamID64, avatarURL, isRegistration: true }, process.env.JWT_SECRET, { expiresIn: '15m' });
+            res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/register?steamToken=${tempToken}`);
+        }
+    } catch (err) {
+        console.error('Steam Auth Error:', err);
+        res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=auth_failed`);
+    }
 });
 
 // POST /api/auth/logout
