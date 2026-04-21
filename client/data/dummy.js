@@ -162,11 +162,11 @@ export const gameFilters = [
 
 // ─── PRESTIGE / ACHIEVEMENTS ─────────────────────────────────
 export const hallOfFame = [
-  { id: 1, title: "The Immortal", xp: "+500 XP", iconName: "Trophy", color: "text-plasma-secondary", borderColor: "border-plasma-secondary", glow: "shadow-[0_0_15px_rgba(255,42,122,0.4)]" },
-  { id: 2, title: "Ace Master", xp: "+250 XP", iconName: "Swords", color: "text-plasma-primary", borderColor: "border-plasma-primary" },
-  { id: 3, title: "Iron Wall", xp: "+100 XP", iconName: "Shield", color: "text-[#3498DB]", borderColor: "border-[#3498DB]" },
-  { id: 4, title: "Sharpshooter", xp: "+200 XP", iconName: "Target", color: "text-plasma-primary", borderColor: "border-plasma-primary" },
-  { id: 5, title: "First Blood", xp: "+50 XP", iconName: "Medal", color: "text-[#2ECC71]", borderColor: "border-[#2ECC71]" },
+  { id: 1, title: "Global Elite", xp: "100 XP", iconName: "Skull", color: "text-plasma-secondary", borderColor: "border-plasma-secondary", glow: "shadow-[0_0_15px_rgba(255,42,122,0.4)]" },
+  { id: 2, title: "Demolitions", xp: "50 XP", iconName: "Flame", color: "text-plasma-primary", borderColor: "border-plasma-primary" },
+  { id: 3, title: "Win Streak", xp: "25 XP", iconName: "Crosshair", color: "text-[#3498DB]", borderColor: "border-[#3498DB]" },
+  { id: 4, title: "Elden Lord", xp: "500 XP", iconName: "Sparkles", color: "text-plasma-secondary", borderColor: "border-plasma-secondary" },
+  { id: 5, title: "Radiant", xp: "300 XP", iconName: "Diamond", color: "text-plasma-primary", borderColor: "border-plasma-primary" },
 ];
 
 export const gamesProgress = [

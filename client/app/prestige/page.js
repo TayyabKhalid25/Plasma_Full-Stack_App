@@ -21,6 +21,7 @@ const achievementTabs = [
 export default function Prestige() {
   const [activeAchTab, setActiveAchTab] = useState("steam");
   const [activeLeaderboard, setActiveLeaderboard] = useState("friends");
+  const [hof, setHof] = useState(hallOfFame);
 
   const editHofModal = useModal();
   const inviteModal = useModal();
@@ -68,7 +69,7 @@ export default function Prestige() {
             </div>
             
             <div className="flex gap-[20px] overflow-x-auto pb-4 hide-scrollbar">
-              {hallOfFame.map((item) => {
+              {hof.map((item) => {
                 const Icon = iconMap[item.iconName] || Trophy;
                 return (
                   <div key={item.id} className="flex flex-col items-center gap-3 w-[96px] shrink-0">
@@ -216,8 +217,22 @@ export default function Prestige() {
       <EditHallOfFameModal 
         isOpen={editHofModal.isOpen} 
         onClose={editHofModal.close}
+        initialSelectedIds={hof.map(h => h.title)}
         onUpdate={(ids) => {
-          // Handle update
+          // Simulation: update the HOF with selected achievement data
+          const newHof = ids.map((id, index) => {
+            const ach = gamesProgress.flatMap(g => g.achievements).find(a => a.title === id);
+            return {
+              id: index + 1,
+              title: ach?.title || id,
+              xp: ach?.xp || "+100 XP",
+              iconName: ach?.iconName || "Trophy",
+              color: ach?.color || "text-plasma-primary",
+              borderColor: ach?.border || "border-plasma-primary",
+              glow: index === 0 ? "shadow-[0_0_15px_rgba(255,42,122,0.4)]" : ""
+            };
+          });
+          setHof(newHof);
         }}
       />
       <InviteFriendsModal 

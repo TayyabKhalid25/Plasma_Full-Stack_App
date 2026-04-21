@@ -1,21 +1,30 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ModalWrapper } from "../ui/ModalWrapper";
 import { Loader2, Check } from "lucide-react";
 import { apiService } from "@/services/apiService";
 import { gamesProgress } from "@/data/dummy"; // using dummy achievements for selection
 
-export function EditHallOfFameModal({ isOpen, onClose, onUpdate }) {
-  const [selectedIds, setSelectedIds] = useState(["1", "3", "5"]); // Dummy initial state
+export function EditHallOfFameModal({ isOpen, onClose, onUpdate, initialSelectedIds = [] }) {
+  const [selectedIds, setSelectedIds] = useState(initialSelectedIds);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Flatten dummy achievements to make them selectable
   const availableAchievements = gamesProgress.flatMap(game => 
     game.achievements.filter(ach => ach.unlocked).map(ach => ({
       id: ach.title, // Dummy id
       ...ach
     }))
   );
+
+  const availableIds = availableAchievements.map(a => a.id);
+
+  // Sync state with prop when modal opens, but only include available IDs
+  useEffect(() => {
+    if (isOpen) {
+      const validInitialIds = initialSelectedIds.filter(id => availableIds.includes(id));
+      setSelectedIds(validInitialIds);
+    }
+  }, [isOpen, initialSelectedIds, availableIds.join(',')]);
 
   const toggleSelect = (id) => {
     if (selectedIds.includes(id)) {
