@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth, API_BASE } from "@/context/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { PlusCircle, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
-import { rallyEvents as initialEvents, rallyListEvents } from "@/data/dummy";
+import { PlusCircle, ChevronLeft, ChevronRight, ChevronDown, Calendar } from "lucide-react";
 import { useModal } from "@/hooks/useModal";
 import { CreateRallyModal } from "@/components/modals/CreateRallyModal";
 import { RsvpRoleModal } from "@/components/modals/RsvpRoleModal";
@@ -22,17 +22,123 @@ function getDaysInMonth(year, month) {
 
 const intentOptions = ["All Intents", "COMP", "CHILL", "LFG"];
 
+const getIntentColor = (intent) => {
+  const i = intent?.toUpperCase();
+  if (i === "COMPETITIVE" || i === "COMP") return "text-plasma-error bg-plasma-error/20 border-plasma-error/30";
+  if (i === "LFG") return "text-yellow-500 bg-yellow-500/20 border-yellow-500/30";
+  return "text-plasma-success bg-plasma-success/20 border-plasma-success/30";
+};
+
+// --- SKELETON ---
+function RallySkeleton() {
+  return (
+    <div className="bg-plasma-slate/40 backdrop-blur-md rounded-2xl p-6 border border-white/5 animate-pulse">
+      <div className="flex flex-col sm:flex-row gap-6">
+        <div className="w-full sm:w-32 h-40 rounded-lg bg-plasma-slate-hover flex-shrink-0" />
+        <div className="flex-1 space-y-3">
+          <div className="flex gap-3">
+            <div className="w-14 h-5 rounded bg-plasma-slate-hover" />
+            <div className="w-20 h-5 rounded bg-plasma-slate-hover" />
+          </div>
+          <div className="w-3/4 h-6 rounded bg-plasma-slate-hover" />
+          <div className="w-full h-2 rounded bg-plasma-slate-hover" />
+          <div className="w-2/3 h-2 rounded bg-plasma-slate-hover" />
+          <div className="flex justify-between items-center pt-4">
+            <div className="flex -space-x-2">
+              {[1,2,3].map(i => <div key={i} className="w-7 h-7 rounded-full bg-plasma-slate-hover border-2 border-plasma-slate" />)}
+            </div>
+            <div className="w-24 h-8 rounded-full bg-plasma-slate-hover" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Rally() {
+  const { token } = useAuth();
   const [view, setView] = useState("calendar");
-  const [currentMonth, setCurrentMonth] = useState(2); // March (0-indexed)
-  const [currentYear, setCurrentYear] = useState(2026);
-  const [selectedDay, setSelectedDay] = useState(22);
+  const now = new Date();
+  const [currentMonth, setCurrentMonth] = useState(now.getMonth());
+  const [currentYear, setCurrentYear] = useState(now.getFullYear());
+  const [selectedDay, setSelectedDay] = useState(now.getDate());
   const [intentFilter, setIntentFilter] = useState("All Intents");
   const [showIntentDropdown, setShowIntentDropdown] = useState(false);
-  const [events, setEvents] = useState(initialEvents);
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const createRallyModal = useModal();
   const rsvpModal = useModal();
+
+  // Fetch rallies from API
+  const fetchRallies = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/rallies`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEvents(data.data.map(e => ({
+          id: e.eventID,
+          title: e.title,
+          description: e.description,
+          date: new Date(e.scheduledStartUTC),
+          time: new Date(e.scheduledStartUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          dateLabel: new Date(e.scheduledStartUTC).toLocaleDateString([], { month: 'short', day: 'numeric' }),
+          intent: e.requiredIntent,
+          intentColor: getIntentColor(e.requiredIntent),
+          slotsFilled: parseInt(e.currentAttendees) || 0,
+          slotsTotal: e.maxCapacity,
+          organizerName: e.organizerName,
+          rsvpd: e.hasRsvpd === true || e.hasRsvpd === 't',
+          image: "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop",
+          roles: [{ name: "Any Role", filled: parseInt(e.currentAttendees) || 0, total: e.maxCapacity, percent: Math.round(((parseInt(e.currentAttendees) || 0) / e.maxCapacity) * 100) }],
+          players: [],
+        })));
+      }
+    } catch (err) {
+      console.error("Failed to fetch rallies", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchRallies(); }, [token]);
+
+  const toggleRSVP = async (eventId) => {
+    const event = events.find(e => e.id === eventId);
+    if (!event) return;
+
+    // Optimistic update
+    setEvents(prev => prev.map(e => e.id === eventId
+      ? { ...e, rsvpd: !e.rsvpd, slotsFilled: e.rsvpd ? e.slotsFilled - 1 : e.slotsFilled + 1 }
+      : e
+    ));
+
+    try {
+      if (event.rsvpd) {
+        await fetch(`${API_BASE}/api/rallies/${eventId}/rsvp`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } else {
+        await fetch(`${API_BASE}/api/rallies/${eventId}/rsvp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({})
+        });
+      }
+    } catch (err) {
+      console.error("RSVP failed", err);
+      // Revert on error
+      setEvents(prev => prev.map(e => e.id === eventId
+        ? { ...e, rsvpd: !e.rsvpd, slotsFilled: e.rsvpd ? e.slotsFilled - 1 : e.slotsFilled + 1 }
+        : e
+      ));
+    }
+  };
 
   const prevMonth = () => {
     if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(currentYear - 1); }
@@ -46,31 +152,41 @@ export default function Rally() {
 
   const daysInMonth = getDaysInMonth(currentYear, currentMonth);
   const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
-  // Adjust so Monday is 0
   const startOffset = firstDay === 0 ? 6 : firstDay - 1;
 
-  const eventDays = [22, 25, 28]; // days with events in March
-  const isCurrentMonthMarch = currentMonth === 2 && currentYear === 2026;
+  // Determine which days have events
+  const eventDaySet = new Set();
+  events.forEach(e => {
+    if (e.date.getMonth() === currentMonth && e.date.getFullYear() === currentYear) {
+      eventDaySet.add(e.date.getDate());
+    }
+  });
 
-  const toggleRSVP = (eventId) => {
-    setEvents((prev) =>
-      prev.map((e) => (e.id === eventId ? { ...e, rsvpd: !e.rsvpd } : e))
-    );
-  };
+  const isCurrentMonthViewed = currentMonth === now.getMonth() && currentYear === now.getFullYear();
 
   // Filter events
   const filteredEvents = events.filter((e) => {
-    if (intentFilter === "All Intents") return true;
-    return e.intent === intentFilter;
+    if (intentFilter !== "All Intents") {
+      const i = e.intent?.toUpperCase();
+      if (intentFilter === "COMP" && i !== "COMPETITIVE" && i !== "COMP") return false;
+      if (intentFilter === "CHILL" && i !== "CHILL") return false;
+      if (intentFilter === "LFG" && i !== "LFG") return false;
+    }
+    return true;
   });
 
-  const filteredListEvents = rallyListEvents.map((section) => ({
-    ...section,
-    items: section.items.filter((item) => {
-      if (intentFilter === "All Intents") return true;
-      return item.intent === intentFilter;
-    }),
-  })).filter((s) => s.items.length > 0);
+  // Group events for list view
+  const groupedEvents = [];
+  const todayStr = now.toDateString();
+  const todayEvents = filteredEvents.filter(e => e.date.toDateString() === todayStr);
+  if (todayEvents.length > 0) groupedEvents.push({ category: `Today — ${MONTHS[now.getMonth()]} ${now.getDate()}`, items: todayEvents });
+  const weekEvents = filteredEvents.filter(e => {
+    const diff = (e.date - now) / (1000 * 60 * 60 * 24);
+    return diff > 0 && diff <= 7 && e.date.toDateString() !== todayStr;
+  });
+  if (weekEvents.length > 0) groupedEvents.push({ category: "This Week", items: weekEvents });
+  const laterEvents = filteredEvents.filter(e => (e.date - now) / (1000 * 60 * 60 * 24) > 7);
+  if (laterEvents.length > 0) groupedEvents.push({ category: "Later", items: laterEvents });
 
   return (
     <DashboardLayout showRightRail={false}>
@@ -168,16 +284,16 @@ export default function Rally() {
                 {Array.from({ length: 42 }).map((_, i) => {
                   const day = i - startOffset + 1;
                   const isCurrentMonth = day > 0 && day <= daysInMonth;
-                  const isToday = isCurrentMonthMarch && day === 21;
-                  const isSelected = isCurrentMonthMarch && day === selectedDay;
-                  const hasEvents = isCurrentMonthMarch && eventDays.includes(day);
+                  const isToday = isCurrentMonthViewed && day === now.getDate();
+                  const isSelected = isCurrentMonth && day === selectedDay;
+                  const hasEvents = eventDaySet.has(day);
                   
-                  if (i >= startOffset + daysInMonth && i >= 35) return null; // Don't render extra row
+                  if (i >= startOffset + daysInMonth && i >= 35) return null;
 
                   return (
                     <div 
                       key={i}
-                      onClick={() => isCurrentMonth && isCurrentMonthMarch && setSelectedDay(day)}
+                      onClick={() => isCurrentMonth && setSelectedDay(day)}
                       className={`h-24 border-r border-b border-white/5 p-3 relative flex flex-col items-center justify-center cursor-pointer transition-all ${
                         !isCurrentMonth ? "bg-plasma-bg/50 text-plasma-text-secondary/30" : "bg-plasma-slate hover:bg-plasma-slate-hover"
                       } ${isToday ? "bg-plasma-primary/10 border-plasma-primary shadow-[inset_0_0_15px_rgba(86,56,149,0.5)]" : ""}
@@ -191,8 +307,7 @@ export default function Rally() {
                       
                       {hasEvents && (
                         <div className="flex gap-1.5 mt-4">
-                          <div className={`w-2 h-2 rounded-full ${day === 22 ? 'bg-plasma-primary' : day === 25 ? 'bg-plasma-success' : 'bg-yellow-500'}`}></div>
-                          {day === 22 && <div className="w-2 h-2 bg-plasma-secondary rounded-full"></div>}
+                          <div className="w-2 h-2 rounded-full bg-plasma-primary"></div>
                         </div>
                       )}
                     </div>
@@ -205,15 +320,20 @@ export default function Rally() {
             <div className="flex-1 w-full space-y-6">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-lg font-display font-bold text-plasma-text-primary">
-                  {isCurrentMonthMarch ? `March ${selectedDay}` : MONTHS[currentMonth]} — {filteredEvents.length} Event{filteredEvents.length !== 1 && "s"}
+                  {MONTHS[currentMonth]} {selectedDay} — {filteredEvents.length} Event{filteredEvents.length !== 1 && "s"}
                 </h3>
-                {isCurrentMonthMarch && (
-                  <span className="text-xs font-bold text-plasma-text-secondary bg-plasma-slate px-3 py-1 rounded-full">TODAY IS MAR 21</span>
-                )}
               </div>
               
+              {/* Loading Skeleton */}
+              {loading && (
+                <>
+                  <RallySkeleton />
+                  <RallySkeleton />
+                </>
+              )}
+
               {/* Event Cards */}
-              {filteredEvents.length > 0 ? (
+              {!loading && filteredEvents.length > 0 ? (
                 filteredEvents.map(event => (
                   <div key={event.id} className="bg-plasma-slate/40 backdrop-blur-md rounded-2xl p-6 relative overflow-hidden group border border-white/5">
                     <div className="flex flex-col sm:flex-row gap-6">
@@ -242,11 +362,8 @@ export default function Rally() {
                         </div>
                         
                         <div className="flex justify-between items-center">
-                          <div className="flex -space-x-2">
-                            {event.players.map((avatar, idx) => (
-                              <img key={idx} src={avatar} alt="Player" className="w-7 h-7 rounded-full border-2 border-plasma-slate bg-plasma-slate" />
-                            ))}
-                            <div className="w-7 h-7 rounded-full border-2 border-plasma-slate bg-plasma-slate-hover flex items-center justify-center text-[8px] font-bold text-plasma-text-primary">+2</div>
+                          <div className="flex items-center gap-2 text-xs text-plasma-text-secondary">
+                            <span>{event.slotsFilled}/{event.slotsTotal} slots filled</span>
                           </div>
                           <button 
                             onClick={() => event.rsvpd ? toggleRSVP(event.id) : rsvpModal.open(event)}
@@ -263,8 +380,9 @@ export default function Rally() {
                     </div>
                   </div>
                 ))
-              ) : (
+              ) : !loading && (
                 <div className="text-center py-12 bg-plasma-slate/20 rounded-2xl">
+                  <Calendar className="w-12 h-12 mx-auto text-plasma-slate-hover mb-3" strokeWidth={1} />
                   <p className="text-plasma-text-secondary text-sm">No events match this filter.</p>
                 </div>
               )}
@@ -273,8 +391,23 @@ export default function Rally() {
         ) : (
           /* LIST VIEW */
           <div className="space-y-12 pb-20 animate-fade-in">
-            {filteredListEvents.length > 0 ? (
-              filteredListEvents.map((section, sIdx) => (
+            {loading ? (
+              <div className="space-y-4">
+                {[1,2,3].map(i => (
+                  <div key={i} className="bg-plasma-slate rounded-xl p-5 flex items-center justify-between animate-pulse">
+                    <div className="flex items-center gap-6">
+                      <div className="w-14 h-14 rounded-lg bg-plasma-slate-hover" />
+                      <div className="space-y-2">
+                        <div className="w-40 h-5 rounded bg-plasma-slate-hover" />
+                        <div className="w-28 h-3 rounded bg-plasma-slate-hover" />
+                      </div>
+                    </div>
+                    <div className="w-20 h-8 rounded-lg bg-plasma-slate-hover" />
+                  </div>
+                ))}
+              </div>
+            ) : groupedEvents.length > 0 ? (
+              groupedEvents.map((section, sIdx) => (
                 <article key={sIdx} className="space-y-4">
                   <h2 className="text-xs font-black text-plasma-text-secondary tracking-[0.3em] uppercase flex items-center gap-4">
                     {section.category}
@@ -284,21 +417,13 @@ export default function Rally() {
                     {section.items.map(item => (
                       <div key={item.id} className="bg-plasma-slate rounded-xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between group hover:bg-plasma-slate-hover transition-all border border-transparent hover:border-white/5 gap-6 md:gap-0">
                         <div className="flex items-center gap-6 relative w-full md:w-auto">
-                          {item.isTomorrow && (
-                            <span className="absolute -top-2 -left-2 z-10 bg-plasma-secondary text-white px-2 py-0.5 rounded text-[8px] font-black uppercase shadow-lg">TOMORROW</span>
-                          )}
-                          <div className="w-14 h-14 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0" style={{ backgroundImage: `url(${item.icon})`, backgroundSize: 'cover' }}>
+                          <div className="w-14 h-14 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 bg-plasma-primary/10">
+                            <Calendar className="w-6 h-6 text-plasma-primary" />
                           </div>
                           <div>
                             <h3 className="font-display font-bold text-xl text-plasma-text-primary">{item.title}</h3>
                             <div className="flex items-center gap-3 text-sm text-plasma-text-secondary font-medium">
-                              <span>{item.game}</span>
-                              {item.date && (
-                                <>
-                                  <span className="w-1 h-1 rounded-full bg-plasma-text-secondary/30"></span>
-                                  <span>{item.date}</span>
-                                </>
-                              )}
+                              <span>{item.dateLabel}</span>
                               <span className="w-1 h-1 rounded-full bg-plasma-text-secondary/30"></span>
                               <span>{item.time}</span>
                             </div>
@@ -321,10 +446,14 @@ export default function Rally() {
                               </div>
                             </div>
                             <button 
-                              onClick={() => rsvpModal.open(item)}
-                              className="bg-white/5 hover:bg-white/10 text-plasma-text-primary px-6 py-2.5 rounded-lg text-xs font-bold tracking-widest transition-all border border-white/10 uppercase cursor-pointer"
+                              onClick={() => item.rsvpd ? toggleRSVP(item.id) : rsvpModal.open(item)}
+                              className={`px-6 py-2.5 rounded-lg text-xs font-bold tracking-widest transition-all border uppercase cursor-pointer ${
+                                item.rsvpd
+                                  ? "bg-plasma-success/15 text-plasma-success border-plasma-success/30"
+                                  : "bg-white/5 hover:bg-white/10 text-plasma-text-primary border-white/10"
+                              }`}
                             >
-                              RSVP
+                              {item.rsvpd ? "✓ RSVP'd" : "RSVP"}
                             </button>
                           </div>
                         </div>
@@ -346,18 +475,13 @@ export default function Rally() {
       <CreateRallyModal 
         isOpen={createRallyModal.isOpen} 
         onClose={createRallyModal.close}
-        onRallyCreated={(rally) => {
-          // Dummy update list with new rally
-        }}
+        onRallyCreated={() => fetchRallies()}
       />
       <RsvpRoleModal 
         isOpen={rsvpModal.isOpen} 
         onClose={rsvpModal.close}
         event={rsvpModal.modalData}
-        onRsvp={(eventId, roleId) => {
-          // Add to RSVPs or handle role filling
-          toggleRSVP(eventId);
-        }}
+        onRsvp={(eventId) => toggleRSVP(eventId)}
       />
     </DashboardLayout>
   );

@@ -78,6 +78,13 @@ app.use('/api/steam', steamRoutes);
 app.use('/api/library', libraryRoutes);
 app.use('/api/prestige', prestigeRoutes);
 
-app.listen(port, () => {
+const http = require('http');
+const { setupWebSocket } = require('./ws/chatSocket');
+
+const server = http.createServer(app);
+setupWebSocket(server);
+
+server.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
+  console.log(`WebSocket available at ws://localhost:${port}/ws/chat`);
 });

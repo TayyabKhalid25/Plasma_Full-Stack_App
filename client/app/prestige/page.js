@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth, API_BASE } from "@/context/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { 
   Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Diamond, Zap, Activity
 } from "lucide-react";
-import { hallOfFame, gamesProgress, leaderboard, globalLeaderboard, currentUser } from "@/data/dummy";
 import { useModal } from "@/hooks/useModal";
 import { EditHallOfFameModal } from "@/components/modals/EditHallOfFameModal";
 import { InviteFriendsModal } from "@/components/modals/InviteFriendsModal";
@@ -13,27 +13,183 @@ import { InviteFriendsModal } from "@/components/modals/InviteFriendsModal";
 const iconMap = { Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Diamond, Zap, Activity };
 
 const achievementTabs = [
+  { id: "all", label: "All" },
   { id: "steam", label: "Steam Trophies" },
   { id: "manual", label: "Manual Milestones" },
-  { id: "all", label: "All" },
 ];
 
+// --- SKELETONS ---
+function HofSkeleton() {
+  return (
+    <div className="flex gap-[20px] overflow-x-auto pb-4 hide-scrollbar">
+      {[1,2,3,4,5].map(i => (
+        <div key={i} className="flex flex-col items-center gap-3 w-[96px] shrink-0 animate-pulse">
+          <div className="w-[96px] h-[96px] rounded-full bg-plasma-slate-hover" />
+          <div className="w-16 h-3 rounded bg-plasma-slate-hover" />
+          <div className="w-12 h-2.5 rounded bg-plasma-slate-hover" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function LeaderboardSkeleton() {
+  return (
+    <div className="space-y-1">
+      {[1,2,3,4,5,6].map(i => (
+        <div key={i} className="flex items-center gap-3 p-2.5 border-b border-white/5 animate-pulse">
+          <div className="w-6 h-5 rounded bg-plasma-slate-hover" />
+          <div className="w-8 h-8 rounded-full bg-plasma-slate-hover" />
+          <div className="flex-1 h-4 rounded bg-plasma-slate-hover" />
+          <div className="w-16 h-4 rounded bg-plasma-slate-hover" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AchievementGridSkeleton() {
+  return (
+    <div className="space-y-10 py-6">
+      {[1,2].map(g => (
+        <div key={g}>
+          <div className="w-32 h-3 rounded bg-plasma-slate-hover mb-4 animate-pulse" />
+          <div className="flex flex-wrap gap-[32px]">
+            {[1,2,3,4].map(a => (
+              <div key={a} className="flex flex-col items-center gap-2 w-[72px] animate-pulse">
+                <div className="w-[72px] h-[72px] rounded-full bg-plasma-slate-hover" />
+                <div className="w-14 h-2.5 rounded bg-plasma-slate-hover" />
+                <div className="w-10 h-2 rounded bg-plasma-slate-hover" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Prestige() {
-  const [activeAchTab, setActiveAchTab] = useState("steam");
+  const { token, user } = useAuth();
+  const [activeAchTab, setActiveAchTab] = useState("all");
   const [activeLeaderboard, setActiveLeaderboard] = useState("friends");
-  const [hof, setHof] = useState(hallOfFame);
+  
+  const [loading, setLoading] = useState(true);
+  const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
+  
+  const [prestigeData, setPrestigeData] = useState({ totalPlasmaXP: 0, unlockedCount: 0, hallOfFame: [] });
+  const [gamesProgress, setGamesProgress] = useState([]);
+  const [hof, setHof] = useState([]);
+  const [leaderboardData, setLeaderboardData] = useState([]);
 
   const editHofModal = useModal();
   const inviteModal = useModal();
 
-  const leaderboardData = activeLeaderboard === "global" ? globalLeaderboard : leaderboard;
+  // Fetch prestige + achievements data
+  useEffect(() => {
+    if (!token) return;
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [prestigeRes, achievementsRes] = await Promise.all([
+          fetch(`${API_BASE}/api/prestige/me`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API_BASE}/api/achievements?type=${activeAchTab}`, { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+        
+        const prestigeJson = await prestigeRes.json();
+        const achievementsJson = await achievementsRes.json();
+        
+        if (prestigeJson.success) {
+          setPrestigeData(prestigeJson.data);
+          // Map hall of fame
+          setHof(prestigeJson.data.hallOfFame.map((item, i) => ({
+            id: item.achievementID,
+            title: item.title,
+            xp: `${item.plasmaXP} XP`,
+            iconName: "Trophy",
+            color: i === 0 ? "text-plasma-secondary" : "text-plasma-primary",
+            borderColor: i === 0 ? "border-plasma-secondary" : "border-plasma-primary",
+            glow: i === 0 ? "shadow-[0_0_15px_rgba(255,42,122,0.4)]" : "",
+          })));
+        }
+        
+        if (achievementsJson.success) {
+          setGamesProgress(achievementsJson.data.gamesProgress.map(game => ({
+            title: game.gameTitle?.toUpperCase() || "UNKNOWN GAME",
+            achievements: game.achievements.map(ach => ({
+              title: ach.title,
+              xp: `${ach.plasmaXP} XP`,
+              iconName: "Trophy",
+              color: "text-plasma-primary",
+              border: "border-plasma-primary",
+              unlocked: true,
+            }))
+          })));
+        }
+      } catch (err) {
+        console.error("Failed to fetch prestige data", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [token, activeAchTab]);
 
-  // Filter achievements by tab
-  const filteredProgress = activeAchTab === "all" 
-    ? gamesProgress 
-    : activeAchTab === "steam" 
-      ? gamesProgress.filter((_, i) => i !== 1) // Simulate: Elden Ring is "manual"
-      : gamesProgress.filter((_, i) => i === 1);
+  // Fetch leaderboard
+  useEffect(() => {
+    if (!token) return;
+    const fetchLeaderboard = async () => {
+      setLoadingLeaderboard(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/leaderboard?scope=${activeLeaderboard === "global" ? "global" : "friends"}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setLeaderboardData(data.data.map((u, idx) => ({
+            id: idx + 1,
+            name: u.username,
+            xp: `${(u.totalPlasmaXP || 0).toLocaleString()} XP`,
+            rank: idx < 3 ? ["🥇", "🥈", "🥉"][idx] : String(idx + 1),
+            avatar: u.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`,
+            isCurrentUser: u.plasmaUserID === user?.plasmaUserID,
+          })));
+        }
+      } catch (err) {
+        console.error("Failed to fetch leaderboard", err);
+      } finally {
+        setLoadingLeaderboard(false);
+      }
+    };
+    fetchLeaderboard();
+  }, [token, activeLeaderboard, user?.plasmaUserID]);
+
+  const handleUpdateHof = async (achievementIds) => {
+    try {
+      await fetch(`${API_BASE}/api/prestige/me/hall-of-fame`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ achievementIds })
+      });
+      // Refresh prestige data
+      const res = await fetch(`${API_BASE}/api/prestige/me`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (data.success) {
+        setPrestigeData(data.data);
+        setHof(data.data.hallOfFame.map((item, i) => ({
+          id: item.achievementID,
+          title: item.title,
+          xp: `${item.plasmaXP} XP`,
+          iconName: "Trophy",
+          color: i === 0 ? "text-plasma-secondary" : "text-plasma-primary",
+          borderColor: i === 0 ? "border-plasma-secondary" : "border-plasma-primary",
+          glow: i === 0 ? "shadow-[0_0_15px_rgba(255,42,122,0.4)]" : "",
+        })));
+      }
+    } catch (err) {
+      console.error("Failed to update Hall of Fame", err);
+    }
+  };
 
   return (
     <DashboardLayout showRightRail={false}>
@@ -47,11 +203,16 @@ export default function Prestige() {
             <h1 className="font-display font-bold text-[32px] text-plasma-text-primary leading-none">The Prestige</h1>
             <div className="flex items-center gap-6">
               <div className="text-right">
-                <span className="block text-[40px] font-mono font-bold bg-primary-gradient bg-clip-text text-transparent leading-none">{currentUser.stats.xp}</span>
-                <span className="text-[11px] font-bold text-plasma-text-secondary tracking-widest uppercase mt-1 block">PLASMA XP</span>
-              </div>
-              <div className="px-4 py-2 bg-plasma-slate border border-plasma-primary rounded-full">
-                <span className="text-plasma-primary font-bold font-sans text-sm">Global Rank: #{currentUser.stats.globalRank}</span>
+                {loading ? (
+                  <div className="w-24 h-10 rounded bg-plasma-slate-hover animate-pulse" />
+                ) : (
+                  <>
+                    <span className="block text-[40px] font-mono font-bold bg-primary-gradient bg-clip-text text-transparent leading-none">
+                      {prestigeData.totalPlasmaXP.toLocaleString()}
+                    </span>
+                    <span className="text-[11px] font-bold text-plasma-text-secondary tracking-widest uppercase mt-1 block">PLASMA XP</span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -68,22 +229,26 @@ export default function Prestige() {
               </button>
             </div>
             
-            <div className="flex gap-[20px] overflow-x-auto pb-4 hide-scrollbar">
-              {hof.map((item) => {
-                const Icon = iconMap[item.iconName] || Trophy;
-                return (
-                  <div key={item.id} className="flex flex-col items-center gap-3 w-[96px] shrink-0">
-                    <div className={`w-[96px] h-[96px] rounded-full border-[3px] ${item.borderColor} ${item.glow || ''} flex items-center justify-center bg-white/5 backdrop-blur-sm group cursor-pointer hover:scale-105 transition-transform`}>
-                      <Icon className={`w-12 h-12 ${item.color}`} />
+            {loading ? <HofSkeleton /> : (
+              <div className="flex gap-[20px] overflow-x-auto pb-4 hide-scrollbar">
+                {hof.length > 0 ? hof.map((item) => {
+                  const Icon = iconMap[item.iconName] || Trophy;
+                  return (
+                    <div key={item.id} className="flex flex-col items-center gap-3 w-[96px] shrink-0">
+                      <div className={`w-[96px] h-[96px] rounded-full border-[3px] ${item.borderColor} ${item.glow || ''} flex items-center justify-center bg-white/5 backdrop-blur-sm group cursor-pointer hover:scale-105 transition-transform`}>
+                        <Icon className={`w-12 h-12 ${item.color}`} />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-[11px] font-bold text-plasma-text-primary whitespace-nowrap">{item.title}</p>
+                        <p className={`text-[12px] font-mono ${item.color}`}>{item.xp}</p>
+                      </div>
                     </div>
-                    <div className="text-center">
-                      <p className="text-[11px] font-bold text-plasma-text-primary whitespace-nowrap">{item.title}</p>
-                      <p className={`text-[12px] font-mono ${item.color}`}>{item.xp}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                }) : (
+                  <p className="text-sm text-plasma-text-secondary py-4">No achievements pinned yet.</p>
+                )}
+              </div>
+            )}
           </section>
 
           {/* Achievement Tabs */}
@@ -106,35 +271,37 @@ export default function Prestige() {
           </div>
 
           {/* Achievement Grid */}
-          <div className="space-y-10 py-6">
-            {filteredProgress.length > 0 ? (
-              filteredProgress.map((game, index) => (
-                <div key={index}>
-                  <h3 className="text-[11px] font-bold text-plasma-text-secondary tracking-[0.2em] uppercase mb-4">{game.title}</h3>
-                  <div className="flex flex-wrap gap-[32px]">
-                    {game.achievements.map((ach, aIdx) => {
-                      const Icon = iconMap[ach.iconName] || Lock;
-                      return (
-                        <div key={aIdx} className={`flex flex-col items-center gap-2 w-[72px] text-center ${!ach.unlocked ? 'opacity-50 grayscale' : ''}`}>
-                          <div className={`w-[72px] h-[72px] rounded-full border-2 ${ach.border} flex items-center justify-center bg-white/5 relative`}>
-                            <Icon className={`w-8 h-8 ${ach.color}`} />
+          {loading ? <AchievementGridSkeleton /> : (
+            <div className="space-y-10 py-6">
+              {gamesProgress.length > 0 ? (
+                gamesProgress.map((game, index) => (
+                  <div key={index}>
+                    <h3 className="text-[11px] font-bold text-plasma-text-secondary tracking-[0.2em] uppercase mb-4">{game.title}</h3>
+                    <div className="flex flex-wrap gap-[32px]">
+                      {game.achievements.map((ach, aIdx) => {
+                        const Icon = iconMap[ach.iconName] || Lock;
+                        return (
+                          <div key={aIdx} className={`flex flex-col items-center gap-2 w-[72px] text-center ${!ach.unlocked ? 'opacity-50 grayscale' : ''}`}>
+                            <div className={`w-[72px] h-[72px] rounded-full border-2 ${ach.border} flex items-center justify-center bg-white/5 relative`}>
+                              <Icon className={`w-8 h-8 ${ach.color}`} />
+                            </div>
+                            <p className={`text-[10px] font-medium truncate w-full ${!ach.unlocked ? 'text-plasma-text-secondary' : 'text-plasma-text-primary'}`}>
+                              {ach.title}
+                            </p>
+                            <p className={`text-[9px] font-mono ${ach.color}`}>{ach.xp}</p>
                           </div>
-                          <p className={`text-[10px] font-medium truncate w-full ${!ach.unlocked ? 'text-plasma-text-secondary' : 'text-plasma-text-primary'}`}>
-                            {ach.title}
-                          </p>
-                          <p className={`text-[9px] font-mono ${ach.color}`}>{ach.xp}</p>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-plasma-text-secondary text-sm">No achievements in this category yet.</p>
                 </div>
-              ))
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-plasma-text-secondary text-sm">No achievements in this category yet.</p>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
         </div>
 
@@ -172,35 +339,37 @@ export default function Prestige() {
             </div>
             
             {/* Leaderboard Rows */}
-            <div className="space-y-1">
-              {leaderboardData.map((user) => (
-                <div 
-                  key={user.id} 
-                  className={`flex items-center gap-3 p-2.5 border-b border-white/5 transition-colors ${
-                    user.isCurrentUser ? 'bg-white/10 rounded-lg' : 'hover:bg-white/5'
-                  }`}
-                >
-                  <span className={`w-6 text-center ${user.id <= 3 || (typeof user.rank === "string" && user.rank.length <= 2) ? 'text-lg' : 'text-sm text-plasma-text-secondary font-mono'}`}>
-                    {user.rank}
-                  </span>
-                  <div className="relative shrink-0">
-                    <img 
-                      src={user.avatar} 
-                      alt={user.name} 
-                      className={`w-8 h-8 rounded-full border-2 ${
-                        user.id <= 2 ? 'border-plasma-error' : user.isCurrentUser ? 'border-plasma-primary' : 'border-transparent opacity-80'
-                      }`} 
-                    />
+            {loadingLeaderboard ? <LeaderboardSkeleton /> : (
+              <div className="space-y-1">
+                {leaderboardData.map((lb) => (
+                  <div 
+                    key={lb.id} 
+                    className={`flex items-center gap-3 p-2.5 border-b border-white/5 transition-colors ${
+                      lb.isCurrentUser ? 'bg-white/10 rounded-lg' : 'hover:bg-white/5'
+                    }`}
+                  >
+                    <span className={`w-6 text-center ${lb.id <= 3 ? 'text-lg' : 'text-sm text-plasma-text-secondary font-mono'}`}>
+                      {lb.rank}
+                    </span>
+                    <div className="relative shrink-0">
+                      <img 
+                        src={lb.avatar} 
+                        alt={lb.name} 
+                        className={`w-8 h-8 rounded-full border-2 ${
+                          lb.id <= 2 ? 'border-plasma-error' : lb.isCurrentUser ? 'border-plasma-primary' : 'border-transparent opacity-80'
+                        }`} 
+                      />
+                    </div>
+                    <span className={`flex-1 text-sm truncate ${lb.isCurrentUser ? 'text-plasma-secondary font-bold' : lb.id <= 2 ? 'text-plasma-text-primary font-medium' : 'text-plasma-text-secondary'}`}>
+                      {lb.name}
+                    </span>
+                    <span className={`font-mono text-sm ${lb.isCurrentUser ? 'text-plasma-secondary' : lb.id === 1 ? 'text-plasma-secondary' : lb.id === 2 ? 'text-plasma-text-primary' : 'text-plasma-text-secondary'}`}>
+                      {lb.xp}
+                    </span>
                   </div>
-                  <span className={`flex-1 text-sm truncate ${user.isCurrentUser ? 'text-plasma-secondary font-bold' : user.id <= 2 ? 'text-plasma-text-primary font-medium' : 'text-plasma-text-secondary'}`}>
-                    {user.name}
-                  </span>
-                  <span className={`font-mono text-sm ${user.isCurrentUser ? 'text-plasma-secondary' : user.id === 1 ? 'text-plasma-secondary' : user.id === 2 ? 'text-plasma-text-primary' : 'text-plasma-text-secondary'}`}>
-                    {user.xp}
-                  </span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
             
             {/* Bottom CTA */}
             <button 
@@ -218,22 +387,7 @@ export default function Prestige() {
         isOpen={editHofModal.isOpen} 
         onClose={editHofModal.close}
         initialSelectedIds={hof.map(h => h.title)}
-        onUpdate={(ids) => {
-          // Simulation: update the HOF with selected achievement data
-          const newHof = ids.map((id, index) => {
-            const ach = gamesProgress.flatMap(g => g.achievements).find(a => a.title === id);
-            return {
-              id: index + 1,
-              title: ach?.title || id,
-              xp: ach?.xp || "+100 XP",
-              iconName: ach?.iconName || "Trophy",
-              color: ach?.color || "text-plasma-primary",
-              borderColor: ach?.border || "border-plasma-primary",
-              glow: index === 0 ? "shadow-[0_0_15px_rgba(255,42,122,0.4)]" : ""
-            };
-          });
-          setHof(newHof);
-        }}
+        onUpdate={(ids) => handleUpdateHof(ids)}
       />
       <InviteFriendsModal 
         isOpen={inviteModal.isOpen} 

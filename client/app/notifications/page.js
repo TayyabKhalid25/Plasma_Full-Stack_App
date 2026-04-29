@@ -1,47 +1,114 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth, API_BASE } from "@/context/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
-  Bell, UserPlus, Trophy, Calendar, AlertCircle, CheckCheck, Filter
+  Bell, UserPlus, Trophy, Calendar, AlertCircle, CheckCheck
 } from "lucide-react";
-import { notifications as allNotifications } from "@/data/dummy";
 
 const filterTabs = [
   { id: "all", label: "All", icon: Bell },
-  { id: "friend_request", label: "Friend Requests", icon: UserPlus },
-  { id: "achievement", label: "Achievements", icon: Trophy },
-  { id: "rally", label: "Rallies", icon: Calendar },
-  { id: "system", label: "System", icon: AlertCircle },
+  { id: "FRIEND_REQUEST", label: "Friend Requests", icon: UserPlus },
+  { id: "ACHIEVEMENT", label: "Achievements", icon: Trophy },
+  { id: "RALLY", label: "Rallies", icon: Calendar },
+  { id: "SYSTEM", label: "System", icon: AlertCircle },
 ];
 
 const iconMap = {
-  friend_request: UserPlus,
-  achievement: Trophy,
-  rally: Calendar,
-  system: AlertCircle,
+  FRIEND_REQUEST: UserPlus,
+  ACHIEVEMENT: Trophy,
+  RALLY: Calendar,
+  SYSTEM: AlertCircle,
 };
 
 const colorMap = {
-  friend_request: "bg-plasma-primary/15 text-plasma-primary",
-  achievement: "bg-plasma-secondary/15 text-plasma-secondary",
-  rally: "bg-plasma-success/15 text-plasma-success",
-  system: "bg-plasma-warning/15 text-plasma-warning",
+  FRIEND_REQUEST: "bg-plasma-primary/15 text-plasma-primary",
+  ACHIEVEMENT: "bg-plasma-secondary/15 text-plasma-secondary",
+  RALLY: "bg-plasma-success/15 text-plasma-success",
+  SYSTEM: "bg-plasma-warning/15 text-plasma-warning",
 };
 
+function NotificationSkeleton() {
+  return (
+    <div className="flex items-start gap-4 p-4 rounded-xl bg-plasma-slate/40 animate-pulse">
+      <div className="w-10 h-10 rounded-xl bg-plasma-slate-hover shrink-0" />
+      <div className="flex-1 space-y-2">
+        <div className="w-3/4 h-3.5 rounded bg-plasma-slate-hover" />
+        <div className="w-20 h-2.5 rounded bg-plasma-slate-hover" />
+      </div>
+    </div>
+  );
+}
+
 export default function NotificationsPage() {
+  const { token } = useAuth();
   const [activeFilter, setActiveFilter] = useState("all");
-  const [notifs, setNotifs] = useState(allNotifications);
+  const [notifs, setNotifs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!token) return;
+    const fetchNotifs = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/notifications`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setNotifs(data.data.map(n => ({
+            id: n.notificationID,
+            type: n.notificationType,
+            title: n.message,
+            time: new Date(n.sentAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+            read: n.isRead,
+            avatar: n.senderAvatar || null,
+            senderName: n.senderName,
+          })));
+        }
+      } catch (err) {
+        console.error("Failed to fetch notifications", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchNotifs();
+  }, [token]);
 
   const filtered = activeFilter === "all" ? notifs : notifs.filter((n) => n.type === activeFilter);
   const unreadCount = notifs.filter((n) => !n.read).length;
 
-  const markAllRead = () => {
+  const markAllRead = async () => {
+    // Optimistic
     setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
+    // Mark each unread notification individually
+    const unread = notifs.filter(n => !n.read);
+    for (const n of unread) {
+      try {
+        await fetch(`${API_BASE}/api/notifications/${n.id}/read`, {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } catch (err) {
+        console.error("Failed to mark notification as read", err);
+      }
+    }
   };
 
-  const markRead = (id) => {
+  const markRead = async (id) => {
+    const notif = notifs.find(n => n.id === id);
+    if (!notif || notif.read) return;
+
     setNotifs((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    try {
+      await fetch(`${API_BASE}/api/notifications/${id}/read`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error("Failed to mark notification as read", err);
+    }
   };
 
   return (
@@ -94,7 +161,11 @@ export default function NotificationsPage() {
 
         {/* Notification List */}
         <div className="space-y-2">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <>
+              {[1,2,3,4,5].map(i => <NotificationSkeleton key={i} />)}
+            </>
+          ) : filtered.length === 0 ? (
             <div className="text-center py-20">
               <Bell className="w-16 h-16 mx-auto text-plasma-slate-hover mb-4" strokeWidth={1} />
               <p className="text-plasma-text-secondary text-sm">No notifications in this category</p>

@@ -26,12 +26,7 @@ export default function NotFound() {
         >
           Go Home
         </Link>
-        <Link
-          href="/pulse"
-          className="px-8 py-3 rounded-full border border-plasma-primary text-plasma-primary font-sans font-bold text-sm hover:bg-plasma-primary/10 transition-colors"
-        >
-          Open Pulse
-        </Link>
+
       </div>
     </div>
   );

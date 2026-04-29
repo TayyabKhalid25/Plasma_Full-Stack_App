@@ -43,9 +43,10 @@ router.get('/', authenticateToken, async (req, res) => {
                     GREATEST("senderID", "receiverID"),
                     "timestampUTC" DESC
             )
-            SELECT lm.*, u."plasmaUsername" as "contactUsername", u."avatarParams" as "contactAvatar"
+            SELECT lm.*, u."username" as "contactUsername", p."avatarURL" as "contactAvatar"
             FROM latest_messages lm
-            JOIN "users" u ON u."userID" = lm."contactID"
+            JOIN "users" u ON u."plasmaUserID" = lm."contactID"
+            LEFT JOIN "profiles" p ON u."plasmaUserID" = p."plasmaUserID"
             ORDER BY lm."timestampUTC" DESC
         `, [myId]);
         

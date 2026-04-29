@@ -173,7 +173,7 @@ export default function LoginPage() {
             <div className="gap-[24px] w-full flex flex-col max-w-[380px] items-start flex-[0_0_auto]">
               {/* Steam button */}
               <button
-                disabled={true}
+                disabled={false}
                 className="w-full flex items-center justify-center cursor-not-allowed transition-opacity"
               >
                 <Image

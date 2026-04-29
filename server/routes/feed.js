@@ -5,10 +5,11 @@ const { authenticateToken } = require('../middleware/authMiddleware');
 const router = express.Router();
 
 // GET /api/feed
-// Query Params: ?filter= (all, friends, my-posts, comp, chill)
+// Query Params: ?filter= (all, friends, my-posts, comp, chill) &userId= (optional, for profile timeline)
 router.get('/', authenticateToken, async (req, res) => {
     const userId = req.userId;
     const filter = req.query.filter || 'all';
+    const profileUserId = req.query.userId; // Optional: fetch posts for a specific user's profile
 
     try {
         let baseQuery = `
@@ -30,17 +31,25 @@ router.get('/', authenticateToken, async (req, res) => {
         `;
 
         const queryParams = [];
+        let paramIndex = 1;
 
-        if (filter === 'my-posts') {
-            baseQuery += ` AND p."userID" = $1`;
+        // If a specific user's timeline is requested, filter by their userId
+        if (profileUserId) {
+            baseQuery += ` AND p."userID" = $${paramIndex}`;
+            queryParams.push(profileUserId);
+            paramIndex++;
+        } else if (filter === 'my-posts') {
+            baseQuery += ` AND p."userID" = $${paramIndex}`;
             queryParams.push(userId);
+            paramIndex++;
         } else if (filter === 'comp') {
             baseQuery += ` AND u."intent" = 'COMPETITIVE'`;
         } else if (filter === 'chill') {
             baseQuery += ` AND u."intent" = 'CHILL'`;
         } else if (filter === 'friends') {
-            baseQuery += ` AND p."userID" IN (SELECT "followedID" FROM "follow_relationships" WHERE "followerID" = $1 AND "isMutual" = TRUE)`;
+            baseQuery += ` AND p."userID" IN (SELECT "followedID" FROM "follow_relationships" WHERE "followerID" = $${paramIndex} AND "isMutual" = TRUE)`;
             queryParams.push(userId);
+            paramIndex++;
         }
 
         baseQuery += ` ORDER BY p."timestampUTC" DESC LIMIT 50`;

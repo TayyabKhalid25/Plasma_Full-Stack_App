@@ -1,27 +1,52 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ModalWrapper } from "../ui/ModalWrapper";
 import { Loader2, Search, MessageSquare } from "lucide-react";
+import { useAuth, API_BASE } from "@/context/AuthContext";
 
 export function NewMessageModal({ isOpen, onClose, onStartChat }) {
+  const { token, user } = useAuth();
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
-  
-  // Dummy friend list
-  const friends = [
-    { id: "f1", name: "Vanguard", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Vanguard", online: true },
-    { id: "f2", name: "Nebula", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Nebula", online: false },
-    { id: "f3", name: "ApexHunter", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Apex", online: true },
-    { id: "f4", name: "Wraith", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Wraith", online: false },
-  ];
+  const [friends, setFriends] = useState([]);
+  const [loadingFriends, setLoadingFriends] = useState(true);
+
+  // Fetch mutual friends when modal opens
+  useEffect(() => {
+    if (!isOpen || !token || !user) return;
+    const fetchFriends = async () => {
+      setLoadingFriends(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/users/${user.plasmaUserID}/following`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          // Only show mutual follows (they can DM each other)
+          setFriends(data.data
+            .filter(f => f.isMutual)
+            .map(f => ({
+              id: f.plasmaUserID,
+              name: f.username,
+              avatar: f.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${f.username}`,
+              online: false,
+            }))
+          );
+        }
+      } catch (err) {
+        console.error("Failed to fetch friends", err);
+      } finally {
+        setLoadingFriends(false);
+      }
+    };
+    fetchFriends();
+  }, [isOpen, token, user]);
 
   const filtered = friends.filter(f => f.name.toLowerCase().includes(search.toLowerCase()));
 
   const handleSelect = async (friend) => {
     setLoading(true);
-    // Simulate API delay
-    await new Promise(r => setTimeout(r, 400));
-    setLoading(false);
     if (onStartChat) onStartChat(friend);
+    setLoading(false);
     onClose();
   };
 
@@ -40,7 +65,16 @@ export function NewMessageModal({ isOpen, onClose, onStartChat }) {
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2">
-          {filtered.length === 0 ? (
+          {loadingFriends ? (
+            <div className="space-y-3 animate-pulse">
+              {[1,2,3].map(i => (
+                <div key={i} className="flex items-center gap-4 p-3">
+                  <div className="w-10 h-10 rounded-full bg-plasma-slate-hover" />
+                  <div className="w-24 h-4 rounded bg-plasma-slate-hover" />
+                </div>
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="text-center py-10 text-plasma-text-secondary">
               <MessageSquare className="w-12 h-12 mx-auto mb-2 opacity-50" />
               <p>No friends found.</p>

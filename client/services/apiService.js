@@ -1,11 +1,21 @@
 import { validationService } from "./validationService";
 
-/**
- * Dummy API Service that integrates the validation service
- * Simulates network latency and robust client-side validation failures
- */
+const API_BASE = "http://localhost:5000";
 
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+function getToken() {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("plasma_token");
+  }
+  return null;
+}
+
+function authHeaders() {
+  const token = getToken();
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
 
 export const apiService = {
   createRally: async (payload) => {
@@ -15,8 +25,26 @@ export const apiService = {
       throw { status: 400, errors };
     }
 
-    await delay(800);
-    return { success: true, data: { id: `rally-${Date.now()}`, ...sanitized } };
+    // Build the server-expected body
+    const body = {
+      title: sanitized.title,
+      description: "",
+      scheduledStartUTC: `${sanitized.date}T${sanitized.time}:00Z`,
+      maxCapacity: sanitized.roles.reduce((sum, r) => sum + r.totalSlots, 0),
+      requiredIntent: sanitized.intent === "COMP" ? "COMPETITIVE" : sanitized.intent,
+    };
+
+    const res = await fetch(`${API_BASE}/api/rallies`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify(body),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw { status: res.status, errors: { main: data.message || "Failed to create rally" } };
+    }
+    return data;
   },
 
   changePassword: async (payload) => {
@@ -26,8 +54,17 @@ export const apiService = {
       throw { status: 400, errors };
     }
 
-    await delay(1000);
-    return { success: true };
+    const res = await fetch(`${API_BASE}/api/auth/change-password`, {
+      method: "PUT",
+      headers: authHeaders(),
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw { status: res.status, errors: { main: data.message || "Failed to change password" } };
+    }
+    return data;
   },
 
   confirmDangerAction: async (input, requiredString) => {
@@ -37,7 +74,6 @@ export const apiService = {
       throw { status: 400, errors };
     }
 
-    await delay(1200);
     return { success: true };
   },
 
@@ -48,8 +84,17 @@ export const apiService = {
       throw { status: 400, errors };
     }
 
-    await delay(500);
-    return { success: true, data: { id: Date.now(), text: sanitized.text, time: "Just now" } };
+    const res = await fetch(`${API_BASE}/api/messages/${friendId}`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ content: sanitized.text }),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw { status: res.status, errors: { main: data.message || "Failed to send message" } };
+    }
+    return data;
   },
 
   updateHallOfFame: async (achievementIds) => {
@@ -57,26 +102,56 @@ export const apiService = {
       throw { status: 400, errors: { main: "You can select up to 5 items." } };
     }
 
-    await delay(600);
-    return { success: true };
+    const res = await fetch(`${API_BASE}/api/prestige/me/hall-of-fame`, {
+      method: "PUT",
+      headers: authHeaders(),
+      body: JSON.stringify({ achievementIds }),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw { status: res.status, errors: { main: data.message || "Failed to update Hall of Fame" } };
+    }
+    return data;
   },
 
   searchIGDB: async (query) => {
     const sanitized = validationService.sanitizeText(query);
     if (!sanitized) return [];
 
-    await delay(600);
-    // Return dummy IGDB results
-    return [
-      { id: "igdb-1", title: `${sanitized} Original`, platform: "PC", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1r7f.jpg" },
-      { id: "igdb-2", title: `${sanitized} Remastered`, platform: "PS5", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co2lbd.jpg" },
-      { id: "igdb-3", title: `${sanitized} DLC`, platform: "Xbox", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co2vxe.jpg" }
-    ];
+    const res = await fetch(`${API_BASE}/api/library/igdb/search?q=${encodeURIComponent(sanitized)}`, {
+      headers: authHeaders(),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) return [];
+
+    return data.data.map(g => ({
+      id: g.id,
+      title: g.title,
+      platform: "Multi",
+      cover: g.coverArtURL,
+    }));
   },
 
   addGameToLibrary: async (gameData) => {
     if (!gameData.id) throw { status: 400, errors: { main: "Invalid game selected." } };
-    await delay(800);
-    return { success: true };
-  }
+
+    const res = await fetch(`${API_BASE}/api/library/manual`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({
+        gameId: gameData.id,
+        title: gameData.title,
+        coverArtURL: gameData.cover,
+        isCurrentlyPlaying: false,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw { status: res.status, errors: { main: data.message || "Failed to add game" } };
+    }
+    return data;
+  },
 };
