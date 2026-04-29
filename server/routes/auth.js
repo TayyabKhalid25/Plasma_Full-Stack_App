@@ -223,7 +223,7 @@ router.get('/steam/callback', passport.authenticate('steam', { failureRedirect: 
         } else {
             // New user, needs full registration
             const tempToken = jwt.sign({ steamID64, avatarURL, isRegistration: true }, process.env.JWT_SECRET, { expiresIn: '15m' });
-            res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/register?steamToken=${tempToken}`);
+            res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/sign-up?steamToken=${tempToken}`);
         }
     } catch (err) {
         console.error('Steam Auth Error:', err);

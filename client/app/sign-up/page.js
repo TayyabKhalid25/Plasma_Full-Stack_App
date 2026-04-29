@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
-import { AlertCircle } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -25,6 +25,16 @@ const SectionLeftSideSubsection = () => {
   const [legalModal, setLegalModal] = useState({ isOpen: false, type: null });
   const { register, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const steamToken = searchParams.get("steamToken");
+  const [steamLinked, setSteamLinked] = useState(false);
+
+  // If steamToken is present, we arrived here from a Steam OAuth callback (new user)
+  useEffect(() => {
+    if (steamToken) {
+      setSteamLinked(true);
+    }
+  }, [steamToken]);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -49,10 +59,15 @@ const SectionLeftSideSubsection = () => {
       return;
     }
 
+    if (!steamToken) {
+      setError("You must link your Steam account first. Click 'Sign in through Steam' on the login page.");
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
-      await register(formData.username, formData.email, formData.password, formData.dateOfBirth);
+      await register(formData.username, formData.email, formData.password, formData.dateOfBirth, steamToken);
       router.push("/pulse");
     } catch (err) {
       setError(err.message || "Failed to create account");
@@ -105,6 +120,20 @@ const SectionLeftSideSubsection = () => {
             <div className="flex items-center gap-2 p-3 bg-plasma-error/10 border border-plasma-error/30 rounded-xl text-plasma-error text-sm">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <p>{error}</p>
+            </div>
+          )}
+
+          {steamLinked && (
+            <div className="flex items-center gap-2 p-3 bg-plasma-success/10 border border-plasma-success/30 rounded-xl text-plasma-success text-sm">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <p>Steam account linked! Complete the form below to finish registration.</p>
+            </div>
+          )}
+
+          {!steamLinked && (
+            <div className="flex items-center gap-2 p-3 bg-plasma-warning/10 border border-plasma-warning/30 rounded-xl text-yellow-500 text-sm">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <p>Link your Steam account via the <Link href="/login" className="underline font-bold">login page</Link> to register.</p>
             </div>
           )}
 
@@ -240,9 +269,11 @@ const SectionLeftSideSubsection = () => {
 // Sign Up screen — /sign-up route
 export default function SignUpPage() {
   return (
-    <main className="flex min-h-screen w-full flex-col lg:flex-row bg-plasma-bg overflow-hidden selection:bg-plasma-primary selection:text-white">
-      <SectionLeftSideSubsection />
-      <AuthRightPanel />
-    </main>
+    <Suspense>
+      <main className="flex min-h-screen w-full flex-col lg:flex-row bg-plasma-bg overflow-hidden selection:bg-plasma-primary selection:text-white">
+        <SectionLeftSideSubsection />
+        <AuthRightPanel />
+      </main>
+    </Suspense>
   );
 }

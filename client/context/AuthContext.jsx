@@ -85,12 +85,22 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-  // Register new user
-  const register = async (username, email, password, dateOfBirth) => {
+  // Login with an existing JWT (used by Steam OAuth callback)
+  const loginWithToken = async (jwt) => {
+    localStorage.setItem("plasma_token", jwt);
+    setToken(jwt);
+    const success = await fetchUser(jwt);
+    if (!success) {
+      throw new Error("Token validation failed");
+    }
+  };
+
+  // Register new user (with optional steamToken from OAuth flow)
+  const register = async (username, email, password, dateOfBirth, steamToken) => {
     const res = await fetch(`${API_BASE}/api/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, email, password, dateOfBirth }),
+      body: JSON.stringify({ username, email, password, dateOfBirth, steamToken }),
     });
 
     const data = await res.json();
@@ -125,6 +135,7 @@ export function AuthProvider({ children }) {
         loading,
         isAuthenticated,
         login,
+        loginWithToken,
         register,
         logout,
         fetchUser,
