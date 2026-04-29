@@ -73,6 +73,20 @@ function LoginContent() {
     }
   };
 
+  const handleDevLogin = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      // Hardcoded credentials: Wahaj / password123
+      await login("Wahaj", "password123");
+      router.push("/pulse");
+    } catch (err) {
+      setError(err.message || "Dev Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSteamLogin = () => {
     window.location.href = `${API_BASE}/api/auth/steam`;
   };
@@ -199,6 +213,17 @@ function LoginContent() {
                   className="object-contain"
                 />
               </button>
+
+              <Button
+                onClick={handleDevLogin}
+                disabled={loading}
+                className="w-full h-[50px] bg-plasma-primary rounded-[32px] font-sans font-normal text-white text-[15px] text-center tracking-[0] leading-[22.5px] whitespace-nowrap hover:bg-plasma-slate-hover border-0 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                  <path d="M12.001 22.502c-5.748 0-10.424-4.63-10.498-10.366L4.747 9.87l1.094 2.87c.801-1.636 2.37-2.651 4.195-2.651 2.222 0 4.103 1.543 4.675 3.655.857-1.571 2.505-2.641 4.414-2.641 2.766 0 5.012 2.247 5.012 5.013 0 2.768-2.246 5.015-5.012 5.015-2.31 0-4.254-1.59-4.836-3.702-.634 1.258-1.921 2.112-3.411 2.112-1.97 0-3.626-1.523-3.86-3.456l-1.077 3.037c1.332 2.453 3.972 4.181 7.054 4.181 4.29 0 7.781-3.491 7.781-7.781 0-4.29-3.491-7.781-7.781-7.781-1.644 0-3.172.518-4.42 1.398l-3.565-9.336H.482l1.625 4.258C1.463 3.42 6.273.5 12.002.5c5.798 0 10.498 4.7 10.498 10.499s-4.7 10.499-10.499 10.499L12.001 22.502h0z" />
+                </svg>
+                Dev Mode Login
+              </Button>
               {/* Sign Up link */}
               <div className="flex flex-col w-full items-center flex-[0_0_auto]">
                 <Link
