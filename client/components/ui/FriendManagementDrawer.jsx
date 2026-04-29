@@ -1,9 +1,114 @@
 "use client";
 
-import { X, Search, UserPlus, Check, XCircle, MoreVertical } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Search, UserPlus, Check, XCircle, MoreVertical, Loader2, Users } from "lucide-react";
+import { useAuth, API_BASE } from "@/context/AuthContext";
 
 export function FriendManagementDrawer({ isOpen, onClose }) {
+  const { token } = useAuth();
+  const [friends, setFriends] = useState({ requests: [], online: [], offline: [] });
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [activeTab, setActiveTab] = useState("all");
+  const [actionLoading, setActionLoading] = useState(null);
+
+  const fetchFriends = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/friends`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) setFriends(data.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      setLoading(true);
+      fetchFriends();
+    }
+  }, [isOpen, token]);
+
+  // Search users
+  useEffect(() => {
+    if (!searchQuery || !token) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/users/search?q=${encodeURIComponent(searchQuery)}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) setSearchResults(data.data || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setSearching(false);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery, token]);
+
+  const sendRequest = async (userId) => {
+    setActionLoading(userId);
+    try {
+      await fetch(`${API_BASE}/api/friends/request/${userId}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchFriends();
+      setSearchQuery("");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const acceptRequest = async (userId) => {
+    setActionLoading(userId);
+    try {
+      await fetch(`${API_BASE}/api/friends/request/${userId}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchFriends();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const removeFriend = async (userId) => {
+    setActionLoading(userId);
+    try {
+      await fetch(`${API_BASE}/api/friends/${userId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchFriends();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   if (!isOpen) return null;
+
+  const allFriends = [...(friends.online || []), ...(friends.offline || [])];
+  const requestCount = friends.requests?.length || 0;
 
   return (
     <div className="fixed inset-0 z-[100] flex justify-end">
@@ -35,114 +140,193 @@ export function FriendManagementDrawer({ isOpen, onClose }) {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-plasma-text-secondary" />
             <input 
               type="text" 
-              placeholder="Search by Username or ID..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by Username..."
               className="w-full bg-plasma-slate border border-white/5 rounded-lg py-2 pl-9 pr-4 text-sm text-plasma-text-primary placeholder:text-plasma-text-secondary focus:border-plasma-primary outline-none transition-colors"
             />
           </div>
+
+          {/* Search Results Dropdown */}
+          {searchQuery && (
+            <div className="mt-2 bg-plasma-slate border border-white/10 rounded-xl overflow-hidden shadow-2xl max-h-48 overflow-y-auto">
+              {searching ? (
+                <div className="p-4 text-center text-plasma-text-secondary text-sm flex items-center justify-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Searching...
+                </div>
+              ) : searchResults.length > 0 ? (
+                searchResults.map(user => (
+                  <div key={user.plasmaUserID} className="flex items-center justify-between p-3 border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <img src={user.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt="" className="w-8 h-8 rounded-full" />
+                      <span className="text-sm font-bold text-white">{user.username}</span>
+                    </div>
+                    <button 
+                      onClick={() => sendRequest(user.plasmaUserID)}
+                      disabled={actionLoading === user.plasmaUserID}
+                      className="text-[10px] font-bold bg-plasma-primary/20 text-plasma-primary px-3 py-1.5 rounded-lg hover:bg-plasma-primary hover:text-white transition-all disabled:opacity-50"
+                    >
+                      {actionLoading === user.plasmaUserID ? <Loader2 className="w-3 h-3 animate-spin" /> : "Add"}
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="p-4 text-center text-plasma-text-secondary text-sm">No users found</div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Content Tabs area - Just visual for now */}
+        {/* Tabs */}
         <div className="flex gap-4 px-6 border-b border-white/5 mt-4">
-          <button className="pb-2 border-b-2 border-plasma-primary text-sm font-semibold text-plasma-text-primary">All Friends</button>
-          <button className="pb-2 border-b-2 border-transparent text-sm font-semibold text-plasma-text-secondary hover:text-white transition-colors flex items-center gap-1">
-            Requests <span className="bg-plasma-error text-white text-[9px] px-1.5 py-0.5 rounded-full">2</span>
+          <button 
+            onClick={() => setActiveTab("all")}
+            className={`pb-2 border-b-2 text-sm font-semibold transition-colors ${activeTab === "all" ? "border-plasma-primary text-plasma-text-primary" : "border-transparent text-plasma-text-secondary hover:text-white"}`}
+          >
+            All Friends
+          </button>
+          <button 
+            onClick={() => setActiveTab("requests")}
+            className={`pb-2 border-b-2 text-sm font-semibold transition-colors flex items-center gap-1 ${activeTab === "requests" ? "border-plasma-primary text-plasma-text-primary" : "border-transparent text-plasma-text-secondary hover:text-white"}`}
+          >
+            Requests {requestCount > 0 && <span className="bg-plasma-error text-white text-[9px] px-1.5 py-0.5 rounded-full">{requestCount}</span>}
           </button>
         </div>
 
         {/* Content List */}
         <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
-          
-          {/* Section: Pending Requests */}
-          <div>
-            <h3 className="text-xs font-bold text-plasma-text-secondary tracking-widest uppercase mb-4">Pending Requests</h3>
+          {loading ? (
             <div className="space-y-3">
-              <div className="flex items-center justify-between bg-plasma-slate/50 p-3 rounded-lg border border-white/5">
-                <div className="flex items-center gap-3">
-                  <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Req1" alt="Req1" className="w-10 h-10 rounded-full border border-white/10" />
-                  <div>
-                    <p className="text-sm font-bold text-white">Ghost_Sniper</p>
-                    <p className="text-[11px] text-plasma-text-secondary">Level 12 • Requested 2h ago</p>
+              {[1,2,3].map(i => (
+                <div key={i} className="flex items-center gap-3 p-3 animate-pulse">
+                  <div className="w-10 h-10 rounded-full bg-plasma-slate-hover" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="w-24 h-3 rounded bg-plasma-slate-hover" />
+                    <div className="w-16 h-2 rounded bg-plasma-slate-hover" />
                   </div>
-                </div>
-                <div className="flex gap-2">
-                  <button className="p-1.5 bg-plasma-success/20 text-plasma-success rounded-lg hover:bg-plasma-success hover:text-white transition-colors cursor-pointer">
-                    <Check className="w-4 h-4" />
-                  </button>
-                  <button className="p-1.5 bg-plasma-error/20 text-plasma-error rounded-lg hover:bg-plasma-error hover:text-white transition-colors cursor-pointer">
-                    <XCircle className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between bg-plasma-slate/50 p-3 rounded-lg border border-white/5">
-                <div className="flex items-center gap-3">
-                  <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Req2" alt="Req2" className="w-10 h-10 rounded-full border border-white/10" />
-                  <div>
-                    <p className="text-sm font-bold text-white">NoobSlayer99</p>
-                    <p className="text-[11px] text-plasma-text-secondary">Level 45 • Requested 1d ago</p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button className="p-1.5 bg-plasma-success/20 text-plasma-success rounded-lg hover:bg-plasma-success hover:text-white transition-colors cursor-pointer">
-                    <Check className="w-4 h-4" />
-                  </button>
-                  <button className="p-1.5 bg-plasma-error/20 text-plasma-error rounded-lg hover:bg-plasma-error hover:text-white transition-colors cursor-pointer">
-                    <XCircle className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Section: Online Friends */}
-          <div>
-            <h3 className="text-xs font-bold text-plasma-text-secondary tracking-widest uppercase mb-4">Online (3)</h3>
-            <div className="space-y-1">
-              {['Ahmed', 'Sarah', 'Ali'].map((friend, i) => (
-                <div key={i} className="flex items-center justify-between p-2 hover:bg-plasma-slate rounded-lg group transition-colors cursor-pointer">
-                  <div className="flex items-center gap-3 relative">
-                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${friend}`} alt={friend} className="w-8 h-8 rounded-full bg-plasma-slate" />
-                    <div className="absolute right-0 bottom-0 w-2.5 h-2.5 bg-plasma-success rounded-full border-2 border-plasma-bg" />
-                    <div>
-                      <p className="text-sm font-medium text-white">{friend}</p>
-                      <p className="text-[10px] text-plasma-primary">Playing Valorant</p>
-                    </div>
-                  </div>
-                  <button className="text-plasma-text-secondary opacity-0 group-hover:opacity-100 hover:text-white transition-all cursor-pointer">
-                    <MoreVertical className="w-4 h-4" />
-                  </button>
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Section: Offline Friends */}
-          <div>
-            <h3 className="text-xs font-bold text-plasma-text-secondary tracking-widest uppercase mb-4">Offline (2)</h3>
-            <div className="space-y-1 opacity-60">
-              {['Omar', 'Zain'].map((friend, i) => (
-                <div key={i} className="flex items-center justify-between p-2 hover:bg-plasma-slate rounded-lg group transition-colors cursor-pointer">
-                  <div className="flex items-center gap-3 relative">
-                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${friend}`} alt={friend} className="w-8 h-8 rounded-full bg-plasma-slate grayscale" />
-                    <div className="absolute right-0 bottom-0 w-2.5 h-2.5 bg-plasma-text-secondary rounded-full border-2 border-plasma-bg" />
-                    <div>
-                      <p className="text-sm font-medium text-white">{friend}</p>
-                      <p className="text-[10px] text-plasma-text-secondary">Last seen 4h ago</p>
+          ) : (
+            <>
+              {/* Requests Tab */}
+              {activeTab === "requests" && (
+                <div>
+                  <h3 className="text-xs font-bold text-plasma-text-secondary tracking-widest uppercase mb-4">Pending Requests</h3>
+                  {requestCount === 0 ? (
+                    <div className="text-center py-8">
+                      <Users className="w-10 h-10 mx-auto text-plasma-text-secondary/30 mb-2" />
+                      <p className="text-sm text-plasma-text-secondary">No pending requests</p>
                     </div>
-                  </div>
-                  <button className="text-plasma-text-secondary opacity-0 group-hover:opacity-100 hover:text-white transition-all cursor-pointer">
-                    <MoreVertical className="w-4 h-4" />
-                  </button>
+                  ) : (
+                    <div className="space-y-3">
+                      {friends.requests.map((req) => (
+                        <div key={req.id} className="flex items-center justify-between bg-plasma-slate/50 p-3 rounded-lg border border-white/5">
+                          <div className="flex items-center gap-3">
+                            <img src={req.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${req.name}`} alt="" className="w-10 h-10 rounded-full border border-white/10" />
+                            <div>
+                              <p className="text-sm font-bold text-white">{req.name}</p>
+                              <p className="text-[11px] text-plasma-text-secondary">{req.intent || "Unknown"}</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={() => acceptRequest(req.id)}
+                              disabled={actionLoading === req.id}
+                              className="p-1.5 bg-plasma-success/20 text-plasma-success rounded-lg hover:bg-plasma-success hover:text-white transition-colors cursor-pointer disabled:opacity-50"
+                            >
+                              {actionLoading === req.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                            </button>
+                            <button 
+                              onClick={() => removeFriend(req.id)}
+                              className="p-1.5 bg-plasma-error/20 text-plasma-error rounded-lg hover:bg-plasma-error hover:text-white transition-colors cursor-pointer"
+                            >
+                              <XCircle className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          </div>
+              )}
 
+              {/* All Friends Tab */}
+              {activeTab === "all" && (
+                <>
+                  {allFriends.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Users className="w-12 h-12 mx-auto text-plasma-text-secondary/30 mb-3" />
+                      <p className="text-sm text-plasma-text-secondary mb-1">No friends yet</p>
+                      <p className="text-xs text-plasma-text-secondary">Search for users above to add them to your squad.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {friends.online?.length > 0 && (
+                        <div>
+                          <h3 className="text-xs font-bold text-plasma-text-secondary tracking-widest uppercase mb-4">Online ({friends.online.length})</h3>
+                          <div className="space-y-1">
+                            {friends.online.map((friend) => (
+                              <div key={friend.id} className="flex items-center justify-between p-2 hover:bg-plasma-slate rounded-lg group transition-colors cursor-pointer">
+                                <div className="flex items-center gap-3 relative">
+                                  <img src={friend.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.name}`} alt="" className="w-8 h-8 rounded-full bg-plasma-slate" />
+                                  <div className="absolute left-5 bottom-0 w-2.5 h-2.5 bg-plasma-success rounded-full border-2 border-plasma-bg" />
+                                  <div>
+                                    <p className="text-sm font-medium text-white">{friend.name}</p>
+                                    <p className="text-[10px] text-plasma-primary">{friend.intent === "COMPETITIVE" ? "Competitive" : "Chill"}</p>
+                                  </div>
+                                </div>
+                                <button 
+                                  onClick={() => removeFriend(friend.id)}
+                                  className="text-plasma-text-secondary opacity-0 group-hover:opacity-100 hover:text-plasma-error transition-all cursor-pointer"
+                                >
+                                  <MoreVertical className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {friends.offline?.length > 0 && (
+                        <div>
+                          <h3 className="text-xs font-bold text-plasma-text-secondary tracking-widest uppercase mb-4">Offline ({friends.offline.length})</h3>
+                          <div className="space-y-1 opacity-60">
+                            {friends.offline.map((friend) => (
+                              <div key={friend.id} className="flex items-center justify-between p-2 hover:bg-plasma-slate rounded-lg group transition-colors cursor-pointer">
+                                <div className="flex items-center gap-3 relative">
+                                  <img src={friend.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.name}`} alt="" className="w-8 h-8 rounded-full bg-plasma-slate grayscale" />
+                                  <div className="absolute left-5 bottom-0 w-2.5 h-2.5 bg-plasma-text-secondary rounded-full border-2 border-plasma-bg" />
+                                  <div>
+                                    <p className="text-sm font-medium text-white">{friend.name}</p>
+                                    <p className="text-[10px] text-plasma-text-secondary">Offline</p>
+                                  </div>
+                                </div>
+                                <button 
+                                  onClick={() => removeFriend(friend.id)}
+                                  className="text-plasma-text-secondary opacity-0 group-hover:opacity-100 hover:text-plasma-error transition-all cursor-pointer"
+                                >
+                                  <MoreVertical className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+            </>
+          )}
         </div>
 
         {/* Footer Area */}
         <div className="p-6 border-t border-white/5 bg-plasma-slate">
-          <button className="w-full py-3 bg-primary-gradient text-white rounded-lg font-bold text-sm uppercase tracking-widest hover:shadow-[0_0_15px_rgba(86,56,149,0.4)] transition-all flex items-center justify-center gap-2 cursor-pointer">
+          <button 
+            onClick={() => { setActiveTab("all"); setSearchQuery(""); }}
+            className="w-full py-3 bg-primary-gradient text-white rounded-lg font-bold text-sm uppercase tracking-widest hover:shadow-[0_0_15px_rgba(86,56,149,0.4)] transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
             <UserPlus className="w-4 h-4" /> Add Friend
           </button>
         </div>

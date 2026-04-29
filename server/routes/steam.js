@@ -68,4 +68,84 @@ router.get('/achievements/:appId', authenticateToken, async (req, res) => {
     }
 });
 
+// POST /api/steam/sync/achievements
+// Syncs Steam achievements for all games in user's library into DB.
+// Designed to be called by a cron job or manually.
+router.post('/sync/achievements', authenticateToken, async (req, res) => {
+    try {
+        // 1. Get user's steamID64
+        const user = await pool.query('SELECT "steamID64" FROM "users" WHERE "plasmaUserID" = $1', [req.userId]);
+        if (user.rows.length === 0 || !user.rows[0].steamID64) {
+            return res.status(400).json({ success: false, message: 'Steam account not linked' });
+        }
+        const steamId = user.rows[0].steamID64;
+
+        // 2. Get all STEAM games in this user's library
+        const libraryResult = await pool.query(`
+            SELECT g."appID" FROM "library_entries" le
+            JOIN "games" g ON le."appID" = g."appID"
+            WHERE le."userID" = $1 AND g."platform" = 'STEAM'
+        `, [req.userId]);
+
+        let totalSynced = 0;
+        let gamesProcessed = 0;
+
+        for (const row of libraryResult.rows) {
+            const appId = row.appID;
+            try {
+                const achievementData = await getSteamPlayerAchievements(steamId, appId);
+                if (!achievementData || !achievementData.achievements) continue;
+
+                for (const ach of achievementData.achievements) {
+                    if (ach.achieved !== 1) continue; // Skip unachieved
+
+                    const achievementID = `steam_${appId}_${ach.apiname}`;
+
+                    // Upsert into achievements table
+                    await pool.query(`
+                        INSERT INTO "achievements" ("achievementID", "appID", "title", "rarityWeight", "plasmaXP")
+                        VALUES ($1, $2, $3, 1.0, 25)
+                        ON CONFLICT ("achievementID") DO NOTHING
+                    `, [achievementID, appId, ach.name || ach.apiname]);
+
+                    // Upsert into user_achievements
+                    await pool.query(`
+                        INSERT INTO "user_achievements" ("userID", "achievementID", "unlockedAt")
+                        VALUES ($1, $2, to_timestamp($3))
+                        ON CONFLICT ("userID", "achievementID") DO NOTHING
+                    `, [req.userId, achievementID, ach.unlocktime || Math.floor(Date.now() / 1000)]);
+
+                    totalSynced++;
+                }
+                gamesProcessed++;
+            } catch (gameErr) {
+                // Some games don't support achievements — skip silently
+                continue;
+            }
+        }
+
+        // Update profile XP
+        const xpResult = await pool.query(`
+            SELECT COALESCE(SUM(a."plasmaXP"), 0) as "totalXP"
+            FROM "user_achievements" ua
+            JOIN "achievements" a ON ua."achievementID" = a."achievementID"
+            WHERE ua."userID" = $1
+        `, [req.userId]);
+        
+        await pool.query(`
+            UPDATE "profiles" SET "totalPlasmaXP" = $1 WHERE "plasmaUserID" = $2
+        `, [parseInt(xpResult.rows[0].totalXP) || 0, req.userId]);
+
+        res.json({
+            success: true,
+            message: `Synced ${totalSynced} achievements across ${gamesProcessed} games`,
+            syncedAchievements: totalSynced,
+            gamesProcessed
+        });
+    } catch (error) {
+        console.error('Achievement Sync Error:', error);
+        res.status(500).json({ success: false, message: 'Failed to sync achievements' });
+    }
+});
+
 module.exports = router;

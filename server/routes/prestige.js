@@ -14,7 +14,7 @@ async function fetchPrestige(userId) {
     `, [userId]);
     
     const hallOfFame = await pool.query(`
-        SELECT a."achievementID", a."title", a."description", a."plasmaXP", a."rarityWeight"
+        SELECT a."achievementID", a."title", a."plasmaXP", a."rarityWeight"
         FROM "user_achievements" ua
         JOIN "achievements" a ON ua."achievementID" = a."achievementID"
         WHERE ua."userID" = $1 AND ua."isPinned" = TRUE
@@ -87,13 +87,13 @@ router.post('/milestones', authenticateToken, async (req, res) => {
     // Stub for manual milestone creation
     try {
         const result = await pool.query(`
-            INSERT INTO "achievements" ("title", "description", "plasmaXP")
-            VALUES ($1, $2, 50)
+            INSERT INTO "achievements" ("achievementID", "appID", "title", "rarityWeight", "plasmaXP")
+            VALUES ($1, 'custom_milestone', $2, 1.0, 50)
             RETURNING "achievementID"
-        `, [title, description]);
+        `, [`milestone_${Date.now()}`, title]);
         
         await pool.query(`
-            INSERT INTO "user_achievements" ("userID", "achievementID", "unlockedAtUTC")
+            INSERT INTO "user_achievements" ("userID", "achievementID", "unlockedAt")
             VALUES ($1, $2, CURRENT_TIMESTAMP)
         `, [req.userId, result.rows[0].achievementID]);
         

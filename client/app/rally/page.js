@@ -80,23 +80,27 @@ export default function Rally() {
       });
       const data = await res.json();
       if (data.success) {
-        setEvents(data.data.map(e => ({
-          id: e.eventID,
-          title: e.title,
-          description: e.description,
-          date: new Date(e.scheduledStartUTC),
-          time: new Date(e.scheduledStartUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          dateLabel: new Date(e.scheduledStartUTC).toLocaleDateString([], { month: 'short', day: 'numeric' }),
-          intent: e.requiredIntent,
-          intentColor: getIntentColor(e.requiredIntent),
-          slotsFilled: parseInt(e.currentAttendees) || 0,
-          slotsTotal: e.maxCapacity,
-          organizerName: e.organizerName,
-          rsvpd: e.hasRsvpd === true || e.hasRsvpd === 't',
-          image: "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop",
-          roles: [{ name: "Any Role", filled: parseInt(e.currentAttendees) || 0, total: e.maxCapacity, percent: Math.round(((parseInt(e.currentAttendees) || 0) / e.maxCapacity) * 100) }],
-          players: [],
-        })));
+        setEvents(data.data.map(e => {
+          const filled = parseInt(e.currentAttendees) || 0;
+          const total = e.maxCapacity;
+          return {
+            id: e.eventID,
+            title: e.title,
+            description: e.description,
+            date: new Date(e.scheduledStartUTC),
+            time: new Date(e.scheduledStartUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            dateLabel: new Date(e.scheduledStartUTC).toLocaleDateString([], { month: 'short', day: 'numeric' }),
+            intent: e.requiredIntent,
+            intentColor: getIntentColor(e.requiredIntent),
+            slotsFilled: filled,
+            slotsTotal: total,
+            organizerName: e.organizerName,
+            rsvpd: e.hasRsvpd === true || e.hasRsvpd === 't',
+            image: "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop",
+            roles: [{ name: "Open Slots", filled, total, percent: total > 0 ? Math.round((filled / total) * 100) : 0 }],
+            players: [],
+          };
+        }));
       }
     } catch (err) {
       console.error("Failed to fetch rallies", err);
@@ -475,13 +479,13 @@ export default function Rally() {
       <CreateRallyModal 
         isOpen={createRallyModal.isOpen} 
         onClose={createRallyModal.close}
-        onRallyCreated={() => fetchRallies()}
+        onRallyCreated={() => { fetchRallies(); }}
       />
       <RsvpRoleModal 
         isOpen={rsvpModal.isOpen} 
         onClose={rsvpModal.close}
         event={rsvpModal.modalData}
-        onRsvp={(eventId) => toggleRSVP(eventId)}
+        onRsvp={() => { fetchRallies(); }}
       />
     </DashboardLayout>
   );

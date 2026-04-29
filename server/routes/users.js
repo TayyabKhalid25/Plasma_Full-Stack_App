@@ -4,6 +4,30 @@ const { authenticateToken } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
+// GET /api/users/search?q=
+// Search for users by username
+router.get('/search', authenticateToken, async (req, res) => {
+    const { q } = req.query;
+    if (!q || q.trim().length < 1) {
+        return res.json({ success: true, data: [] });
+    }
+
+    try {
+        const result = await pool.query(`
+            SELECT u."plasmaUserID", u."username", p."avatarURL"
+            FROM "users" u
+            LEFT JOIN "profiles" p ON u."plasmaUserID" = p."plasmaUserID"
+            WHERE u."username" ILIKE $1 AND u."plasmaUserID" != $2
+            LIMIT 10
+        `, [`%${q.trim()}%`, req.userId]);
+
+        res.json({ success: true, data: result.rows });
+    } catch (error) {
+        console.error('Error searching users:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
 // GET /api/users/:userId
 // Returns another user's public profile
 router.get('/:userId', authenticateToken, async (req, res) => {

@@ -1,9 +1,10 @@
 "use client";
 
-import { Activity, Calendar, Library, Trophy } from "lucide-react";
+import { Activity, Calendar, Library, Trophy, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { squadMembers } from "@/data/dummy";
+import { useState, useEffect } from "react";
+import { useAuth, API_BASE } from "@/context/AuthContext";
 
 const navItems = [
   { id: "/pulse", label: "PULSE", icon: Activity },
@@ -14,12 +15,39 @@ const navItems = [
 
 export const Sidebar = ({ onOpenDrawer }) => {
   const pathname = usePathname();
+  const { token } = useAuth();
+  const [friends, setFriends] = useState({ online: [], offline: [] });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!token) return;
+    const fetchFriends = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/friends`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setFriends(data.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch friends:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFriends();
+  }, [token]);
+
+  const onlineSquad = friends.online || [];
+  const offlineSquad = friends.offline || [];
+  const allSquad = [...onlineSquad, ...offlineSquad];
+  const isEmpty = allSquad.length === 0 && !loading;
 
   return (
     <div className="flex flex-col w-64 h-[calc(100vh-64px)] items-start px-0 py-6 fixed top-16 left-0 bg-plasma-slate border-r border-white/5 shadow-[20px_0px_40px_rgba(13,11,20,0.5)] overflow-y-auto z-40 custom-scrollbar">
       <div className="flex flex-col items-start gap-1 relative flex-1 self-stretch w-full grow">
         {navItems.map((item) => {
-          // Check if current path starts with the nav item ID to keep it active for sub-routes
           const isActive = pathname === item.id || pathname?.startsWith(`${item.id}/`);
           const IconComponent = item.icon;
           return (
@@ -45,8 +73,6 @@ export const Sidebar = ({ onOpenDrawer }) => {
         })}
       </div>
 
-
-
       <div className="h-[49px] p-6 self-stretch w-full flex flex-col items-start relative">
         <div className="relative self-stretch w-full h-px bg-plasma-slate-hover" />
       </div>
@@ -56,32 +82,76 @@ export const Sidebar = ({ onOpenDrawer }) => {
             SQUAD ONLINE
           </div>
           <div className="flex flex-col items-start gap-4 relative self-stretch w-full pb-6">
-            {squadMembers.map((member) => (
-              <div
+            {/* Loading skeleton */}
+            {loading && (
+              <>
+                {[1,2,3].map(i => (
+                  <div key={i} className="flex items-center gap-3 self-stretch w-full animate-pulse">
+                    <div className="w-8 h-8 rounded-full bg-plasma-slate-hover" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="w-20 h-3 rounded bg-plasma-slate-hover" />
+                      <div className="w-14 h-2 rounded bg-plasma-slate-hover" />
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+
+            {/* Empty state */}
+            {isEmpty && (
+              <div className="flex flex-col items-center w-full py-4 text-center">
+                <Users className="w-8 h-8 text-plasma-text-secondary/30 mb-2" />
+                <p className="text-plasma-text-secondary text-[11px]">No squad members yet</p>
+              </div>
+            )}
+
+            {/* Online friends */}
+            {onlineSquad.map((member) => (
+              <Link
+                href={`/profile/${member.id}`}
                 key={member.id}
-                className={`flex items-center gap-3 relative self-stretch w-full cursor-pointer hover:opacity-80 transition-opacity ${member.offline ? "opacity-50 hover:opacity-40" : ""}`}
+                className="flex items-center gap-3 relative self-stretch w-full cursor-pointer hover:opacity-80 transition-opacity"
               >
                 <div className="relative flex-[0_0_auto]">
                   <div
-                    className={`relative w-8 h-8 rounded-full bg-cover bg-center ${member.borderColor ? "border-2 border-solid" : ""}`}
-                    style={{
-                      backgroundImage: `url(${member.avatar})`,
-                      borderColor: member.borderColor || undefined,
-                    }}
+                    className="relative w-8 h-8 rounded-full bg-cover bg-center border-2 border-plasma-primary"
+                    style={{ backgroundImage: `url(${member.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.name}`})` }}
                   />
-                  {member.online && (
-                    <div className="absolute right-0 bottom-0 w-2.5 h-2.5 bg-plasma-success rounded-full border-2 border-solid border-plasma-slate" />
-                  )}
+                  <div className="absolute right-0 bottom-0 w-2.5 h-2.5 bg-plasma-success rounded-full border-2 border-solid border-plasma-slate" />
                 </div>
                 <div className="flex flex-col items-start overflow-hidden">
-                  <div className={`font-sans font-medium text-sm truncate ${member.offline ? "text-plasma-text-secondary" : "text-plasma-text-primary"}`}>
+                  <div className="font-sans font-medium text-sm truncate text-plasma-text-primary">
                     {member.name}
                   </div>
                   <div className="font-sans text-plasma-text-secondary text-[11px] truncate w-full">
-                    {member.status}
+                    {member.intent === "COMPETITIVE" ? "🔥 Competitive" : member.intent === "CHILL" ? "😎 Chill" : "Online"}
                   </div>
                 </div>
-              </div>
+              </Link>
+            ))}
+
+            {/* Offline friends */}
+            {offlineSquad.map((member) => (
+              <Link
+                href={`/profile/${member.id}`}
+                key={member.id}
+                className="flex items-center gap-3 relative self-stretch w-full cursor-pointer hover:opacity-80 transition-opacity opacity-50 hover:opacity-40"
+              >
+                <div className="relative flex-[0_0_auto]">
+                  <div
+                    className="relative w-8 h-8 rounded-full bg-cover bg-center"
+                    style={{ backgroundImage: `url(${member.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.name}`})` }}
+                  />
+                </div>
+                <div className="flex flex-col items-start overflow-hidden">
+                  <div className="font-sans font-medium text-sm truncate text-plasma-text-secondary">
+                    {member.name}
+                  </div>
+                  <div className="font-sans text-plasma-text-secondary text-[11px] truncate w-full">
+                    Offline
+                  </div>
+                </div>
+              </Link>
             ))}
           </div>
           
