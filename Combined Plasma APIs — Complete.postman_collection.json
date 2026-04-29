@@ -976,6 +976,40 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "Search Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/users/search?q=gamer",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "users",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "gamer",
+                  "description": "Username to search for"
+                }
+              ]
+            },
+            "description": "Searches for users by username (case-insensitive) for the friend request system. Excludes the requesting user."
+          },
+          "response": []
         }
       ]
     },
@@ -1101,6 +1135,34 @@
                 }
               ]
             }
+          },
+          "response": []
+        },
+        {
+          "name": "Sync Steam Achievements",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/steam/sync/achievements",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "steam",
+                "sync",
+                "achievements"
+              ]
+            },
+            "description": "Syncs Steam achievements for all Steam games in the user's library into the Plasma database. Updates user_achievements table and total profile XP."
           },
           "response": []
         }
