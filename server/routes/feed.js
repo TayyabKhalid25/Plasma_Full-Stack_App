@@ -9,7 +9,7 @@ const router = express.Router();
 router.get('/', authenticateToken, async (req, res) => {
     const userId = req.userId;
     const filter = req.query.filter || 'all';
-    const profileUserId = req.query.userId; // Optional: fetch posts for a specific user's profile
+    const profileUserId = req.query.userId !== 'undefined' ? req.query.userId : null; // Optional: fetch posts for a specific user's profile
 
     try {
         let baseQuery = `

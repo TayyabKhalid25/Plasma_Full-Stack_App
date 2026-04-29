@@ -29,7 +29,7 @@ const iconMap = { Gamepad2, Diamond, Cloud, Zap, Shield, Sparkles, Dog, Star, Ca
 // --- Skeleton Card ---
 function GameCardSkeleton() {
   return (
-    <div className="relative aspect-[3/4] rounded-xl overflow-hidden animate-pulse bg-plasma-slate-hover">
+    <div className="relative aspect-[2/3] rounded-xl overflow-hidden animate-pulse bg-plasma-slate-hover">
       <div className="absolute bottom-0 left-0 right-0 p-3 bg-plasma-slate/80 backdrop-blur-[8px] flex items-center justify-between">
         <div className="w-3/4 h-3 bg-plasma-slate rounded" />
         <div className="w-4 h-4 bg-plasma-slate rounded" />
@@ -81,10 +81,10 @@ export default function Library() {
     }
   };
 
-  // Prefer Steam's high-res header image over the tiny icon
+  // Prefer Steam's high-res vertical capsule over the tiny icon
   function getHighResImage(appID, fallbackURL, platform) {
     if (platform === "STEAM" && appID && !appID.startsWith("custom_") && !appID.startsWith("igdb_")) {
-      return `https://steamcdn-a.akamaihd.net/steam/apps/${appID}/header.jpg`;
+      return `https://steamcdn-a.akamaihd.net/steam/apps/${appID}/library_600x900.jpg`;
     }
     return fallbackURL || null;
   }
@@ -324,7 +324,7 @@ export default function Library() {
                       <Link 
                         href={`/library/${game.id}`} 
                         key={game.id}
-                        className={`relative aspect-[3/4] rounded-xl overflow-hidden group cursor-pointer transition-all duration-300 ${
+                        className={`relative aspect-[2/3] rounded-xl overflow-hidden group cursor-pointer transition-all duration-300 ${
                           game.nowPlaying 
                             ? "border-2 border-plasma-secondary shadow-[0_0_20px_rgba(255,42,122,0.3)]" 
                             : "hover:scale-[1.03] hover:shadow-[0_0_30px_rgba(86,56,149,0.25)] hover:z-10"
