@@ -69,12 +69,14 @@ export default function SettingsPage() {
   const avatarModal = useModal();
   const dangerModal = useModal();
 
+  const defaultAvatar = (name) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${name || 'User'}`;
+
   // Populate account from auth context user
   useEffect(() => {
     if (!user) return;
     setUsername(user.name || user.username || "");
     setEmail(user.email || "");
-    setAvatar(user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name || user.username || 'User'}`);
+    setAvatar(user.avatar || defaultAvatar(user.name || user.username));
     setSteamID64(user.steamID64 || "");
   }, [user]);
 
@@ -217,7 +219,7 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-6 mb-8">
                   <div className="relative">
                     <img
-                      src={avatar}
+                      src={avatar || defaultAvatar(username)}
                       alt="Avatar"
                       className="w-20 h-20 rounded-full border-2 border-plasma-primary bg-plasma-slate"
                     />

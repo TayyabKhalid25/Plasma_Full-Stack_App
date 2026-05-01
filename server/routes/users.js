@@ -46,6 +46,7 @@ router.get('/:userId', authenticateToken, async (req, res) => {
                 u."plasmaUserID", 
                 u."username", 
                 u."intent", 
+                u."steamID64",
                 p."avatarURL", 
                 p."bio", 
                 p."totalPlasmaXP"
@@ -125,15 +126,20 @@ router.put('/me/intent', authenticateToken, async (req, res) => {
 });
 
 // PUT /api/users/me/profile
-// Sync with Postman: Update username, bio, and avatarURL
+// Sync with Postman: Update username, bio, avatarURL, and steamID64
 router.put('/me/profile', authenticateToken, async (req, res) => {
-    const { username, bio, avatarURL } = req.body;
+    const { username, bio, avatarURL, steamID64 } = req.body;
     const userId = req.userId;
 
     try {
-        // 1. Update username if provided
-        if (username) {
-            await pool.query(`UPDATE "users" SET "username" = $1 WHERE "plasmaUserID" = $2`, [username, userId]);
+        // 1. Update users table (username, steamID64)
+        if (username || steamID64) {
+            await pool.query(`
+                UPDATE "users" 
+                SET "username" = COALESCE($1, "username"),
+                    "steamID64" = COALESCE($2, "steamID64")
+                WHERE "plasmaUserID" = $3
+            `, [username, steamID64, userId]);
         }
 
         // 2. Update bio and avatarURL in profiles table
