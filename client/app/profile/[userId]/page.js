@@ -279,18 +279,13 @@ export default function UserProfile({ params }) {
             <h3 className="text-plasma-text-secondary font-sans font-bold text-[10px] tracking-[0.2em] uppercase mb-6">Hall of Fame</h3>
             <div className="flex gap-6 overflow-x-auto pb-4 hide-scrollbar">
               {hofData.length > 0 ? hofData.map((item) => (
-                <div key={item.id} className="w-[72px] h-[72px] shrink-0 group relative">
-                  <div className="w-full h-full rounded-2xl bg-plasma-slate/60 backdrop-blur-md border border-white/5 flex items-center justify-center group-hover:border-plasma-secondary/40 transition-all cursor-help overflow-hidden">
+                <div key={item.id} className="flex flex-col items-center gap-2 shrink-0">
+                  <div className="w-[72px] h-[72px] rounded-2xl bg-plasma-slate/60 backdrop-blur-md border border-white/5 flex items-center justify-center hover:border-plasma-secondary/40 transition-all overflow-hidden">
                     <Trophy className={`w-8 h-8 ${item.color} opacity-80`} />
                   </div>
-                  {/* Premium Tooltip (Bottom Position to avoid clipping) */}
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 px-3 py-2 bg-plasma-slate/90 backdrop-blur-xl border border-white/10 rounded-lg shadow-[0_10px_30px_rgba(0,0,0,0.5)] opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-50 whitespace-nowrap scale-95 group-hover:scale-100 origin-top">
-                    <div className="flex flex-col items-center gap-0.5">
-                      <p className="text-[11px] font-bold text-plasma-text-primary">{item.title}</p>
-                      <p className={`text-[10px] font-mono ${item.color}`}>{item.xp}</p>
-                    </div>
-                    {/* Tooltip Arrow (Pointing Up) */}
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-2 h-2 bg-plasma-slate/90 border-l border-t border-white/10 rotate-45 -mb-1"></div>
+                  <div className="text-center w-[72px]">
+                    <p className="text-[10px] font-bold text-plasma-text-primary truncate">{item.title}</p>
+                    <p className={`text-[10px] font-mono ${item.color}`}>{item.xp}</p>
                   </div>
                 </div>
               )) : (
