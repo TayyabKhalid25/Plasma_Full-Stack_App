@@ -93,13 +93,30 @@ async function fetchHighResCover(steamAppId) {
 }
 
 /**
+ * Helper to wrap Steam API calls with retry logic, exponential backoff, and timeouts.
+ */
+async function steamApiRequest(url, retries = 3, backoff = 1000) {
+    try {
+        const response = await axios.get(url, { timeout: 10000 });
+        return response;
+    } catch (error) {
+        if (retries > 0) {
+            console.log(`Steam API request failed, retrying in ${backoff}ms... (${retries} retries left)`);
+            await new Promise(resolve => setTimeout(resolve, backoff));
+            return steamApiRequest(url, retries - 1, backoff * 2);
+        }
+        throw error;
+    }
+}
+
+/**
  * Fetch player summaries from Steam
  * @param {string} steamIds - Comma separated list of steamId64
  */
 async function getSteamPlayerSummaries(steamIds) {
     if (!STEAM_API_KEY) throw new Error('Steam API Key missing');
     try {
-        const response = await axios.get(`http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${STEAM_API_KEY}&steamids=${steamIds}`);
+        const response = await steamApiRequest(`https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${STEAM_API_KEY}&steamids=${steamIds}`);
         return response.data.response.players;
     } catch (error) {
         console.error('Steam Player Summaries Error:', error.message);
@@ -114,7 +131,7 @@ async function getSteamPlayerSummaries(steamIds) {
 async function getSteamOwnedGames(steamId) {
     if (!STEAM_API_KEY) throw new Error('Steam API Key missing');
     try {
-        const response = await axios.get(`http://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=${STEAM_API_KEY}&steamid=${steamId}&include_appinfo=true&include_played_free_games=true&format=json`);
+        const response = await steamApiRequest(`https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=${STEAM_API_KEY}&steamid=${steamId}&include_appinfo=true&include_played_free_games=true&format=json`);
         return response.data.response.games || [];
     } catch (error) {
         console.error('Steam Owned Games Error:', error.message);
@@ -128,7 +145,7 @@ async function getSteamOwnedGames(steamId) {
 async function getSteamPlayerAchievements(steamId, appId) {
     if (!STEAM_API_KEY) throw new Error('Steam API Key missing');
     try {
-        const response = await axios.get(`http://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v0001/?appid=${appId}&key=${STEAM_API_KEY}&steamid=${steamId}`);
+        const response = await steamApiRequest(`https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v0001/?appid=${appId}&key=${STEAM_API_KEY}&steamid=${steamId}`);
         return response.data.playerstats;
     } catch (error) {
         console.error(`Steam Achievements Error for app ${appId}:`, error.message);

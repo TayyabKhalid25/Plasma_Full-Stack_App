@@ -92,6 +92,7 @@ router.post('/sync/achievements', authenticateToken, async (req, res) => {
 
         let newAchievements = [];
         let newUserAchievements = [];
+        let failedGames = [];
 
         // Note: we run Steam API requests sequentially to avoid rate limiting
         for (const row of libraryResult.rows) {
@@ -115,7 +116,10 @@ router.post('/sync/achievements', authenticateToken, async (req, res) => {
                 }
             } catch (gameErr) {
                 // Steam returns 400 Bad Request if the app doesn't support stats/achievements
-                continue;
+                if (gameErr.response && gameErr.response.status === 400) {
+                    continue;
+                }
+                failedGames.push(appId);
             }
         }
 
@@ -160,7 +164,8 @@ router.post('/sync/achievements', authenticateToken, async (req, res) => {
             success: true,
             message: `Synced ${totalSynced} achievements across ${gamesProcessed} games`,
             syncedAchievements: totalSynced,
-            gamesProcessed
+            gamesProcessed,
+            failedGames
         });
     } catch (error) {
         console.error('Achievement Sync Error:', error);

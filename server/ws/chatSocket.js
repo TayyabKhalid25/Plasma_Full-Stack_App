@@ -94,4 +94,13 @@ function setupWebSocket(server) {
     return wss;
 }
 
-module.exports = { setupWebSocket };
+function sendToUser(userId, payload) {
+    const userSockets = clients.get(userId);
+    if (userSockets) {
+        userSockets.forEach(s => {
+            if (s.readyState === 1) s.send(JSON.stringify(payload));
+        });
+    }
+}
+
+module.exports = { setupWebSocket, sendToUser };

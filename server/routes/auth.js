@@ -17,7 +17,7 @@ passport.deserializeUser((obj, done) => {
 passport.use(new SteamStrategy({
     returnURL: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/auth/steam/callback`,
     realm: `${process.env.BACKEND_URL || 'http://localhost:5000'}/`,
-    apiKey: process.env.STEAM_API_KEY || 'STUB'
+    apiKey: process.env.STEAM_API_KEY || 'MISSING'
   },
   function(identifier, profile, done) {
     process.nextTick(function () {
@@ -93,6 +93,11 @@ router.post('/register', async (req, res) => {
             });
         }).catch(err => {
             console.error('Background sync after registration failed:', err.message);
+            const { sendToUser } = require('../ws/chatSocket');
+            sendToUser(user.plasmaUserID, { 
+                type: 'SYNC_FAILED', 
+                message: `Post-registration background synchronization failed while attempting to fetch your Steam library and achievements. Error details: ${err.message}. Please initiate a manual sync from your dashboard.` 
+            });
         });
 
         res.status(201).json({
@@ -214,11 +219,27 @@ router.post('/dev-login', async (req, res) => {
 
 // GET /api/auth/steam
 // Redirects the browser to Valve's OpenID 2.0 endpoint
-router.get('/steam', passport.authenticate('steam', { failureRedirect: '/' }));
+router.get('/steam', (req, res, next) => {
+    if (!process.env.STEAM_API_KEY || process.env.STEAM_API_KEY === 'YOUR_STEAM_API_KEY_HERE') {
+        return res.status(503).json({ 
+            success: false, 
+            message: 'Steam login functionality failed. The server is unable to initialize the Passport Steam strategy because the STEAM_API_KEY environment variable is missing.' 
+        });
+    }
+    next();
+}, passport.authenticate('steam', { failureRedirect: '/' }));
 
 // GET /api/auth/steam/callback
 // Valve redirects here after login to validate assertion, issue JWT
-router.get('/steam/callback', passport.authenticate('steam', { failureRedirect: '/' }), async (req, res) => {
+router.get('/steam/callback', (req, res, next) => {
+    if (!process.env.STEAM_API_KEY || process.env.STEAM_API_KEY === 'YOUR_STEAM_API_KEY_HERE') {
+        return res.status(503).json({ 
+            success: false, 
+            message: 'Steam login callback failed. The server is unable to process the authentication request because the STEAM_API_KEY environment variable is missing.' 
+        });
+    }
+    next();
+}, passport.authenticate('steam', { failureRedirect: '/' }), async (req, res) => {
     try {
         const steamID64 = req.user._json.steamid;
         const avatarURL = req.user._json.avatarfull;
