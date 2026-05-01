@@ -103,15 +103,23 @@ export const RightRail = () => {
           YOUR PRESTIGE
         </div>
         <div className="flex flex-col gap-2 w-full z-10">
-          <div className="bg-primary-gradient bg-clip-text text-transparent font-mono font-bold text-xl">
-            {loading || !user ? "..." : `${user.stats?.xp || user.totalPlasmaXP || 0} XP`}
+          <div className="flex items-end justify-between">
+            <div className="bg-primary-gradient bg-clip-text text-transparent font-mono font-bold text-xl">
+              {loading || !user ? "..." : `${user.totalPlasmaXP || 0} XP`}
+            </div>
+            <div className="text-[10px] font-bold text-plasma-text-secondary uppercase mb-1">
+              {loading || !user ? "" : `LEVEL ${user.level || 1}`}
+            </div>
           </div>
           <div className="flex items-center justify-between w-full gap-4">
             <div className="flex-1 h-1 bg-plasma-slate-hover rounded-full overflow-hidden">
-              <div className="w-[65%] h-full bg-plasma-primary shadow-[0px_0px_8px_#563895]" />
+              <div 
+                className="h-full bg-plasma-primary shadow-[0px_0px_8px_#563895] transition-all duration-1000" 
+                style={{ width: `${loading || !user ? 0 : (user.progressPercentage || 0)}%` }}
+              />
             </div>
             <div className="px-2 py-0.5 bg-plasma-primary rounded-full">
-              <span className="font-sans font-bold text-white text-[10px]">RANK #{loading || !user ? "..." : (user.stats?.globalRank || user.globalRank || "-")}</span>
+              <span className="font-sans font-bold text-white text-[10px]">RANK #{loading || !user ? "..." : (user.globalRank || "-")}</span>
             </div>
           </div>
         </div>

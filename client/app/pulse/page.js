@@ -14,7 +14,6 @@ import {
   Trash2
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { feedFilters } from "@/data/dummy";
 import { useModal } from "@/hooks/useModal";
 import { ShareModal } from "@/components/modals/ShareModal";
 import { ConfirmDeleteModal } from "@/components/modals/ConfirmDeleteModal";
@@ -22,6 +21,14 @@ import { PostCommentsModal } from "@/components/modals/PostCommentsModal";
 import { UploadMediaModal } from "@/components/modals/UploadMediaModal";
 import { EditPostModal } from "@/components/modals/EditPostModal";
 import { getIntentStyle } from "@/lib/intentStyles";
+
+const feedFilters = [
+  { id: "all", label: "All" },
+  { id: "friends", label: "Friends Activity" },
+  { id: "my-posts", label: "My Posts" },
+  { id: "comp", label: "Comp Only" },
+  { id: "chill", label: "Chill Only" },
+];
 
 
 // --- COMPONENTS ---

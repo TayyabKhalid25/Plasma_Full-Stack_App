@@ -20,9 +20,17 @@ import {
   CheckCircle2
 } from "lucide-react";
 import Link from "next/link";
-import { gameFilters } from "@/data/dummy";
 import { useModal } from "@/hooks/useModal";
 import { SearchIGDBGameModal } from "@/components/modals/SearchIGDBGameModal";
+
+const gameFilters = [
+  { id: "all", label: "All" },
+  { id: "playing", label: "Currently Playing" },
+  { id: "steam", label: "Steam" },
+  { id: "non-steam", label: "Non-Steam" },
+  { id: "playstation", label: "PlayStation" },
+  { id: "xbox", label: "Xbox" },
+];
 
 const iconMap = { Gamepad2, Diamond, Cloud, Zap, Shield, Sparkles, Dog, Star, Castle, Cpu };
 

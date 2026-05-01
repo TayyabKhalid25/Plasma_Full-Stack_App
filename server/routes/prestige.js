@@ -33,9 +33,19 @@ async function fetchPrestige(userId) {
         WHERE ua."userID" = $1 AND ua."isPinned" = TRUE
     `, [userId]);
     
+    // Level Calculation (1000 XP per level)
+    const level = Math.floor(totalPlasmaXP / 1000) + 1;
+    const nextLevelXP = level * 1000;
+    const currentLevelStartXP = (level - 1) * 1000;
+    const progressXP = totalPlasmaXP - currentLevelStartXP;
+    const progressPercentage = Math.min(Math.floor((progressXP / 1000) * 100), 100);
+
     return {
         totalPlasmaXP: totalPlasmaXP,
         globalRank: globalRank,
+        level: level,
+        nextLevelXP: nextLevelXP,
+        progressPercentage: progressPercentage,
         unlockedCount: parseInt(summary.rows[0].earned) || 0,
         hallOfFame: hallOfFame.rows
     };
