@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
-  Gamepad2, Play, Medal, Trophy, Swords, Shield, Target, Calendar, Users, User
+  Gamepad2, Play, Medal, Trophy, Swords, Shield, Target, Calendar, Users, User, Cloud, Zap
 } from "lucide-react";
 import Link from "next/link";
 import { getIntentStyle } from "@/lib/intentStyles";
