@@ -93,7 +93,7 @@ router.put('/me/hall-of-fame', authenticateToken, async (req, res) => {
         if (achievementIds.length > 0) {
             await pool.query(`
                 UPDATE "user_achievements" SET "isPinned" = TRUE 
-                WHERE "userID" = $1 AND "achievementID" = ANY($2::uuid[])
+                WHERE "userID" = $1 AND "achievementID" = ANY($2::text[])
             `, [req.userId, achievementIds]);
         }
         
