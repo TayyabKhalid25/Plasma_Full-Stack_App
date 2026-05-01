@@ -2332,7 +2332,7 @@
                         },
                         "description": "Permanently deletes a user account. Restricted to users with 'admin' type in the database. Unlike the self-deletion route, this is an immediate administrative action."
                     },
-                    "response": []
+                    "response": [] 
                 }
             ]
         }
