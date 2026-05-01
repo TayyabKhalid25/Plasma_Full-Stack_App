@@ -131,7 +131,13 @@ async function igdbApiRequest(config, retries = 3, backoff = 1000) {
  */
 async function searchIgdbGames(query) {
     try {
-        const body = `search "${query}"; fields name,cover.url,url,platforms,first_release_date,category; limit 20;`;
+        // We use 'where name ~' instead of 'search' because 'search' results cannot be sorted by popularity.
+        // Sorting by popularity is essential to ensure that the main game (e.g. GTA V) 
+        // appears before its various DLCs or obscure similar titles.
+        const body = `fields name,cover.url,url,platforms,first_release_date,category,popularity; 
+                   where (name ~ *"${query}"* | alternative_names.name ~ *"${query}"*); 
+                   sort popularity desc; 
+                   limit 50;`;
         
         const response = await igdbApiRequest({
             url: 'https://api.igdb.com/v4/games',
@@ -141,18 +147,18 @@ async function searchIgdbGames(query) {
         
         if (!response.data || !Array.isArray(response.data)) return [];
 
-        console.log(`[IGDB] Raw results for "${query}":`, response.data.map(g => ({ name: g.name, cat: g.category })));
+        console.log(`[IGDB] Raw results for "${query}":`, response.data.map(g => ({ name: g.name, cat: g.category, pop: Math.round(g.popularity) })));
 
         // Filter categories: 
-        // 0: Main, 1: DLC, 2: Expansion Pack, 4: Expansion, 5: Standalone, 7: Episode, 
+        // 0: Main, 1: DLC, 2: Expansion Pack, 3: Bundle, 4: Expansion, 5: Standalone, 7: Episode, 
         // 8: Remake, 9: Remaster, 10: Expanded, 11: Port
-        const allowedCategories = [0, 1, 2, 4, 5, 7, 8, 9, 10, 11];
+        const allowedCategories = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11];
         const filtered = response.data.filter(game => allowedCategories.includes(game.category));
         
         console.log(`[IGDB] ${filtered.length} results remained after category filtering`);
 
         return filtered
-            .slice(0, 10) 
+            .slice(0, 15) 
             .map(game => {
                 if (game.cover && game.cover.url) {
                     game.cover.url = game.cover.url.replace('t_thumb', 't_1080p').replace('//', 'https://');
