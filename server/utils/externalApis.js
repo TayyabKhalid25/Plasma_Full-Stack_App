@@ -131,12 +131,9 @@ async function igdbApiRequest(config, retries = 3, backoff = 1000) {
  */
 async function searchIgdbGames(query) {
     try {
-        const body = `fields name,cover.url,url,platforms,first_release_date,summary; 
-                   search "${query}"; 
-                   where category = (0,4,8,9,10,11); 
-                   limit 10;`;
+        const body = `search "${query}"; fields name,cover.url,url,platforms,first_release_date; where category = (0,4,8,9,10,11); limit 10;`;
         
-        console.log('[IGDB] Sending search query:', body.replace(/\n/g, ' '));
+        console.log('[IGDB] Sending search query:', body);
         
         const response = await igdbApiRequest({
             url: 'https://api.igdb.com/v4/games',

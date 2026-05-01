@@ -6,10 +6,20 @@ require('dotenv').config(); // Load environment variables from .env file
 const port = parseInt(process.env.PORT, 10); // Convert environment variable to integer or default to 5000
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL, // Allow your frontend URL
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allow all HTTP methods
-  allowedHeaders: ['Content-Type', 'Authorization'], // Allow Content-Type and Authorization headers
-  credentials: true // Allow cookies and credentials
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [process.env.FRONTEND_URL, 'http://localhost:3000', 'http://127.0.0.1:3000'];
+    if (allowedOrigins.indexOf(origin) !== -1 || origin.startsWith('http://localhost:')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
 
 app.use(express.json()); // Middleware to parse JSON request bodies

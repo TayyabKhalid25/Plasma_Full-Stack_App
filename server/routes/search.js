@@ -46,7 +46,7 @@ router.get('/', authenticateToken, async (req, res) => {
         try {
             igdbResults = await searchIgdbGames(searchQuery);
         } catch (igdbErr) {
-            console.error('IGDB search failed in global search:', igdbErr.message);
+            console.error('[Search] IGDB search failed:', igdbErr.message);
         }
 
         res.json({
