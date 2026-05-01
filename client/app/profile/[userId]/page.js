@@ -225,7 +225,7 @@ export default function UserProfile({ params }) {
                     </span>
                     {isMutual && (
                       <span className="px-2 py-0.5 rounded-full bg-plasma-secondary/10 border border-plasma-secondary/30 text-plasma-secondary text-[10px] font-bold">
-                        MUTUAL
+                        FRIENDS
                       </span>
                     )}
                   </div>
@@ -251,9 +251,9 @@ export default function UserProfile({ params }) {
                 }`}
               >
                 {isFollowing ? (
-                  <><UserMinus className="w-4 h-4" /> Unfollow</>
+                  <><UserMinus className="w-4 h-4" /> Remove Friend</>
                 ) : (
-                  <><UserPlus className="w-4 h-4" /> Follow</>
+                  <><UserPlus className="w-4 h-4" /> Add Friend</>
                 )}
               </button>
             </div>
