@@ -297,7 +297,7 @@ export default function Profile() {
 
         {/* HALL OF FAME ROW */}
         {!loading && (
-          <section className="px-8 md:px-20 py-8">
+          <section className="px-8 md:px-20 py-8 relative z-20">
             <h3 className="text-plasma-text-secondary font-sans font-bold text-[10px] tracking-[0.2em] uppercase mb-6">Hall of Fame</h3>
             <div className="flex gap-6 overflow-x-auto pb-4 hide-scrollbar">
               {hofData.length > 0 ? hofData.map((item) => (
