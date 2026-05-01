@@ -306,7 +306,7 @@ export default function Library() {
                 <span className="w-1 h-1 rounded-full bg-plasma-text-secondary/30"></span>
                 <span>{games.filter(g => g.platform === "steam").length} Steam</span>
                 <span className="w-1 h-1 rounded-full bg-plasma-text-secondary/30"></span>
-                <span>{games.filter(g => g.platform === "non-steam").length} Non-Steam</span>
+                <span>{games.filter(g => g.platform !== "steam").length} Non-Steam</span>
                 <span className="w-1 h-1 rounded-full bg-plasma-text-secondary/30"></span>
                 <span>{games.filter(g => g.nowPlaying).length} Currently Playing</span>
                 <span className="w-1 h-1 rounded-full bg-plasma-text-secondary/30"></span>

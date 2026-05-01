@@ -24,7 +24,7 @@ router.post('/sync/steam', authenticateToken, async (req, res) => {
 
         // 3. Fetch Owned Games (Library Sync)
         const games = await getSteamOwnedGames(steamId);
-        
+
         let addedCount = 0;
         if (games && games.length > 0) {
             addedCount = games.length;
@@ -66,9 +66,9 @@ router.post('/sync/steam', authenticateToken, async (req, res) => {
 // GET /api/library/igdb/search
 router.get('/igdb/search', authenticateToken, async (req, res) => {
     const { q } = req.query;
-    
+
     if (!q) return res.status(400).json({ success: false, message: 'Query string required' });
-    
+
     try {
         const results = await searchIgdbGames(q);
         res.json({
@@ -89,18 +89,18 @@ router.get('/igdb/search', authenticateToken, async (req, res) => {
 // POST /api/library/manual
 router.post('/manual', authenticateToken, async (req, res) => {
     let { gameId, title, coverArtURL, isCurrentlyPlaying } = req.body;
-    
+
     try {
         // Automatically find or generate a custom gameId if none is provided
         if (!gameId) {
             if (!title) return res.status(400).json({ success: false, message: 'Game ID or Title is required' });
-            
+
             // Check if there's already a custom game with this exact title
             const existingTitleCheck = await pool.query(
                 `SELECT "appID" FROM "games" WHERE "title" ILIKE $1 AND "isManualEntry" = TRUE`,
                 [title.trim()]
             );
-            
+
             if (existingTitleCheck.rows.length > 0) {
                 gameId = existingTitleCheck.rows[0].appID;
             } else {
@@ -116,16 +116,16 @@ router.post('/manual', authenticateToken, async (req, res) => {
                 VALUES ($1, $2, $3, 'CUSTOM', TRUE)
             `, [gameId, title || 'Unknown Game', coverArtURL]);
         }
-        
+
         // 2. Add to library_entries
         await pool.query(`
             INSERT INTO "library_entries" ("userID", "appID", "isCurrentlyPlaying", "lastPlayedAt")
-            VALUES ($1, $2, COALESCE($3, FALSE), CURRENT_TIMESTAMP)
+            VALUES ($1, $2, COALESCE($3, FALSE), CASE WHEN $3 = TRUE THEN CURRENT_TIMESTAMP ELSE NULL END)
             ON CONFLICT ("userID", "appID") DO UPDATE SET
                 "isCurrentlyPlaying" = EXCLUDED."isCurrentlyPlaying",
-                "lastPlayedAt" = EXCLUDED."lastPlayedAt"
+                "lastPlayedAt" = CASE WHEN EXCLUDED."isCurrentlyPlaying" = TRUE THEN CURRENT_TIMESTAMP ELSE "library_entries"."lastPlayedAt" END
         `, [req.userId, gameId, isCurrentlyPlaying]);
-        
+
         res.status(201).json({ success: true, message: 'Game added to library' });
     } catch (error) {
         console.error('Error adding game manually:', error);
@@ -133,20 +133,50 @@ router.post('/manual', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/library/:gameId
+router.get('/:gameId', authenticateToken, async (req, res) => {
+    const { gameId } = req.params;
+
+    try {
+        const result = await pool.query(`
+            SELECT 
+                le."appID", 
+                le."hoursPlayed", 
+                le."isCurrentlyPlaying", 
+                le."lastPlayedAt",
+                g."title", 
+                g."platform", 
+                g."coverArtURL"
+            FROM "library_entries" le
+            JOIN "games" g ON le."appID" = g."appID"
+            WHERE le."userID" = $1 AND le."appID" = $2
+        `, [req.userId, gameId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Game not found in library' });
+        }
+
+        res.json({ success: true, data: result.rows[0] });
+    } catch (error) {
+        console.error('Error fetching game details:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
 // DELETE /api/library/:gameId
 router.delete('/:gameId', authenticateToken, async (req, res) => {
     const { gameId } = req.params;
-    
+
     try {
         const result = await pool.query(`
             DELETE FROM "library_entries" WHERE "userID" = $1 AND "appID" = $2
             RETURNING "entryID"
         `, [req.userId, gameId]);
-        
+
         if (result.rows.length === 0) {
             return res.status(404).json({ success: false, message: 'Game not found in library' });
         }
-        
+
         res.json({ success: true, message: 'Game removed from library' });
     } catch (error) {
         console.error('Error removing game:', error);
@@ -158,42 +188,88 @@ router.delete('/:gameId', authenticateToken, async (req, res) => {
 router.put('/:gameId/status', authenticateToken, async (req, res) => {
     const { gameId } = req.params;
     const { isCurrentlyPlaying } = req.body;
-    
+
     if (typeof isCurrentlyPlaying !== 'boolean') {
         return res.status(400).json({ success: false, message: 'isCurrentlyPlaying boolean flag is required' });
     }
 
     try {
-        const result = await pool.query(`
-            UPDATE "library_entries"
-            SET 
-                "isCurrentlyPlaying" = $1,
-                "lastPlayedAt" = CURRENT_TIMESTAMP
-            WHERE "userID" = $2 AND "appID" = $3
-            RETURNING "appID", "isCurrentlyPlaying"
-        `, [isCurrentlyPlaying, req.userId, gameId]);
-        
-        if (result.rows.length === 0) {
+        // 1. Get current status of the game
+        const currentStatusResult = await pool.query(
+            'SELECT "isCurrentlyPlaying", "lastPlayedAt" FROM "library_entries" WHERE "userID" = $1 AND "appID" = $2',
+            [req.userId, gameId]
+        );
+
+        if (currentStatusResult.rows.length === 0) {
             return res.status(404).json({ success: false, message: 'Game not found in library' });
         }
 
-        // Broadcast to Pulse if started playing
-        if (isCurrentlyPlaying) {
+        const wasPlaying = currentStatusResult.rows[0].isCurrentlyPlaying;
+        const lastAt = currentStatusResult.rows[0].lastPlayedAt;
+        const now = new Date();
+
+        // 2. Logic for starting/stopping and calculating playtime
+        if (isCurrentlyPlaying && !wasPlaying) {
+            // STARTING TO PLAY
+            // Automatically stop any other game that might be running
+            const otherPlaying = await pool.query(
+                'SELECT "appID", "lastPlayedAt" FROM "library_entries" WHERE "userID" = $1 AND "isCurrentlyPlaying" = TRUE AND "appID" != $2',
+                [req.userId, gameId]
+            );
+
+            for (const other of otherPlaying.rows) {
+                const start = new Date(other.lastPlayedAt);
+                const durationHours = Math.max(0, (now - start) / (1000 * 60 * 60));
+
+                await pool.query(`
+                    UPDATE "library_entries" 
+                    SET 
+                        "isCurrentlyPlaying" = FALSE, 
+                        "hoursPlayed" = "hoursPlayed" + $1,
+                        "lastPlayedAt" = $2
+                    WHERE "userID" = $3 AND "appID" = $4
+                `, [durationHours, now, req.userId, other.appID]);
+            }
+
+            // Start this game
+            await pool.query(`
+                UPDATE "library_entries"
+                SET "isCurrentlyPlaying" = TRUE, "lastPlayedAt" = $1
+                WHERE "userID" = $2 AND "appID" = $3
+            `, [now, req.userId, gameId]);
+
+        } else if (!isCurrentlyPlaying && wasPlaying) {
+            // STOPPING PLAY
+            const start = new Date(lastAt);
+            const durationHours = Math.max(0, (now - start) / (1000 * 60 * 60));
+
+            await pool.query(`
+                UPDATE "library_entries"
+                SET 
+                    "isCurrentlyPlaying" = FALSE,
+                    "hoursPlayed" = "hoursPlayed" + $1,
+                    "lastPlayedAt" = $2
+                WHERE "userID" = $3 AND "appID" = $4
+            `, [durationHours, now, req.userId, gameId]);
+        }
+
+        // 3. Broadcast to Pulse if started playing
+        if (isCurrentlyPlaying && !wasPlaying) {
             const gameCheck = await pool.query('SELECT "title" FROM "games" WHERE "appID" = $1', [gameId]);
             if (gameCheck.rows.length > 0) {
                 const title = gameCheck.rows[0].title;
                 const content = `Started playing ${title}`;
-                
+
                 await pool.query(`
                     INSERT INTO "posts" ("userID", "type", "content")
                     VALUES ($1, 'ACTIVITY_UPDATE', $2)
                 `, [req.userId, content]);
             }
         }
-        
-        res.json({ success: true, message: 'Library entry updated successfully' });
+
+        res.json({ success: true, message: 'Library entry updated and playtime tracked successfully' });
     } catch (error) {
-        console.error('Error updating game status:', error);
+        console.error('Error updating game status/playtime:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
@@ -201,7 +277,7 @@ router.put('/:gameId/status', authenticateToken, async (req, res) => {
 // GET /api/library/user/:userId
 router.get('/user/:userId', authenticateToken, async (req, res) => {
     const { userId } = req.params;
-    
+
     try {
         const result = await pool.query(`
             SELECT le."appID", le."hoursPlayed", le."isCurrentlyPlaying", le."lastPlayedAt",
@@ -211,7 +287,7 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
             WHERE le."userID" = $1
             ORDER BY le."lastPlayedAt" DESC NULLS LAST
         `, [userId]);
-        
+
         res.json({ success: true, data: result.rows });
     } catch (error) {
         console.error('Error fetching user library:', error);
