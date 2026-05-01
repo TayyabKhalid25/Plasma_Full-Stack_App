@@ -42,8 +42,7 @@ export const Sidebar = ({ onOpenDrawer }) => {
 
   const onlineSquad = friends.online || [];
   const offlineSquad = friends.offline || [];
-  const allSquad = [...onlineSquad, ...offlineSquad];
-  const isEmpty = allSquad.length === 0 && !loading;
+  const isEmpty = onlineSquad.length === 0 && !loading;
 
   return (
     <div className="flex flex-col w-64 h-[calc(100vh-64px)] items-start px-0 py-6 fixed top-16 left-0 bg-plasma-slate border-r border-white/5 shadow-[20px_0px_40px_rgba(13,11,20,0.5)] overflow-y-auto z-40 custom-scrollbar">
@@ -131,29 +130,7 @@ export const Sidebar = ({ onOpenDrawer }) => {
               </Link>
             ))}
 
-            {/* Offline friends */}
-            {offlineSquad.map((member, idx) => (
-              <Link
-                href={`/profile/${member.id}`}
-                key={`offline-${member.id}-${idx}`}
-                className="flex items-center gap-3 relative self-stretch w-full cursor-pointer hover:opacity-80 transition-opacity opacity-50 hover:opacity-40"
-              >
-                <div className="relative flex-[0_0_auto]">
-                  <div
-                    className="relative w-8 h-8 rounded-full bg-cover bg-center"
-                    style={{ backgroundImage: `url(${member.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.name}`})` }}
-                  />
-                </div>
-                <div className="flex flex-col items-start overflow-hidden">
-                  <div className="font-sans font-medium text-sm truncate text-plasma-text-secondary">
-                    {member.name}
-                  </div>
-                  <div className="font-sans text-plasma-text-secondary text-[11px] truncate w-full">
-                    Offline
-                  </div>
-                </div>
-              </Link>
-            ))}
+
           </div>
           
           <button 
