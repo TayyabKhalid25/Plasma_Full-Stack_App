@@ -132,8 +132,8 @@ async function igdbApiRequest(config, retries = 3, backoff = 1000) {
 async function searchIgdbGames(query) {
     try {
         // Reordering fields to the front and removing newlines.
-        // IGDB v4 can be sensitive to the order of commands.
-        const body = `fields name,cover.url,url,platforms,first_release_date,category,popularity; search "${query}"; limit 50;`;
+        // Removed 'popularity' as it's not a valid field in this context.
+        const body = `fields name,cover.url,url,platforms,first_release_date,category; search "${query}"; limit 50;`;
         
         const response = await igdbApiRequest({
             url: 'https://api.igdb.com/v4/games',
@@ -143,23 +143,17 @@ async function searchIgdbGames(query) {
         
         if (!response.data || !Array.isArray(response.data)) return [];
 
-        // Debug: Log the first raw result to see field names
-        if (response.data.length > 0) {
-            console.log(`[IGDB] Sample result fields:`, Object.keys(response.data[0]));
-        }
-
-        // Filter and then sort by popularity in JS
+        // Filter by category in JS
         const allowedCategories = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11];
         
-        const filteredAndSorted = response.data
-            .filter(game => game.category !== undefined && allowedCategories.includes(game.category))
-            .sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+        const filtered = response.data
+            .filter(game => game.category !== undefined && allowedCategories.includes(game.category));
 
-        console.log(`[IGDB] Results for "${query}" (top 15 after JS sorting):`, 
-            filteredAndSorted.slice(0, 15).map(g => ({ name: g.name, cat: g.category, pop: Math.round(g.popularity) }))
+        console.log(`[IGDB] Results for "${query}" (top 15 after JS filtering):`, 
+            filtered.slice(0, 15).map(g => ({ name: g.name, cat: g.category }))
         );
 
-        return filteredAndSorted
+        return filtered
             .slice(0, 15) 
             .map(game => {
                 if (game.cover && game.cover.url) {
