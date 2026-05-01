@@ -156,10 +156,10 @@ export default function GameDetailPage({ params }) {
           <div className="absolute bottom-0 left-0 right-0 p-8 flex flex-col md:flex-row items-start md:items-end justify-between gap-6">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-3">
-                <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest border transition-all shadow-lg ${
+                <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest border-2 transition-all shadow-2xl ${
                   game.platform === "Steam" 
-                    ? "bg-[#1b2838]/80 text-blue-400 border-blue-500/40 shadow-blue-500/10" 
-                    : "bg-plasma-primary/20 text-plasma-primary border-plasma-primary/40 shadow-plasma-primary/10"
+                    ? "bg-[#171a21] text-[#66c0f4] border-[#66c0f4]/30 shadow-blue-500/20" 
+                    : "bg-[#1a1122] text-plasma-primary border-plasma-primary/40 shadow-plasma-primary/20"
                 }`}>
                   {game.platform === "Steam" ? <Cloud className="w-3 h-3 fill-current" /> : <Gamepad2 className="w-3 h-3 fill-current" />}
                   {game.platform}
