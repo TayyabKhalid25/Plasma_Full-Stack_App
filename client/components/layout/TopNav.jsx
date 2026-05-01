@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { Search, Bell, Trophy, UserPlus, Calendar, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { LogOut } from "lucide-react";
 
@@ -273,7 +272,7 @@ export const TopNav = () => {
                       </span>
                     )}
                   </div>
-                  {unreadCount > 0 && (
+                  {notifications.some(n => !n.read) && (
                     <button 
                       onClick={markAllRead}
                       className="text-[10px] font-bold text-plasma-primary hover:text-plasma-secondary transition-colors cursor-pointer"

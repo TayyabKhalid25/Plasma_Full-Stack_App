@@ -126,7 +126,7 @@ export default function NotificationsPage() {
               </p>
             )}
           </div>
-          {unreadCount > 0 && (
+          {notifs.some(n => !n.read) && (
             <button
               onClick={markAllRead}
               className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 text-sm text-plasma-text-secondary hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
