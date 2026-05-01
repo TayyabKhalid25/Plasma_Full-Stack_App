@@ -363,12 +363,13 @@ export default function MessagesPage() {
                 <img src={activeConv.friend.avatar} alt="" className="w-9 h-9 rounded-full bg-plasma-slate" />
                 <div>
                   <p className="text-sm font-bold text-plasma-text-primary">{activeConv.friend.name}</p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? "bg-plasma-success" : "bg-plasma-error animate-pulse"}`} />
-                    <p className="text-[10px] text-plasma-text-secondary uppercase tracking-tight">
-                      {isConnected ? "Connection Stable" : "Reconnecting..."}
-                    </p>
-                  </div>
+                  <p className="text-[11px] text-plasma-text-secondary">
+                    {activeConv.friend.online ? (
+                      <span className="text-plasma-success">Online</span>
+                    ) : (
+                      "Offline"
+                    )}
+                  </p>
                 </div>
               </div>
 
