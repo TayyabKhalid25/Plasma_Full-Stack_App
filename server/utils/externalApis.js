@@ -141,10 +141,12 @@ async function searchIgdbGames(query) {
         
         if (!response.data || !Array.isArray(response.data)) return [];
 
-        console.log(`[IGDB] Found ${response.data.length} raw results for "${query}"`);
+        console.log(`[IGDB] Raw results for "${query}":`, response.data.map(g => ({ name: g.name, cat: g.category })));
 
-        // Filter for actual games (0: Main, 8: Remake, 9: Remaster, 10: Expanded, 11: Port)
-        const allowedCategories = [0, 8, 9, 10, 11];
+        // Filter categories: 
+        // 0: Main, 1: DLC, 2: Expansion Pack, 4: Expansion, 5: Standalone, 7: Episode, 
+        // 8: Remake, 9: Remaster, 10: Expanded, 11: Port
+        const allowedCategories = [0, 1, 2, 4, 5, 7, 8, 9, 10, 11];
         const filtered = response.data.filter(game => allowedCategories.includes(game.category));
         
         console.log(`[IGDB] ${filtered.length} results remained after category filtering`);
