@@ -90,38 +90,58 @@ router.post('/sync/achievements', authenticateToken, async (req, res) => {
         let totalSynced = 0;
         let gamesProcessed = 0;
 
+        let newAchievements = [];
+        let newUserAchievements = [];
+
+        // Note: we run Steam API requests sequentially to avoid rate limiting
         for (const row of libraryResult.rows) {
             const appId = row.appID;
             try {
                 const achievementData = await getSteamPlayerAchievements(steamId, appId);
                 if (!achievementData || !achievementData.achievements) continue;
 
+                gamesProcessed++; // The game successfully returned an achievement schema
+
                 for (const ach of achievementData.achievements) {
                     if (ach.achieved !== 1) continue; // Skip unachieved
 
                     const achievementID = `steam_${appId}_${ach.apiname}`;
+                    const unlockedAt = ach.unlocktime || Math.floor(Date.now() / 1000);
+                    const title = ach.name || ach.apiname;
 
-                    // Upsert into achievements table
-                    await pool.query(`
-                        INSERT INTO "achievements" ("achievementID", "appID", "title", "rarityWeight", "plasmaXP")
-                        VALUES ($1, $2, $3, 1.0, 25)
-                        ON CONFLICT ("achievementID") DO NOTHING
-                    `, [achievementID, appId, ach.name || ach.apiname]);
-
-                    // Upsert into user_achievements
-                    await pool.query(`
-                        INSERT INTO "user_achievements" ("userID", "achievementID", "unlockedAt")
-                        VALUES ($1, $2, to_timestamp($3))
-                        ON CONFLICT ("userID", "achievementID") DO NOTHING
-                    `, [req.userId, achievementID, ach.unlocktime || Math.floor(Date.now() / 1000)]);
-
+                    newAchievements.push({ achievementID, appId, title });
+                    newUserAchievements.push({ userID: req.userId, achievementID, unlockedAt });
                     totalSynced++;
                 }
-                gamesProcessed++;
             } catch (gameErr) {
-                // Some games don't support achievements — skip silently
+                // Steam returns 400 Bad Request if the app doesn't support stats/achievements
                 continue;
             }
+        }
+
+        // Execute bulk inserts if any achievements were found
+        if (newAchievements.length > 0) {
+            const achIds = newAchievements.map(a => a.achievementID);
+            const appIds = newAchievements.map(a => a.appId);
+            const titles = newAchievements.map(a => a.title);
+
+            await pool.query(`
+                INSERT INTO "achievements" ("achievementID", "appID", "title", "rarityWeight", "plasmaXP")
+                SELECT id, app, title, 1.0, 25
+                FROM unnest($1::text[], $2::text[], $3::text[]) AS t(id, app, title)
+                ON CONFLICT ("achievementID") DO NOTHING
+            `, [achIds, appIds, titles]);
+
+            const userIds = newUserAchievements.map(a => a.userID);
+            const uAchIds = newUserAchievements.map(a => a.achievementID);
+            const unlockedAts = newUserAchievements.map(a => a.unlockedAt);
+
+            await pool.query(`
+                INSERT INTO "user_achievements" ("userID", "achievementID", "unlockedAt")
+                SELECT uid, aid, to_timestamp(ts)
+                FROM unnest($1::uuid[], $2::text[], $3::bigint[]) AS t(uid, aid, ts)
+                ON CONFLICT ("userID", "achievementID") DO NOTHING
+            `, [userIds, uAchIds, unlockedAts]);
         }
 
         // Update profile XP

@@ -1,5 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
+const axios = require('axios');
 const passport = require('passport');
 const SteamStrategy = require('passport-steam').Strategy;
 const { jwt, authenticateToken } = require('../middleware/authMiddleware');
@@ -81,6 +82,18 @@ router.post('/register', async (req, res) => {
         // 5. Generate JWT
         const payload = { userId: user.plasmaUserID };
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '60d' });
+
+        // 6. Trigger background Steam sync automatically
+        const port = process.env.PORT || 5000;
+        axios.post(`http://localhost:${port}/api/library/sync/steam`, {}, {
+            headers: { Authorization: `Bearer ${token}` }
+        }).then(() => {
+            return axios.post(`http://localhost:${port}/api/steam/sync/achievements`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+        }).catch(err => {
+            console.error('Background sync after registration failed:', err.message);
+        });
 
         res.status(201).json({
             success: true,

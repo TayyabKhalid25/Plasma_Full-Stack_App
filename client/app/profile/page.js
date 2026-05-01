@@ -17,6 +17,14 @@ const getIntentColor = (intent) => {
   return "text-plasma-success bg-plasma-success/20 border-plasma-success/30";
 };
 
+// Prefer Steam's high-res vertical capsule over the tiny icon
+function getHighResImage(appID, fallbackURL, platform) {
+  if (platform === "STEAM" && appID && !appID.startsWith("custom_") && !appID.startsWith("igdb_")) {
+    return `https://steamcdn-a.akamaihd.net/steam/apps/${appID}/library_600x900.jpg`;
+  }
+  return fallbackURL || "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=400&auto=format&fit=crop";
+}
+
 // --- SKELETONS ---
 function ProfileHeaderSkeleton() {
   return (
@@ -88,8 +96,8 @@ export default function Profile() {
         
         // Use user from auth context as profile data
         setProfileData({
-          username: user.username,
-          avatar: user.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`,
+          username: user.name || user.username,
+          avatar: user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name || user.username}`,
           intent: user.intent || "CHILL",
           bio: user.bio || "",
         });
@@ -103,6 +111,22 @@ export default function Profile() {
             color: i === 0 ? "text-plasma-secondary" : "text-plasma-primary",
           })));
         }
+        // Pre-fetch library for the stats counter
+        try {
+          const libRes = await fetch(`${API_BASE}/api/library/user/${user.id}`, { headers: { Authorization: `Bearer ${token}` } });
+          const libJson = await libRes.json();
+          if (libJson.success) {
+            setLibraryGames(libJson.data.map(g => ({
+              id: g.appID,
+              title: g.title,
+              image: getHighResImage(g.appID, g.coverArtURL, g.platform),
+              isCurrentlyPlaying: g.isCurrentlyPlaying,
+            })));
+          }
+        } catch (err) {
+          console.error("Failed to fetch initial library data", err);
+        }
+
       } catch (err) {
         console.error("Failed to fetch profile", err);
       } finally {
@@ -120,7 +144,7 @@ export default function Profile() {
       setLoadingTab(true);
       try {
         if (activeTab === "Activity") {
-          const res = await fetch(`${API_BASE}/api/feed?userId=${user.plasmaUserID}`, {
+          const res = await fetch(`${API_BASE}/api/pulse/user/${user.id}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           const data = await res.json();
@@ -135,8 +159,8 @@ export default function Profile() {
               avatar: p.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.username}`,
             })));
           }
-        } else if (activeTab === "Library") {
-          const res = await fetch(`${API_BASE}/api/library/user/${user.plasmaUserID}`, {
+        } else if (activeTab === "Library" && libraryGames.length === 0) {
+          const res = await fetch(`${API_BASE}/api/library/user/${user.id}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           const data = await res.json();
@@ -144,7 +168,7 @@ export default function Profile() {
             setLibraryGames(data.data.map(g => ({
               id: g.appID,
               title: g.title,
-              image: g.coverArtURL || "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=400&auto=format&fit=crop",
+              image: getHighResImage(g.appID, g.coverArtURL, g.platform),
               isCurrentlyPlaying: g.isCurrentlyPlaying,
             })));
           }
@@ -309,14 +333,14 @@ export default function Profile() {
                 {loadingTab ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
                     {[1,2,3,4,5,6].map(i => (
-                      <div key={i} className="aspect-[3/4] rounded-xl bg-plasma-slate-hover animate-pulse" />
+                      <div key={i} className="aspect-[2/3] rounded-xl bg-plasma-slate-hover animate-pulse" />
                     ))}
                   </div>
                 ) : libraryGames.length > 0 ? (
                   <>
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
                       {libraryGames.slice(0, 12).map((game) => (
-                        <div key={game.id} className="relative aspect-[3/4] rounded-xl overflow-hidden group cursor-pointer hover:scale-[1.03] transition-transform">
+                        <div key={game.id} className="relative aspect-[2/3] rounded-xl overflow-hidden group cursor-pointer hover:scale-[1.03] transition-transform">
                           <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${game.image})` }} />
                           {game.isCurrentlyPlaying && (
                             <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 bg-plasma-secondary text-white text-[8px] font-bold rounded z-10">LIVE</div>

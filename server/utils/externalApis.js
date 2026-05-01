@@ -114,7 +114,7 @@ async function getSteamPlayerSummaries(steamIds) {
 async function getSteamOwnedGames(steamId) {
     if (!STEAM_API_KEY) throw new Error('Steam API Key missing');
     try {
-        const response = await axios.get(`http://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=${STEAM_API_KEY}&steamid=${steamId}&include_appinfo=true&format=json`);
+        const response = await axios.get(`http://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=${STEAM_API_KEY}&steamid=${steamId}&include_appinfo=true&include_played_free_games=true&format=json`);
         return response.data.response.games || [];
     } catch (error) {
         console.error('Steam Owned Games Error:', error.message);

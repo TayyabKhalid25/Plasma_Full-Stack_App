@@ -4,11 +4,12 @@ import { useState, useEffect } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { 
-  Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Diamond, Zap, Activity
+  Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Diamond, Zap, Activity, Loader2, CheckCircle2
 } from "lucide-react";
 import { useModal } from "@/hooks/useModal";
 import { EditHallOfFameModal } from "@/components/modals/EditHallOfFameModal";
 import { InviteFriendsModal } from "@/components/modals/InviteFriendsModal";
+import { AddMilestoneModal } from "@/components/modals/AddMilestoneModal";
 
 const iconMap = { Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Diamond, Zap, Activity };
 
@@ -76,14 +77,22 @@ export default function Prestige() {
   
   const [loading, setLoading] = useState(true);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [toast, setToast] = useState(null);
   
   const [prestigeData, setPrestigeData] = useState({ totalPlasmaXP: 0, unlockedCount: 0, hallOfFame: [] });
   const [gamesProgress, setGamesProgress] = useState([]);
   const [hof, setHof] = useState([]);
   const [leaderboardData, setLeaderboardData] = useState([]);
 
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
+
   const editHofModal = useModal();
   const inviteModal = useModal();
+  const addMilestoneModal = useModal();
 
   // Fetch prestige + achievements data
   useEffect(() => {
@@ -191,8 +200,64 @@ export default function Prestige() {
     }
   };
 
+  const syncAchievements = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/steam/sync/achievements`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`Synced ${data.syncedAchievements} achievements across ${data.gamesProcessed} games!`, "success");
+        // Re-trigger the data fetch
+        setActiveAchTab(prev => prev); // force useEffect re-run
+        // Manually re-fetch
+        const [prestigeRes, achievementsRes] = await Promise.all([
+          fetch(`${API_BASE}/api/prestige/me`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API_BASE}/api/achievements?type=${activeAchTab}`, { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+        const prestigeJson = await prestigeRes.json();
+        const achievementsJson = await achievementsRes.json();
+        if (prestigeJson.success) setPrestigeData(prestigeJson.data);
+        if (achievementsJson.success) {
+          setGamesProgress(achievementsJson.data.gamesProgress.map(game => ({
+            title: game.gameTitle?.toUpperCase() || "UNKNOWN GAME",
+            achievements: game.achievements.map(ach => ({
+              title: ach.title,
+              xp: `${ach.plasmaXP} XP`,
+              iconName: "Trophy",
+              color: "text-plasma-primary",
+              border: "border-plasma-primary",
+              unlocked: true,
+            }))
+          })));
+        }
+      } else {
+        showToast(data.message || "Sync failed", "error");
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Network error during sync", "error");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   return (
     <DashboardLayout showRightRail={false}>
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed top-20 right-6 z-[200] flex items-center gap-2 px-5 py-3 rounded-xl shadow-2xl text-sm font-medium animate-fade-in transition-all ${
+          toast.type === "success" 
+            ? "bg-plasma-success/20 border border-plasma-success/30 text-plasma-success" 
+            : "bg-plasma-error/20 border border-plasma-error/30 text-plasma-error"
+        }`}>
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          {toast.message}
+        </div>
+      )}
+
       <div className="max-w-[1440px] mx-auto p-8 flex flex-col lg:flex-row gap-8 min-h-screen pb-20">
         
         {/* LEFT SECTION (65%) */}
@@ -202,6 +267,20 @@ export default function Prestige() {
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
             <h1 className="font-display font-bold text-[32px] text-plasma-text-primary leading-none">The Prestige</h1>
             <div className="flex items-center gap-6">
+              <button 
+                onClick={syncAchievements}
+                disabled={syncing}
+                className="px-4 py-2 bg-primary-gradient text-white font-bold text-xs rounded-full shadow-card-glow hover:scale-[1.02] transition-all cursor-pointer flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {syncing ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Syncing...
+                  </>
+                ) : (
+                  "Sync Steam Achievements"
+                )}
+              </button>
               <div className="text-right">
                 {loading ? (
                   <div className="w-24 h-10 rounded bg-plasma-slate-hover animate-pulse" />
@@ -252,7 +331,7 @@ export default function Prestige() {
           </section>
 
           {/* Achievement Tabs */}
-          <div className="mt-8 border-b border-white/5">
+          <div className="mt-8 border-b border-white/5 flex items-center justify-between">
             <div className="flex gap-8">
               {achievementTabs.map((tab) => (
                 <button
@@ -268,6 +347,14 @@ export default function Prestige() {
                 </button>
               ))}
             </div>
+            {activeAchTab === "manual" && (
+              <button 
+                onClick={() => addMilestoneModal.open()}
+                className="pb-3 text-plasma-primary text-sm font-bold hover:text-plasma-secondary transition-colors cursor-pointer flex items-center gap-1"
+              >
+                + Add Milestone
+              </button>
+            )}
           </div>
 
           {/* Achievement Grid */}
@@ -392,6 +479,22 @@ export default function Prestige() {
       <InviteFriendsModal 
         isOpen={inviteModal.isOpen} 
         onClose={inviteModal.close}
+      />
+      <AddMilestoneModal
+        isOpen={addMilestoneModal.isOpen}
+        onClose={addMilestoneModal.close}
+        onAdded={() => {
+          // Trigger a re-fetch of the achievements
+          setActiveAchTab((prev) => {
+            if (prev === "manual") {
+              // Force re-render if already on manual
+              setLoading(true);
+              setTimeout(() => setActiveAchTab("all"), 10);
+              setTimeout(() => setActiveAchTab("manual"), 20);
+            }
+            return prev;
+          });
+        }}
       />
     </DashboardLayout>
   );

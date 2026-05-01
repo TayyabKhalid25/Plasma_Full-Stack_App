@@ -26,34 +26,33 @@ router.post('/sync/steam', authenticateToken, async (req, res) => {
         const games = await getSteamOwnedGames(steamId);
         
         let addedCount = 0;
-        for (const game of games) {
-            const appId = game.appid.toString();
-            // Check if game exists in our global DB
-            const gameCheck = await pool.query('SELECT "appID" FROM "games" WHERE "appID" = $1', [appId]);
-            if (gameCheck.rows.length === 0) {
-                // Upscale art using IGDB Double-Lookup
-                let coverArt = null;
-                if (game.img_icon_url) {
-                    coverArt = `https://media.steampowered.com/steamcommunity/public/images/apps/${appId}/${game.img_icon_url}.jpg`;
-                }
-                const highResCover = await fetchHighResCover(appId);
-                if (highResCover) coverArt = highResCover;
+        if (games && games.length > 0) {
+            addedCount = games.length;
 
-                await pool.query(`
-                    INSERT INTO "games" ("appID", "title", "platform", "coverArtURL")
-                    VALUES ($1, $2, 'STEAM', $3)
-                `, [appId, game.name, coverArt]);
-            }
+            const appIds = games.map(g => g.appid.toString());
+            const titles = games.map(g => g.name);
+            // Use Steam's official high-res grid CDN instead of IGDB, vastly faster and more reliable
+            const coverArts = appIds.map(appId => `https://steamcdn-a.akamaihd.net/steam/apps/${appId}/library_600x900.jpg`);
 
-            // Upsert into library_entries
-            const playtimeHours = (game.playtime_forever / 60).toFixed(2);
+            // Batch insert missing games into the global games table
+            await pool.query(`
+                INSERT INTO "games" ("appID", "title", "platform", "coverArtURL")
+                SELECT id, title, 'STEAM', cover
+                FROM unnest($1::text[], $2::text[], $3::text[]) AS t(id, title, cover)
+                ON CONFLICT ("appID") DO NOTHING
+            `, [appIds, titles, coverArts]);
+
+            // Batch insert/update user library entries
+            const userIds = Array(games.length).fill(req.userId);
+            const hoursPlayed = games.map(g => (g.playtime_forever / 60).toFixed(2));
+
             await pool.query(`
                 INSERT INTO "library_entries" ("userID", "appID", "hoursPlayed")
-                VALUES ($1, $2, $3)
+                SELECT uid, aid, hrs::numeric
+                FROM unnest($1::uuid[], $2::text[], $3::text[]) AS t(uid, aid, hrs)
                 ON CONFLICT ("userID", "appID") DO UPDATE SET
                     "hoursPlayed" = EXCLUDED."hoursPlayed"
-            `, [req.userId, appId, playtimeHours]);
-            addedCount++;
+            `, [userIds, appIds, hoursPlayed]);
         }
 
         res.json({ success: true, message: 'Steam library and profile synced successfully', syncedGames: addedCount });

@@ -120,6 +120,8 @@ export function AuthProvider({ children }) {
   // Logout
   const logout = () => {
     localStorage.removeItem("plasma_token");
+    localStorage.removeItem("plasma_cached_user");
+    localStorage.removeItem("plasma_active_mode");
     setToken(null);
     setUser(null);
     router.push("/");

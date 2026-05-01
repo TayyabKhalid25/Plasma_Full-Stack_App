@@ -6,10 +6,12 @@ const router = express.Router();
 
 // Helper to fetch prestige
 async function fetchPrestige(userId) {
+    const profile = await pool.query(`SELECT "totalPlasmaXP" FROM "profiles" WHERE "plasmaUserID" = $1`, [userId]);
+    const totalPlasmaXP = profile.rows.length > 0 ? parseInt(profile.rows[0].totalPlasmaXP) || 0 : 0;
+
     const summary = await pool.query(`
-        SELECT COUNT(*) as "earned", SUM("plasmaXP") as "totalXP"
+        SELECT COUNT(*) as "earned"
         FROM "user_achievements" ua
-        JOIN "achievements" a ON ua."achievementID" = a."achievementID"
         WHERE ua."userID" = $1
     `, [userId]);
     
@@ -21,7 +23,7 @@ async function fetchPrestige(userId) {
     `, [userId]);
     
     return {
-        totalPlasmaXP: parseInt(summary.rows[0].totalXP) || 0,
+        totalPlasmaXP: totalPlasmaXP,
         unlockedCount: parseInt(summary.rows[0].earned) || 0,
         hallOfFame: hallOfFame.rows
     };
