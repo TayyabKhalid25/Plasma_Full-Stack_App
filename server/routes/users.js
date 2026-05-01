@@ -83,7 +83,10 @@ router.get('/:userId', authenticateToken, async (req, res) => {
         res.json({
             success: true,
             data: {
-                profile: user,
+                profile: {
+                    ...user,
+                    online: isOnline(userId)
+                },
                 isFollowing,
                 isMutual,
                 hallOfFame: hallOfFameResult.rows

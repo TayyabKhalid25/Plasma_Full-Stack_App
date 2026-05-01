@@ -212,7 +212,9 @@ export default function UserProfile({ params }) {
                   <div className={`w-[120px] h-[120px] rounded-full border-[3px] ${getIntentStyle(profileData.intent).border} p-1 bg-plasma-slate overflow-hidden`}>
                     <img src={profileData.avatar} alt="User Profile" className="w-full h-full object-cover rounded-full" />
                   </div>
-                  <div className="absolute bottom-2 right-2 w-5 h-5 rounded-full border-[3px] border-plasma-bg" style={{ backgroundColor: getIntentStyle(profileData.intent).border === 'border-plasma-secondary' ? '#FF2A7A' : getIntentStyle(profileData.intent).border === 'border-slate-500' ? '#94a3b8' : '#2ECC71' }}></div>
+                  {profileData.online && (
+                    <div className="absolute bottom-2 right-2 w-5 h-5 rounded-full border-[3px] border-plasma-bg bg-plasma-success"></div>
+                  )}
                 </div>
                 
                 <div>
