@@ -274,13 +274,16 @@ export const TopNav = () => {
             <div className="absolute top-12 left-0 w-[400px] bg-plasma-slate border border-white/10 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] z-[100] overflow-hidden animate-fade-in">
               <div className="max-h-[480px] overflow-y-auto custom-scrollbar">
                 {searchLoading ? (
-                  <div className="p-6 text-center text-plasma-text-secondary text-xs">Searching...</div>
-                ) : (searchResults.users.length === 0 && searchResults.games.length === 0) ? (
+                  <div className="p-6 text-center text-plasma-text-secondary text-xs flex flex-col items-center gap-3">
+                    <Loader2 className="w-5 h-5 animate-spin text-plasma-primary" />
+                    Searching...
+                  </div>
+                ) : (searchResults.users?.length === 0 && searchResults.games?.length === 0 && searchResults.igdb?.length === 0) ? (
                   <div className="p-6 text-center text-plasma-text-secondary text-xs">No results found for "{searchQuery}"</div>
                 ) : (
                   <>
                     {/* Users Section */}
-                    {searchResults.users.length > 0 && (
+                    {searchResults.users?.length > 0 && (
                       <div className="p-2">
                         <div className="px-3 py-2 text-[10px] font-black text-plasma-text-secondary uppercase tracking-widest">Players</div>
                         {searchResults.users.map(u => (
@@ -303,10 +306,10 @@ export const TopNav = () => {
                       </div>
                     )}
 
-                    {/* Games Section */}
-                    {searchResults.games.length > 0 && (
+                    {/* Local Games Section */}
+                    {searchResults.games?.length > 0 && (
                       <div className="p-2 border-t border-white/5">
-                        <div className="px-3 py-2 text-[10px] font-black text-plasma-text-secondary uppercase tracking-widest">Games</div>
+                        <div className="px-3 py-2 text-[10px] font-black text-plasma-text-secondary uppercase tracking-widest">In Your Library</div>
                         {searchResults.games.map(g => (
                           <Link 
                             key={g.id}
@@ -326,6 +329,35 @@ export const TopNav = () => {
                               <div className="flex items-center gap-2 mt-1">
                                 <span className="text-[10px] font-bold text-plasma-secondary bg-plasma-secondary/10 px-2 py-0.5 rounded-full">{g.platform}</span>
                               </div>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* IGDB Games Section */}
+                    {searchResults.igdb?.length > 0 && (
+                      <div className="p-2 border-t border-white/5">
+                        <div className="px-3 py-2 text-[10px] font-black text-plasma-text-secondary uppercase tracking-widest">Global Database</div>
+                        {searchResults.igdb.map(g => (
+                          <Link 
+                            key={g.id}
+                            href={`/library/igdb-${g.id}`}
+                            onClick={() => setShowSearchDropdown(false)}
+                            className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/5 transition-colors group"
+                          >
+                            <div className="w-10 h-14 rounded-lg bg-plasma-bg border border-white/10 overflow-hidden flex-shrink-0">
+                              {g.cover?.url ? (
+                                <img src={g.cover.url} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-[10px] text-plasma-text-secondary font-bold">GAME</div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-plasma-text-primary truncate group-hover:text-plasma-primary transition-colors">{g.name}</p>
+                              {g.releaseDate && (
+                                <p className="text-[10px] text-plasma-text-secondary mt-0.5">{new Date(g.releaseDate).getFullYear()}</p>
+                              )}
                             </div>
                           </Link>
                         ))}

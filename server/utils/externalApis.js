@@ -131,10 +131,16 @@ async function igdbApiRequest(config, retries = 3, backoff = 1000) {
  */
 async function searchIgdbGames(query) {
     try {
+        // We use a "where name ~" approach instead of "search" because it allows sorting by popularity,
+        // which helps bubble up the "correct" version of a game (e.g. GTA V instead of GTA San Andreas).
+        // We also filter for category 0 (main games) to avoid too many DLCs/Expansions in results.
         const response = await igdbApiRequest({
             url: 'https://api.igdb.com/v4/games',
             method: 'POST',
-            data: `fields name,cover.url,url,platforms,first_release_date; search "${query}"; limit 20;`
+            data: `fields name,cover.url,url,platforms,first_release_date,popularity,summary; 
+                   where (name ~ *"${query}"* | alternative_names.name ~ *"${query}"*) & category = (0,4,8,9,10,11); 
+                   sort popularity desc; 
+                   limit 10;`
         });
         
         // Transform the cover URLs to high-res 1080p and format release dates
