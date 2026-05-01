@@ -100,10 +100,12 @@ export const TopNav = () => {
           setNotifications(data.data.map(n => ({
             id: n.notificationID,
             type: n.notificationType,
-            title: n.senderName ? `${n.senderName} ${n.message}` : n.message,
+            title: n.message,
+            senderName: n.senderName,
             time: new Date(n.sentAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
             read: n.isRead,
             avatar: n.senderAvatar || null,
+            senderID: n.senderID,
           })));
         }
       } catch (err) {
@@ -429,9 +431,44 @@ export const TopNav = () => {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className={`text-xs leading-relaxed ${notif.read ? "text-plasma-text-secondary" : "text-plasma-text-primary"}`}>
+                              {notif.senderName && <span className="font-bold">{notif.senderName} </span>}
                               {notif.title}
                             </p>
                             <p className="text-[10px] text-plasma-text-secondary mt-0.5">{notif.time}</p>
+                            
+                            {/* Quick Accept for Friend Request */}
+                            {notif.type === "FRIEND_REQUEST" && !notif.read && (
+                              <div className="flex items-center gap-2 mt-2">
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    try {
+                                      const res = await fetch(`${API_BASE}/api/users/${notif.senderID}/follow`, {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+                                      });
+                                      if (res.ok) {
+                                        markNotifRead(notif.id);
+                                      }
+                                    } catch (err) {
+                                      console.error("Failed to accept friend request", err);
+                                    }
+                                  }}
+                                  className="px-3 py-1 rounded-lg bg-plasma-primary text-white text-[9px] font-bold hover:opacity-90 transition-opacity cursor-pointer"
+                                >
+                                  Accept
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    markNotifRead(notif.id);
+                                  }}
+                                  className="px-3 py-1 rounded-lg bg-white/5 text-plasma-text-secondary text-[9px] font-bold hover:text-white transition-colors cursor-pointer"
+                                >
+                                  Decline
+                                </button>
+                              </div>
+                            )}
                           </div>
                           {!notif.read && (
                             <div className="w-2 h-2 rounded-full bg-plasma-secondary shrink-0 mt-1" />
