@@ -29,7 +29,7 @@ export default function GameDetailPage({ params }) {
             id: g.appID,
             title: g.title,
             image: g.coverArtURL,
-            platform: g.platform?.toLowerCase(),
+            platform: g.platform === "STEAM" ? "Steam" : "Non-Steam",
             hoursPlayed: g.hoursPlayed || 0,
             lastPlayed: formatLastPlayed(g.lastPlayedAt),
             nowPlaying: g.isCurrentlyPlaying,
