@@ -6,7 +6,7 @@ CREATE TYPE intent_mode AS ENUM ('COMPETITIVE', 'CHILL', 'OFFLINE');
 CREATE TYPE rsvp_status AS ENUM ('PENDING', 'CONFIRMED', 'DECLINED');
 
 -- Platform definitions for The Omni-Library
-CREATE TYPE platform_type AS ENUM ('STEAM', 'RIOT', 'EPIC', 'BATTLE_NET', 'CUSTOM', 'IGDB');
+CREATE TYPE platform_type AS ENUM ('STEAM', 'RIOT', 'EPIC', 'BATTLE_NET', 'NON_STEAM', 'IGDB');
 
 -- Claim States for The Prestige manual milestones
 CREATE TYPE claim_state AS ENUM ('PENDING', 'VERIFIED', 'REJECTED');

@@ -113,7 +113,7 @@ router.post('/manual', authenticateToken, async (req, res) => {
         if (gameCheck.rows.length === 0) {
             await pool.query(`
                 INSERT INTO "games" ("appID", "title", "coverArtURL", "platform", "isManualEntry") 
-                VALUES ($1, $2, $3, 'CUSTOM', TRUE)
+                VALUES ($1, $2, $3, 'NON_STEAM', TRUE)
             `, [gameId, title || 'Unknown Game', coverArtURL]);
         }
 
