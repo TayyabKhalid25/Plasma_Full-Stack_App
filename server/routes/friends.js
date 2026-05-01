@@ -26,8 +26,12 @@ router.get('/', authenticateToken, async (req, res) => {
         `, [userId]);
 
         const friends = { requests: [], online: [], offline: [] };
+        const seen = new Set();
 
         result.rows.forEach(row => {
+            if (seen.has(row.plasmaUserID)) return;
+            seen.add(row.plasmaUserID);
+
             const userObj = { id: row.plasmaUserID, name: row.username, intent: row.intent, avatar: row.avatarURL };
             if (!row.isMutual && row.followerID !== userId) {
                 friends.requests.push(userObj);
@@ -94,6 +98,17 @@ router.post('/request/:targetUserId', authenticateToken, async (req, res) => {
                 WHERE "followerID" = $1 AND "followedID" = $2
             `, [targetUserId, userId]);
         }
+
+        // Create a notification for the target user
+        await pool.query(`
+            INSERT INTO "notifications" ("receiverID", "senderID", "notificationType", "message", "isRead")
+            VALUES ($1, $2, $3, $4, FALSE)
+        `, [
+            targetUserId, 
+            userId, 
+            'FRIEND_REQUEST', 
+            isMutual ? 'accepted your friend request!' : 'sent you a friend request.'
+        ]);
 
         res.status(201).json({ success: true, message: isMutual ? 'Now mutual friends!' : 'Follow request sent' });
 

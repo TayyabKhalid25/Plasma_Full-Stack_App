@@ -14,9 +14,15 @@ router.get('/search', authenticateToken, async (req, res) => {
 
     try {
         const result = await pool.query(`
-            SELECT u."plasmaUserID", u."username", p."avatarURL"
+            SELECT 
+                u."plasmaUserID", 
+                u."username", 
+                p."avatarURL",
+                fr."followID" IS NOT NULL AS "isRequested",
+                fr."isMutual"
             FROM "users" u
             LEFT JOIN "profiles" p ON u."plasmaUserID" = p."plasmaUserID"
+            LEFT JOIN "follow_relationships" fr ON u."plasmaUserID" = fr."followedID" AND fr."followerID" = $2
             WHERE u."username" ILIKE $1 AND u."plasmaUserID" != $2
             LIMIT 10
         `, [`%${q.trim()}%`, req.userId]);

@@ -7,17 +7,36 @@ on:
 jobs:
   test:
     timeout-minutes: 60
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./client
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: plasma
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:password@localhost:5432/plasma
+      JWT_SECRET: testsecret
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
       with:
         node-version: lts/*
     - name: Install dependencies
-      run: npm ci
+      run: |
+        npm install --prefix ..
+        npm install --prefix ../server
+        npm ci
+    - name: Setup Database
+      run: |
+        PGPASSWORD=password psql -h localhost -U postgres -d plasma -f ../plasma_schema.sql
+        cd ../server && node utils/seed-db.js
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
     - name: Run Playwright tests

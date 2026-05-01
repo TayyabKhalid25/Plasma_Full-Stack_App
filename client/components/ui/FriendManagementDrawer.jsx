@@ -13,6 +13,7 @@ export function FriendManagementDrawer({ isOpen, onClose }) {
   const [searching, setSearching] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [actionLoading, setActionLoading] = useState(null);
+  const [sentRequests, setSentRequests] = useState(new Set());
 
   const fetchFriends = async () => {
     if (!token) return;
@@ -66,8 +67,8 @@ export function FriendManagementDrawer({ isOpen, onClose }) {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` }
       });
+      setSentRequests(prev => new Set(prev).add(userId));
       fetchFriends();
-      setSearchQuery("");
     } catch (err) {
       console.error(err);
     } finally {
@@ -139,6 +140,7 @@ export function FriendManagementDrawer({ isOpen, onClose }) {
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-plasma-text-secondary" />
             <input 
+              id="friendSearchInput"
               type="text" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -161,13 +163,18 @@ export function FriendManagementDrawer({ isOpen, onClose }) {
                       <img src={user.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt="" className="w-8 h-8 rounded-full" />
                       <span className="text-sm font-bold text-white">{user.username}</span>
                     </div>
-                    <button 
-                      onClick={() => sendRequest(user.plasmaUserID)}
-                      disabled={actionLoading === user.plasmaUserID}
-                      className="text-[10px] font-bold bg-plasma-primary/20 text-plasma-primary px-3 py-1.5 rounded-lg hover:bg-plasma-primary hover:text-white transition-all disabled:opacity-50"
-                    >
-                      {actionLoading === user.plasmaUserID ? <Loader2 className="w-3 h-3 animate-spin" /> : "Add"}
-                    </button>
+                    {user.isMutual ? (
+                      <span className="text-[10px] font-bold text-plasma-success bg-plasma-success/10 px-3 py-1.5 rounded-lg">Friends</span>
+                    ) : (
+                      <button 
+                        onClick={() => sendRequest(user.plasmaUserID)}
+                        disabled={actionLoading === user.plasmaUserID || sentRequests.has(user.plasmaUserID) || user.isRequested}
+                        className="text-[10px] font-bold bg-plasma-primary/20 text-plasma-primary px-3 py-1.5 rounded-lg hover:bg-plasma-primary hover:text-white transition-all disabled:opacity-50"
+                      >
+                        {actionLoading === user.plasmaUserID ? <Loader2 className="w-3 h-3 animate-spin" /> : 
+                         (sentRequests.has(user.plasmaUserID) || user.isRequested) ? "Sent!" : "Add"}
+                      </button>
+                    )}
                   </div>
                 ))
               ) : (
@@ -321,15 +328,6 @@ export function FriendManagementDrawer({ isOpen, onClose }) {
           )}
         </div>
 
-        {/* Footer Area */}
-        <div className="p-6 border-t border-white/5 bg-plasma-slate">
-          <button 
-            onClick={() => { setActiveTab("all"); setSearchQuery(""); }}
-            className="w-full py-3 bg-primary-gradient text-white rounded-lg font-bold text-sm uppercase tracking-widest hover:shadow-[0_0_15px_rgba(86,56,149,0.4)] transition-all flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <UserPlus className="w-4 h-4" /> Add Friend
-          </button>
-        </div>
       </div>
     </div>
   );

@@ -106,10 +106,10 @@ export const Sidebar = ({ onOpenDrawer }) => {
             )}
 
             {/* Online friends */}
-            {onlineSquad.map((member) => (
+            {onlineSquad.map((member, idx) => (
               <Link
                 href={`/profile/${member.id}`}
-                key={member.id}
+                key={`online-${member.id}-${idx}`}
                 className="flex items-center gap-3 relative self-stretch w-full cursor-pointer hover:opacity-80 transition-opacity"
               >
                 <div className="relative flex-[0_0_auto]">
@@ -131,10 +131,10 @@ export const Sidebar = ({ onOpenDrawer }) => {
             ))}
 
             {/* Offline friends */}
-            {offlineSquad.map((member) => (
+            {offlineSquad.map((member, idx) => (
               <Link
                 href={`/profile/${member.id}`}
-                key={member.id}
+                key={`offline-${member.id}-${idx}`}
                 className="flex items-center gap-3 relative self-stretch w-full cursor-pointer hover:opacity-80 transition-opacity opacity-50 hover:opacity-40"
               >
                 <div className="relative flex-[0_0_auto]">

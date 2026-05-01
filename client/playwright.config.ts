@@ -38,9 +38,16 @@ export default defineConfig({
       dependencies: ['setup'],
     },
   ],
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-  },
+  webServer: [
+    {
+      command: 'npm run dev',
+      url: 'http://localhost:3000',
+      reuseExistingServer: !process.env.CI,
+    },
+    {
+      command: 'npm run dev --prefix ../server',
+      url: 'http://localhost:5000',
+      reuseExistingServer: !process.env.CI,
+    }
+  ],
 });
