@@ -70,6 +70,13 @@ router.get('/:userId', authenticateToken, async (req, res) => {
         const isFollowing = followCheck.rows.length > 0;
         const isMutual = isFollowing ? followCheck.rows[0].isMutual : false;
 
+        // NEW: Check if THEY are following US (incoming request)
+        const followerCheck = await pool.query(`
+            SELECT 1 FROM "follow_relationships"
+            WHERE "followerID" = $1 AND "followedID" = $2
+        `, [userId, loggedInUserId]);
+        const isFollower = followerCheck.rows.length > 0;
+
         // Fetch Hall of Fame
         const hallOfFameResult = await pool.query(`
             SELECT 
@@ -90,6 +97,7 @@ router.get('/:userId', authenticateToken, async (req, res) => {
                 },
                 isFollowing,
                 isMutual,
+                isFollower,
                 hallOfFame: hallOfFameResult.rows
             }
         });
@@ -202,9 +210,21 @@ router.post('/:userId/follow', authenticateToken, async (req, res) => {
                 UPDATE "follow_relationships" SET "isMutual" = TRUE 
                 WHERE "followerID" = $1 AND "followedID" = $2
             `, [userId, followerId]);
+
+            // Notify: Friend Accepted
+            await pool.query(`
+                INSERT INTO "notifications" ("receiverID", "senderID", "notificationType", "message")
+                VALUES ($1, $2, 'FRIEND_ACCEPTED', 'accepted your friend request!')
+            `, [userId, followerId]);
+        } else {
+            // Notify: Friend Request
+            await pool.query(`
+                INSERT INTO "notifications" ("receiverID", "senderID", "notificationType", "message")
+                VALUES ($1, $2, 'FRIEND_REQUEST', 'sent you a friend request!')
+            `, [userId, followerId]);
         }
 
-        res.json({ success: true, message: 'Followed user successfully', isMutual });
+        res.json({ success: true, message: isMutual ? 'Friend request accepted!' : 'Friend request sent!', isMutual });
     } catch (error) {
         console.error('Error following user:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });

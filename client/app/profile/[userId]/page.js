@@ -45,6 +45,7 @@ export default function UserProfile({ params }) {
   const [profileData, setProfileData] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isMutual, setIsMutual] = useState(false);
+  const [isFollower, setIsFollower] = useState(false);
   const [hofData, setHofData] = useState([]);
   const [prestigeData, setPrestigeData] = useState(null);
   
@@ -78,6 +79,7 @@ export default function UserProfile({ params }) {
           });
           setIsFollowing(userData.data.isFollowing);
           setIsMutual(userData.data.isMutual);
+          setIsFollower(userData.data.isFollower);
           setHofData((userData.data.hallOfFame || []).map((item, i) => ({
             id: item.achievementID,
             title: item.title,
@@ -250,8 +252,12 @@ export default function UserProfile({ params }) {
                     : "bg-primary-gradient text-white hover:shadow-card-glow hover:scale-[1.02]"
                 }`}
               >
-                {isFollowing ? (
+                {isMutual ? (
                   <><UserMinus className="w-4 h-4" /> Remove Friend</>
+                ) : isFollowing ? (
+                  <><UserMinus className="w-4 h-4" /> Cancel Request</>
+                ) : isFollower ? (
+                  <><UserPlus className="w-4 h-4" /> Accept Request</>
                 ) : (
                   <><UserPlus className="w-4 h-4" /> Add Friend</>
                 )}

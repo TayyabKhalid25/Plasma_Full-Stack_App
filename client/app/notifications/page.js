@@ -65,6 +65,7 @@ export default function NotificationsPage() {
             read: n.isRead,
             avatar: n.senderAvatar || null,
             senderName: n.senderName,
+            senderID: n.senderID,
           })));
         }
       } catch (err) {
@@ -198,9 +199,47 @@ export default function NotificationsPage() {
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm leading-relaxed ${notif.read ? "text-plasma-text-secondary" : "text-plasma-text-primary"}`}>
+                      {notif.senderName ? (
+                        <span className="font-bold">{notif.senderName} </span>
+                      ) : null}
                       {notif.title}
                     </p>
                     <p className="text-xs text-plasma-text-secondary mt-1">{notif.time}</p>
+                    
+                    {/* Inline Actions for Friend Request */}
+                    {notif.type === "FRIEND_REQUEST" && !notif.read && (
+                      <div className="flex items-center gap-2 mt-3">
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              const res = await fetch(`${API_BASE}/api/users/${notif.senderID}/follow`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+                              });
+                              if (res.ok) {
+                                markRead(notif.id);
+                                // Optionally show success toast
+                              }
+                            } catch (err) {
+                              console.error("Failed to accept friend request", err);
+                            }
+                          }}
+                          className="px-4 py-1.5 rounded-lg bg-plasma-primary text-white text-[10px] font-bold hover:opacity-90 transition-opacity cursor-pointer"
+                        >
+                          Accept
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markRead(notif.id);
+                          }}
+                          className="px-4 py-1.5 rounded-lg bg-plasma-slate-hover text-plasma-text-secondary text-[10px] font-bold hover:text-white transition-colors cursor-pointer"
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Unread dot */}
