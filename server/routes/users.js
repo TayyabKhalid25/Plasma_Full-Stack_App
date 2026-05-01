@@ -18,6 +18,7 @@ router.get('/search', authenticateToken, async (req, res) => {
                 u."plasmaUserID", 
                 u."username", 
                 p."avatarURL",
+                p."isSteamProfilePrivate",
                 fr."followID" IS NOT NULL AS "isRequested",
                 fr."isMutual"
             FROM "users" u
@@ -27,7 +28,15 @@ router.get('/search', authenticateToken, async (req, res) => {
             LIMIT 10
         `, [`%${q.trim()}%`, req.userId]);
 
-        res.json({ success: true, data: result.rows });
+        const mappedUsers = result.rows.map(row => {
+            if (row.isSteamProfilePrivate) {
+                row.steamProfilePrivateError = "User's profile is private";
+            }
+            delete row.isSteamProfilePrivate;
+            return row;
+        });
+
+        res.json({ success: true, data: mappedUsers });
     } catch (error) {
         console.error('Error searching users:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
@@ -49,7 +58,13 @@ router.get('/:userId', authenticateToken, async (req, res) => {
                 u."steamID64",
                 p."avatarURL", 
                 p."bio", 
-                p."totalPlasmaXP"
+                p."totalPlasmaXP",
+                p."steamPersonaName",
+                p."steamProfileURL",
+                p."lastLogoff",
+                p."steamMemberSince",
+                p."countryCode",
+                p."isSteamProfilePrivate"
             FROM "users" u
             LEFT JOIN "profiles" p ON u."plasmaUserID" = p."plasmaUserID"
             WHERE u."plasmaUserID" = $1
@@ -60,6 +75,11 @@ router.get('/:userId', authenticateToken, async (req, res) => {
         }
 
         const user = userResult.rows[0];
+
+        if (user.isSteamProfilePrivate) {
+            user.steamProfilePrivateError = "User's profile is private";
+        }
+        delete user.isSteamProfilePrivate;
 
         // Check mutual follow status
         const followCheck = await pool.query(`

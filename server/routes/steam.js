@@ -20,7 +20,21 @@ router.get('/friends/status', authenticateToken, async (req, res) => {
         if (!steamIds) return res.json({ success: true, data: [] });
         
         const summaries = await getSteamPlayerSummaries(steamIds);
-        res.json({ success: true, data: summaries });
+        
+        const processedSummaries = summaries.map(player => {
+            if (player.communityvisibilitystate !== 3) {
+                return {
+                    steamid: player.steamid,
+                    personaname: player.personaname,
+                    avatarfull: player.avatarfull,
+                    profileurl: player.profileurl,
+                    error: "User's profile is private"
+                };
+            }
+            return player;
+        });
+
+        res.json({ success: true, data: processedSummaries });
     } catch (error) {
         console.error('Error fetching steam statuses:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
@@ -36,9 +50,24 @@ router.get('/player/:steamId64', authenticateToken, async (req, res) => {
         if (!summaries || summaries.length === 0) {
             return res.status(404).json({ success: false, message: 'Player not found on Steam' });
         }
+
+        const player = summaries[0];
+        if (player.communityvisibilitystate !== 3) {
+            return res.status(403).json({ 
+                success: false, 
+                message: "User's profile is private",
+                data: {
+                    steamid: player.steamid,
+                    personaname: player.personaname,
+                    avatarfull: player.avatarfull,
+                    profileurl: player.profileurl
+                }
+            });
+        }
+
         res.json({
             success: true,
-            data: summaries[0]
+            data: player
         });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Internal server error' });
@@ -64,6 +93,9 @@ router.get('/achievements/:appId', authenticateToken, async (req, res) => {
             data: achievements
         });
     } catch (error) {
+        if (error.response && error.response.status === 403) {
+            return res.status(403).json({ success: false, message: "User's profile is private" });
+        }
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
@@ -73,130 +105,45 @@ router.get('/achievements/:appId', authenticateToken, async (req, res) => {
 // Designed to be called by a cron job or manually.
 router.post('/sync/achievements', authenticateToken, async (req, res) => {
     try {
-        // 1. Get user's steamID64
-        const user = await pool.query('SELECT "steamID64" FROM "users" WHERE "plasmaUserID" = $1', [req.userId]);
-        if (user.rows.length === 0 || !user.rows[0].steamID64) {
-            return res.status(400).json({ success: false, message: 'Steam account not linked' });
-        }
-        const steamId = user.rows[0].steamID64;
+        const { syncSteamAchievements } = require('../utils/steamSyncService');
+        const result = await syncSteamAchievements(req.userId);
 
-        // 2. Get all STEAM games in this user's library
-        const libraryResult = await pool.query(`
-            SELECT g."appID" FROM "library_entries" le
-            JOIN "games" g ON le."appID" = g."appID"
-            WHERE le."userID" = $1 AND g."platform" = 'STEAM'
-        `, [req.userId]);
+        if (result.failedGames && result.failedGames.length > 0) {
+            // Enqueue background retries for games that failed due to transient errors
+            // (skip 403 = private profile — retrying won't help)
+            const retryableGames = result.failedGames
+                .filter(g => g.httpStatus !== 403)
+                .map(g => g.appId);
 
-        let totalSynced = 0;
-        let gamesProcessed = 0;
-
-        let newAchievements = [];
-        let newUserAchievements = [];
-        let failedGames = [];
-
-        // Note: we run Steam API requests sequentially to avoid rate limiting
-        for (const row of libraryResult.rows) {
-            const appId = row.appID;
-            try {
-                const achievementData = await getSteamPlayerAchievements(steamId, appId);
-                if (!achievementData || !achievementData.achievements) continue;
-
-                gamesProcessed++; // The game successfully returned an achievement schema
-
-                for (const ach of achievementData.achievements) {
-                    if (ach.achieved !== 1) continue; // Skip unachieved
-
-                    const achievementID = `steam_${appId}_${ach.apiname}`;
-                    const unlockedAt = ach.unlocktime || Math.floor(Date.now() / 1000);
-                    const title = ach.name || ach.apiname;
-
-                    newAchievements.push({ achievementID, appId, title });
-                    newUserAchievements.push({ userID: req.userId, achievementID, unlockedAt });
-                    totalSynced++;
-                }
-            } catch (gameErr) {
-                // Steam returns 400 Bad Request if the app doesn't support stats/achievements
-                if (gameErr.response && gameErr.response.status === 400) {
-                    continue;
-                }
-                // Capture detailed failure info for diagnostics and retry decisions
-                failedGames.push({
-                    appId,
-                    reason: gameErr.message || 'Unknown error',
-                    httpStatus: gameErr.response?.status || null
-                });
-                console.warn(`[Steam] Achievement sync failed for appId ${appId}: HTTP ${gameErr.response?.status || 'N/A'} — ${gameErr.message}`);
+            if (retryableGames.length > 0) {
+                const { enqueueJob } = require('../utils/jobQueue');
+                await enqueueJob('STEAM_ACHIEVEMENT_RETRY', {
+                    userId: req.userId,
+                    appIds: retryableGames
+                }, 5 * 60 * 1000); // Retry in 5 minutes
+                console.log(`[Steam] Enqueued retry for ${retryableGames.length} failed games.`);
             }
-        }
 
-        // Execute bulk inserts if any achievements were found
-        if (newAchievements.length > 0) {
-            const achIds = newAchievements.map(a => a.achievementID);
-            const appIds = newAchievements.map(a => a.appId);
-            const titles = newAchievements.map(a => a.title);
-
-            await pool.query(`
-                INSERT INTO "achievements" ("achievementID", "appID", "title", "rarityWeight", "plasmaXP")
-                SELECT id, app, title, 1.0, 25
-                FROM unnest($1::text[], $2::text[], $3::text[]) AS t(id, app, title)
-                ON CONFLICT ("achievementID") DO NOTHING
-            `, [achIds, appIds, titles]);
-
-            const userIds = newUserAchievements.map(a => a.userID);
-            const uAchIds = newUserAchievements.map(a => a.achievementID);
-            const unlockedAts = newUserAchievements.map(a => a.unlockedAt);
-
-            await pool.query(`
-                INSERT INTO "user_achievements" ("userID", "achievementID", "unlockedAt")
-                SELECT uid, aid, to_timestamp(ts)
-                FROM unnest($1::uuid[], $2::text[], $3::bigint[]) AS t(uid, aid, ts)
-                ON CONFLICT ("userID", "achievementID") DO NOTHING
-            `, [userIds, uAchIds, unlockedAts]);
-        }
-
-        // Update profile XP
-        const xpResult = await pool.query(`
-            SELECT COALESCE(SUM(a."plasmaXP"), 0) as "totalXP"
-            FROM "user_achievements" ua
-            JOIN "achievements" a ON ua."achievementID" = a."achievementID"
-            WHERE ua."userID" = $1
-        `, [req.userId]);
-        
-        await pool.query(`
-            UPDATE "profiles" SET "totalPlasmaXP" = $1 WHERE "plasmaUserID" = $2
-        `, [parseInt(xpResult.rows[0].totalXP) || 0, req.userId]);
-
-        // Enqueue background retries for games that failed due to transient errors
-        // (skip 403 = private profile — retrying won't help)
-        const retryableGames = failedGames
-            .filter(g => g.httpStatus !== 403)
-            .map(g => g.appId);
-
-        if (retryableGames.length > 0) {
-            const { enqueueJob } = require('../utils/jobQueue');
-            await enqueueJob('STEAM_ACHIEVEMENT_RETRY', {
-                userId: req.userId,
-                appIds: retryableGames
-            }, 5 * 60 * 1000); // Retry in 5 minutes
-            console.log(`[Steam] Enqueued retry for ${retryableGames.length} failed games.`);
-        }
-
-        // Check if the profile is private (403 errors on games)
-        const privateProfileErrors = failedGames.filter(g => g.httpStatus === 403);
-        if (privateProfileErrors.length > 0 && gamesProcessed === 0) {
-            return res.status(403).json({ success: false, message: "User's profile is private" });
+            // Check if the profile is private (403 errors on games)
+            const privateProfileErrors = result.failedGames.filter(g => g.httpStatus === 403);
+            if (privateProfileErrors.length > 0 && result.gamesProcessed === 0) {
+                return res.status(403).json({ success: false, message: "User's profile is private" });
+            }
         }
 
         res.json({
             success: true,
-            message: `Synced ${totalSynced} achievements across ${gamesProcessed} games`,
-            syncedAchievements: totalSynced,
-            gamesProcessed,
-            failedGames: failedGames.map(g => g.appId),
-            retriesEnqueued: retryableGames.length
+            message: `Synced ${result.totalSynced} achievements across ${result.gamesProcessed} games`,
+            syncedAchievements: result.totalSynced,
+            gamesProcessed: result.gamesProcessed,
+            failedGames: result.failedGames ? result.failedGames.map(g => g.appId) : [],
+            retriesEnqueued: result.failedGames ? result.failedGames.filter(g => g.httpStatus !== 403).length : 0
         });
     } catch (error) {
         console.error('Achievement Sync Error:', error);
+        if (error.message === 'Steam account not linked') {
+            return res.status(400).json({ success: false, message: error.message });
+        }
         res.status(500).json({ success: false, message: 'Failed to sync achievements' });
     }
 });

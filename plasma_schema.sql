@@ -32,7 +32,14 @@ CREATE TABLE "profiles" (
     "plasmaUserID" UUID UNIQUE NOT NULL REFERENCES "users"("plasmaUserID") ON DELETE CASCADE,
     "bio" TEXT,
     "avatarURL" VARCHAR(255),
-    "totalPlasmaXP" INTEGER DEFAULT 0
+    "totalPlasmaXP" INTEGER DEFAULT 0,
+    -- Steam-synced fields from GetPlayerSummaries
+    "steamPersonaName" VARCHAR(255),
+    "steamProfileURL" VARCHAR(500),
+    "lastLogoff" TIMESTAMP WITH TIME ZONE,
+    "steamMemberSince" TIMESTAMP WITH TIME ZONE,
+    "countryCode" VARCHAR(2),
+    "isSteamProfilePrivate" BOOLEAN DEFAULT false
 );
 
 CREATE TABLE "follow_relationships" (

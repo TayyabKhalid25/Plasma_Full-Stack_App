@@ -17,6 +17,56 @@ const {
 } = require('./externalApis');
 
 /**
+ * Syncs all relevant Steam profile fields from GetPlayerSummaries to the profiles table.
+ * Always syncs public fields (avatar, personaname, profileurl, lastlogoff).
+ * Only syncs private-gated fields (timecreated, loccountrycode) when the profile is public
+ * (communityvisibilitystate === 3).
+ *
+ * @param {string} steamId - The user's SteamID64.
+ * @param {string} userId  - The plasmaUserID (UUID).
+ * @returns {{ synced: boolean, isPrivate: boolean }} Sync result.
+ */
+async function syncSteamProfile(steamId, userId) {
+    const summaries = await getSteamPlayerSummaries(steamId);
+    if (!summaries || summaries.length === 0) {
+        return { synced: false, isPrivate: false };
+    }
+
+    const player = summaries[0];
+
+    // --- Always-public fields (available even on private profiles) ---
+    const avatarURL = player.avatarfull || null;
+    const personaName = player.personaname || null;
+    const profileURL = player.profileurl || null;
+    const lastLogoff = player.lastlogoff
+        ? new Date(player.lastlogoff * 1000)
+        : null;
+
+    // --- Privacy-gated fields (only present when communityvisibilitystate === 3) ---
+    const isPublic = player.communityvisibilitystate === 3;
+    const steamMemberSince = isPublic && player.timecreated
+        ? new Date(player.timecreated * 1000)
+        : null;
+    const countryCode = isPublic && player.loccountrycode
+        ? player.loccountrycode
+        : null;
+
+    await pool.query(`
+        UPDATE "profiles" SET
+            "avatarURL"         = COALESCE($1, "avatarURL"),
+            "steamPersonaName"  = COALESCE($2, "steamPersonaName"),
+            "steamProfileURL"   = COALESCE($3, "steamProfileURL"),
+            "lastLogoff"        = COALESCE($4, "lastLogoff"),
+            "steamMemberSince"  = COALESCE($5, "steamMemberSince"),
+            "countryCode"       = COALESCE($6, "countryCode"),
+            "isSteamProfilePrivate" = $7
+        WHERE "plasmaUserID" = $8
+    `, [avatarURL, personaName, profileURL, lastLogoff, steamMemberSince, countryCode, !isPublic, userId]);
+
+    return { synced: true, isPrivate: !isPublic };
+}
+
+/**
  * Syncs a user's Steam library (profile avatar + owned games).
  * Extracted from the POST /api/library/sync/steam route handler.
  *
@@ -35,14 +85,10 @@ async function syncSteamLibrary(userId) {
     }
     const steamId = user.rows[0].steamID64;
 
-    // 2. Fetch Player Summary (Profile Update)
-    const summaries = await getSteamPlayerSummaries(steamId);
-    if (summaries && summaries.length > 0) {
-        const avatarURL = summaries[0].avatarfull;
-        await pool.query(
-            'UPDATE "profiles" SET "avatarURL" = $1 WHERE "plasmaUserID" = $2',
-            [avatarURL, userId]
-        );
+    // 2. Sync full profile from Steam (avatar, personaName, etc.)
+    const { isPrivate } = await syncSteamProfile(steamId, userId);
+    if (isPrivate) {
+        console.log(`[Steam] User ${userId} has a private profile. Library fetch might return partial/empty data.`);
     }
 
     // 3. Fetch Owned Games (Library Sync)
@@ -101,6 +147,17 @@ async function syncSteamAchievements(userId) {
         throw new Error('Steam account not linked');
     }
     const steamId = user.rows[0].steamID64;
+
+    // 1b. Sync full profile from Steam
+    try {
+        const { isPrivate } = await syncSteamProfile(steamId, userId);
+        if (isPrivate) {
+            console.log(`[Steam] User ${userId} profile is private. Achievements will likely be inaccessible.`);
+        }
+    } catch (profileErr) {
+        // Non-critical: log and continue with achievement sync
+        console.warn('[Steam] Profile sync failed during background achievement sync:', profileErr.message);
+    }
 
     // 2. Get all STEAM games in this user's library
     const libraryResult = await pool.query(`

@@ -40,10 +40,12 @@ router.post('/register', async (req, res) => {
     }
 
     let steamID64;
+    let steamAvatarURL = '';
     try {
         const decoded = jwt.verify(steamToken, process.env.JWT_SECRET);
         if (!decoded.isRegistration) throw new Error('Invalid token');
         steamID64 = decoded.steamID64;
+        steamAvatarURL = decoded.avatarURL || '';
     } catch (err) {
         return res.status(401).json({ success: false, message: 'Invalid or expired Steam linking session' });
     }
@@ -72,11 +74,11 @@ router.post('/register', async (req, res) => {
 
         const user = insertResult.rows[0];
 
-        // 4. Create blank profile using Steam avatar if possible, or placeholder
+        // 4. Create profile with Steam avatar from the registration token
         await pool.query(`
             INSERT INTO "profiles" ("plasmaUserID", "bio", "avatarURL", "totalPlasmaXP")
-            VALUES ($1, 'New to Plasma', '', 0)
-        `, [user.plasmaUserID]);
+            VALUES ($1, 'New to Plasma', $2, 0)
+        `, [user.plasmaUserID, steamAvatarURL]);
 
         // 5. Generate JWT
         const payload = { userId: user.plasmaUserID };
@@ -296,7 +298,12 @@ router.get('/me', authenticateToken, async (req, res) => {
                 u."steamID64",
                 p."avatarURL" AS avatar,
                 p."bio",
-                p."totalPlasmaXP"
+                p."totalPlasmaXP",
+                p."steamPersonaName",
+                p."steamProfileURL",
+                p."lastLogoff",
+                p."steamMemberSince",
+                p."countryCode"
             FROM "users" u
             LEFT JOIN "profiles" p ON u."plasmaUserID" = p."plasmaUserID"
             WHERE u."plasmaUserID" = $1
