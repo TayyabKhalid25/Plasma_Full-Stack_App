@@ -17,8 +17,8 @@ import { useEffect } from "react";
 const sectionNav = [
   { id: "account", label: "Account", icon: User },
   { id: "notifications", label: "Notifications", icon: Bell },
+  { id: "connections", label: "Connections", icon: Link2 },
   { id: "privacy", label: "Privacy", icon: Shield },
-
   { id: "danger", label: "Danger Zone", icon: Trash2 },
 ];
 
@@ -298,7 +298,50 @@ export default function SettingsPage() {
 
 
 
+            {/* Connections */}
+            {activeSection === "connections" && (
+              <section className="bg-plasma-slate rounded-2xl border border-white/5 p-6 animate-fade-in">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="font-display font-bold text-lg text-plasma-text-primary">Connections</h2>
+                  <div className="px-3 py-1 rounded-full bg-[#171a21]/50 border border-[#66c0f4]/20 flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${user?.steamID64 ? "bg-plasma-success shadow-[0_0_8px_#2ecc71]" : "bg-plasma-text-secondary"}`}></div>
+                    <span className="text-[10px] font-bold text-[#66c0f4] uppercase tracking-wider">Steam Engine</span>
+                  </div>
+                </div>
 
+                <div className="p-4 rounded-xl bg-white/5 border border-white/5 mb-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-[#171a21] flex items-center justify-center shrink-0">
+                      <Link2 className="w-5 h-5 text-[#66c0f4]" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-plasma-text-primary">Steam Integration</p>
+                      <p className="text-xs text-plasma-text-secondary mt-1">
+                        Link your Steam account to sync your game library, achievements, and friends automatically.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <SettingRow 
+                  label="SteamID64" 
+                  description={user?.steamID64 ? "Your account is currently linked." : "Enter your 17-digit Steam ID to link."}
+                >
+                  <div className="flex flex-col items-end gap-2">
+                    <input
+                      type="text"
+                      placeholder="76561198..."
+                      value={user?.steamID64 || ""}
+                      readOnly
+                      className="bg-plasma-bg/50 border border-white/10 rounded-lg px-4 py-2 text-sm text-plasma-text-secondary outline-none w-48 cursor-not-allowed"
+                    />
+                    {!user?.steamID64 && (
+                      <p className="text-[10px] text-plasma-primary font-medium italic">Visit your profile to link Steam</p>
+                    )}
+                  </div>
+                </SettingRow>
+              </section>
+            )}
             {/* Danger Zone */}
             {activeSection === "danger" && (
               <section className="bg-plasma-slate rounded-2xl border border-plasma-error/20 p-6 animate-fade-in">
