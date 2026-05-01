@@ -17,6 +17,8 @@ router.get('/', authenticateToken, async (req, res) => {
             SELECT 
                 a."achievementID",
                 a."title" AS "achievementTitle",
+                a."description",
+                a."proofUrl",
                 a."rarityWeight",
                 a."plasmaXP",
                 g."title" AS "gameTitle",
@@ -41,6 +43,8 @@ router.get('/', authenticateToken, async (req, res) => {
             SELECT 
                 a."achievementID",
                 a."title" AS "achievementTitle",
+                a."description",
+                a."proofUrl",
                 a."rarityWeight",
                 a."plasmaXP",
                 ua."unlockedAt",
@@ -72,6 +76,8 @@ router.get('/', authenticateToken, async (req, res) => {
             gamesProgressMap[row.appID].achievements.push({
                 achievementID: row.achievementID,
                 title: row.achievementTitle,
+                description: row.description,
+                proofUrl: row.proofUrl,
                 rarityWeight: row.rarityWeight,
                 plasmaXP: row.plasmaXP,
                 unlockedAt: row.unlockedAt
@@ -104,6 +110,8 @@ router.get('/game/:appID', authenticateToken, async (req, res) => {
             SELECT 
                 a."achievementID",
                 a."title",
+                a."description",
+                a."proofUrl",
                 a."rarityWeight",
                 a."plasmaXP",
                 ua."unlockedAt"

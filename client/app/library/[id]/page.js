@@ -2,7 +2,7 @@
 
 import { use, useState, useEffect, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { ArrowLeft, Clock, Trophy, Users, Play, Calendar, Loader2, Cloud, Gamepad2, Plus } from "lucide-react";
+import { ArrowLeft, Clock, Trophy, Users, Play, Calendar, Loader2, Cloud, Gamepad2, Plus, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth, API_BASE } from "@/context/AuthContext";
@@ -31,6 +31,8 @@ export default function GameDetailPage({ params }) {
         setAchievements(data.data.map(ach => ({
           id: ach.achievementID,
           title: ach.title,
+          description: ach.description,
+          proofUrl: ach.proofUrl,
           xp: `${ach.plasmaXP} XP`,
           unlockedAt: new Date(ach.unlockedAt).toLocaleDateString()
         })));
@@ -264,18 +266,36 @@ export default function GameDetailPage({ params }) {
             {achievements.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {achievements.map((ach) => (
-                  <div key={ach.id} className="flex items-center gap-4 p-4 rounded-2xl bg-plasma-slate/40 border border-white/5 hover:border-plasma-primary/30 transition-all group">
-                    <div className="w-12 h-12 rounded-full bg-plasma-primary/10 flex items-center justify-center shrink-0 border border-plasma-primary/20 group-hover:scale-110 transition-transform">
-                      <Trophy className="w-6 h-6 text-plasma-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-sans font-bold text-sm text-plasma-text-primary truncate">{ach.title}</p>
-                      <div className="flex items-center gap-3 mt-0.5">
-                        <span className="text-[10px] font-mono text-plasma-secondary">{ach.xp}</span>
-                        <span className="w-1 h-1 rounded-full bg-white/10" />
-                        <span className="text-[10px] text-plasma-text-secondary">{ach.unlockedAt}</span>
+                  <div key={ach.id} className="flex flex-col p-4 rounded-2xl bg-plasma-slate/40 border border-white/5 hover:border-plasma-primary/30 transition-all group">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-plasma-primary/10 flex items-center justify-center shrink-0 border border-plasma-primary/20 group-hover:scale-110 transition-transform">
+                        <Trophy className="w-6 h-6 text-plasma-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-sans font-bold text-sm text-plasma-text-primary truncate">{ach.title}</p>
+                        <div className="flex items-center gap-3 mt-0.5">
+                          <span className="text-[10px] font-mono text-plasma-secondary">{ach.xp}</span>
+                          <span className="w-1 h-1 rounded-full bg-white/10" />
+                          <span className="text-[10px] text-plasma-text-secondary">{ach.unlockedAt}</span>
+                        </div>
                       </div>
                     </div>
+                    {ach.description && (
+                      <p className="mt-3 text-xs text-plasma-text-secondary leading-relaxed line-clamp-2 italic">
+                        "{ach.description}"
+                      </p>
+                    )}
+                    {ach.proofUrl && (
+                      <a 
+                        href={ach.proofUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="mt-3 flex items-center gap-1.5 text-[10px] font-bold text-plasma-primary hover:text-plasma-secondary transition-colors group/link"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        VIEW PROOF
+                      </a>
+                    )}
                   </div>
                 ))}
               </div>
