@@ -1,6 +1,7 @@
 import { Inter, Rajdhani, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import { SocketProvider } from "@/context/SocketContext";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -32,7 +33,9 @@ export default function RootLayout({ children }) {
     >
       <body className="min-h-full flex flex-col bg-plasma-bg text-plasma-text-primary" suppressHydrationWarning>
         <AuthProvider>
-          {children}
+          <SocketProvider>
+            {children}
+          </SocketProvider>
         </AuthProvider>
       </body>
     </html>

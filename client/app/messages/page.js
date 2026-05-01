@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
+import { useSocket } from "@/context/SocketContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Send, MessageSquare, Search, ArrowLeft, PlusCircle } from "lucide-react";
 import { useModal } from "@/hooks/useModal";
@@ -38,6 +39,7 @@ function ChatBubbleSkeleton({ isRight }) {
 
 export default function MessagesPage() {
   const { token, user } = useAuth();
+  const { isConnected, lastMessage, sendMessage } = useSocket();
   const [conversations, setConversations] = useState([]);
   const [activeConvId, setActiveConvId] = useState(null);
   const [messageInput, setMessageInput] = useState("");
@@ -45,9 +47,7 @@ export default function MessagesPage() {
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [loadingChat, setLoadingChat] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isConnected, setIsConnected] = useState(false);
   const newMessageModal = useModal();
-  const wsRef = useRef(null);
   const messagesEndRef = useRef(null);
 
   // Scroll to bottom on new messages
@@ -130,123 +130,73 @@ export default function MessagesPage() {
   const activeConvIdRef = useRef(activeConvId);
   useEffect(() => { activeConvIdRef.current = activeConvId; }, [activeConvId]);
 
-  // WebSocket connection — single persistent connection, no reconnect on chat switch
+  // Handle incoming messages from global SocketContext
   useEffect(() => {
-    if (!token) {
-      console.log("WS: Waiting for token...");
-      return;
-    }
-
-    const WS_BASE = API_BASE.replace(/^http/, "ws");
-    const wsUrl = `${WS_BASE}/ws/chat?token=${token}`;
-    console.log("Attempting WS connection to:", wsUrl);
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      console.log("WS: Connection established!");
-      setIsConnected(true);
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-        if (payload.type === "NEW_MESSAGE") {
-          const msg = payload.data;
-          const currentConvId = activeConvIdRef.current;
-          const isCurrentChat = (msg.senderID === currentConvId || msg.receiverID === currentConvId);
-          
-          if (isCurrentChat) {
-            setMessages(prev => {
-              // ... existing deduplication logic ...
-              if (prev.find(m => m.id === msg.messageID)) return prev;
-              const tempIndex = prev.findIndex(m => m.id.startsWith("temp-") && m.text === msg.content);
-              const newMsg = {
-                id: msg.messageID,
-                sender: msg.senderID,
-                text: msg.content,
-                time: new Date(msg.timestampUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              };
-              if (tempIndex !== -1) {
-                const updated = [...prev];
-                updated[tempIndex] = newMsg;
-                return updated;
-              }
-              return [...prev, newMsg];
-            });
-
-            // If we are currently looking at this chat, mark it as read on the server too
-            if (msg.senderID !== user?.id) {
-              fetch(`${API_BASE}/api/messages/${currentConvId}/read`, {
-                method: 'PUT',
-                headers: { Authorization: `Bearer ${token}` }
-              });
-            }
+    if (lastMessage && lastMessage.type === "NEW_MESSAGE") {
+      const msg = lastMessage.data;
+      const currentConvId = activeConvIdRef.current;
+      const isCurrentChat = (msg.senderID === currentConvId || msg.receiverID === currentConvId);
+      
+      if (isCurrentChat) {
+        setMessages(prev => {
+          if (prev.find(m => m.id === msg.messageID)) return prev;
+          const tempIndex = prev.findIndex(m => m.id.startsWith("temp-") && m.text === msg.content);
+          const newMsg = {
+            id: msg.messageID,
+            sender: msg.senderID,
+            text: msg.content,
+            time: new Date(msg.timestampUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          };
+          if (tempIndex !== -1) {
+            const updated = [...prev];
+            updated[tempIndex] = newMsg;
+            return updated;
           }
+          return [...prev, newMsg];
+        });
 
-          // Update conversation list preview and unread counts
-          const contactId = msg.senderID === user?.id ? msg.receiverID : msg.senderID;
-          setConversations(prev => {
-            const exists = prev.find(c => c.id === contactId);
-            if (exists) {
-              return prev.map(c => c.id === contactId
-                ? { 
-                    ...c, 
-                    lastMessage: msg.content, 
-                    lastMessageTime: "Just now",
-                    unread: isCurrentChat ? 0 : (c.unread + 1)
-                  }
-                : c
-              );
-            }
-            return prev;
+        // Mark as read
+        if (msg.senderID !== user?.id) {
+          fetch(`${API_BASE}/api/messages/${currentConvId}/read`, {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${token}` }
           });
         }
-      } catch (err) {
-        console.error("WS parse error:", err);
       }
-    };
 
-    ws.onerror = (err) => {
-      // Ignore errors if the socket is already closing/closed (standard during HMR/navigation)
-      if (ws.readyState === WebSocket.CLOSING || ws.readyState === WebSocket.CLOSED) return;
-      console.error("WS error:", err);
-      setIsConnected(false);
-    };
-
-    ws.onclose = () => {
-      console.log("WS: Connection closed");
-      setIsConnected(false);
-    };
-
-    return () => {
-      ws.close();
-      setIsConnected(false);
-    };
-  }, [token]);
+      // Update conversation list preview
+      const contactId = msg.senderID === user?.id ? msg.receiverID : msg.senderID;
+      setConversations(prev => {
+        const exists = prev.find(c => c.id === contactId);
+        if (exists) {
+          return prev.map(c => c.id === contactId
+            ? { 
+                ...c, 
+                lastMessage: msg.content, 
+                lastMessageTime: "Just now",
+                unread: isCurrentChat ? 0 : (c.unread + 1)
+              }
+            : c
+          );
+        }
+        return prev;
+      });
+    }
+  }, [lastMessage, token, user?.id]);
 
   const activeConv = conversations.find((c) => c.id === activeConvId);
 
   const handleSend = () => {
     if (!messageInput.trim() || !activeConvId) return;
 
-    // Send via WebSocket for real-time delivery
-    const ws = wsRef.current;
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      console.log("WS: Sending message payload...", {
-        type: "SEND_MESSAGE",
-        receiverId: activeConvId,
-        content: messageInput.trim(),
-      });
-      ws.send(JSON.stringify({
-        type: "SEND_MESSAGE",
-        receiverId: activeConvId,
-        content: messageInput.trim(),
-      }));
-    } else {
-      const state = ws ? ws.readyState : "NULL";
-      console.error(`WS: Cannot send, socket is state ${state}. (0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED)`);
-      return; // Don't optimistic append if we can't send
+    const success = sendMessage("SEND_MESSAGE", {
+      receiverId: activeConvId,
+      content: messageInput.trim(),
+    });
+
+    if (!success) {
+      console.error("WS: Failed to send message - Socket not connected");
+      return;
     }
 
     // Optimistic local append (will be deduplicated when WS echoes back)
