@@ -47,6 +47,7 @@ export default function UserProfile({ params }) {
   const [isMutual, setIsMutual] = useState(false);
   const [isFollower, setIsFollower] = useState(false);
   const [hofData, setHofData] = useState([]);
+  const [squad, setSquad] = useState([]);
   const [prestigeData, setPrestigeData] = useState(null);
   
   const [activityPosts, setActivityPosts] = useState([]);
