@@ -131,7 +131,7 @@ async function igdbApiRequest(config, retries = 3, backoff = 1000) {
  */
 async function searchIgdbGames(query) {
     try {
-        const body = `search "${query}"; fields name,cover.url,url,platforms,first_release_date; where category = (0,8,9,10,11); limit 10;`;
+        const body = `search "${query}"; fields name,cover.url,url,platforms,first_release_date,category; limit 20;`;
         
         const response = await igdbApiRequest({
             url: 'https://api.igdb.com/v4/games',
@@ -139,19 +139,31 @@ async function searchIgdbGames(query) {
             data: body
         });
         
-        // Transform the cover URLs to high-res 1080p and format release dates
-        return response.data.map(game => {
-            if (game.cover && game.cover.url) {
-                game.cover.url = game.cover.url.replace('t_thumb', 't_1080p').replace('//', 'https://');
-            }
-            // Convert IGDB Unix timestamp to readable ISO date string
-            if (game.first_release_date) {
-                game.releaseDate = new Date(game.first_release_date * 1000).toISOString().split('T')[0];
-            } else {
-                game.releaseDate = null;
-            }
-            return game;
-        });
+        if (!response.data || !Array.isArray(response.data)) return [];
+
+        console.log(`[IGDB] Found ${response.data.length} raw results for "${query}"`);
+
+        // Filter for actual games (0: Main, 8: Remake, 9: Remaster, 10: Expanded, 11: Port)
+        const allowedCategories = [0, 8, 9, 10, 11];
+        const filtered = response.data.filter(game => allowedCategories.includes(game.category));
+        
+        console.log(`[IGDB] ${filtered.length} results remained after category filtering`);
+
+        return filtered
+            .slice(0, 10) 
+            .map(game => {
+                if (game.cover && game.cover.url) {
+                    game.cover.url = game.cover.url.replace('t_thumb', 't_1080p').replace('//', 'https://');
+                }
+                return {
+                    id: game.id,
+                    name: game.name,
+                    cover: game.cover,
+                    url: game.url,
+                    releaseDate: game.first_release_date ? new Date(game.first_release_date * 1000).toISOString().split('T')[0] : null,
+                    platforms: game.platforms
+                };
+            });
     } catch (error) {
         console.error('[IGDB] Search Error:', error.message);
         throw error;
