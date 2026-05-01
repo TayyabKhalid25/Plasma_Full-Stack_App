@@ -1,11 +1,11 @@
 {
   "info": {
-    "_postman_id": "62b5758f-24f0-406f-a7ef-a407651335bc",
+    "_postman_id": "d2eafd34-1bc0-4809-b64c-1406406fd40a",
     "name": "Combined Plasma APIs — Complete",
     "description": "Unified API Documentation for the Plasma backend. Merges the robust SRS v1.0 IDEAL definitions with the traditional standard routes. Covers Authentication (Steam + Traditional), Social Feed, Games Library, Rallies, Prestige, Notifications, and Direct Messaging.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "54201032",
-    "_collection_link": "https://go.postman.co/collection/54201032-62b5758f-24f0-406f-a7ef-a407651335bc?source=collection_link"
+    "_collection_link": "https://go.postman.co/collection/54201032-d2eafd34-1bc0-4809-b64c-1406406fd40a?source=collection_link"
   },
   "item": [
     {
@@ -38,7 +38,7 @@
                 "register"
               ]
             },
-            "description": "Registers a new user with an email and password. Requires a valid steamToken obtained from the Steam OAuth callback to link the account. Returns a JWT token."
+            "description": "Registers a new user with an email and password. Requires a valid steamToken obtained from the Steam OAuth callback to link the account. Returns a JWT token. This endpoint automatically triggers a background Steam sync for both the game library and achievements."
           },
           "response": []
         },
@@ -54,7 +54,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"email\": \"wahaj@plasma.gg\",\n    \"password\": \"password123\"\n}"
+              "raw": "{\n    \"email\": \"TayyabNibba\",\n    \"password\": \"1234567890\"\n}"
             },
             "url": {
               "raw": "http://localhost:5000/api/auth/login",
@@ -1040,7 +1040,7 @@
                 "steam"
               ]
             },
-            "description": "Triggers a manual re-poll of the Steam Web API to sync the user's owned games and playtime data into the Plasma database."
+            "description": "Triggers an optimized manual sync of the Steam Web API to fetch the user's owned games (including played free games) and playtime. Uses high-performance batch processing with UNNEST and directly links high-resolution Steam CDN cover art (library_600x900.jpg), bypassing IGDB for significantly faster execution."
           },
           "response": []
         },
@@ -1131,7 +1131,7 @@
               "variable": [
                 {
                   "key": "appId",
-                  "value": "570"
+                  "value": "304930"
                 }
               ]
             }
@@ -1145,7 +1145,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
+                "value": "Bearer {{YOUR_TOKEN_HERE}}"
               }
             ],
             "url": {
@@ -1162,7 +1162,7 @@
                 "achievements"
               ]
             },
-            "description": "Syncs Steam achievements for all Steam games in the user's library into the Plasma database. Updates user_achievements table and total profile XP."
+            "description": "Syncs Steam achievements for all Steam games in the user's library. Optimized with high-performance bulk database operations to handle large achievement sets instantly. Updates the profile's totalPlasmaXP directly in the profiles table."
           },
           "response": []
         }
@@ -1505,7 +1505,7 @@
           "response": []
         },
         {
-          "name": "Submit Manual Milestone Claim",
+          "name": "Add Manual Milestone",
           "request": {
             "method": "POST",
             "header": [
@@ -1534,7 +1534,8 @@
                 "prestige",
                 "milestones"
               ]
-            }
+            },
+            "description": "Allows users to manually track achievements and milestones from non-Steam platforms (e.g., Valorant, console games). These milestones contribute to the user's total Plasma XP and can be showcased in the Hall of Fame."
           },
           "response": []
         },
@@ -2017,7 +2018,6 @@
     },
     {
       "name": "9. Direct Messaging (BR-2)",
-      "description": "REST endpoints for managing chat history and inbox state. Real-time message delivery is handled via WebSocket connection at ws://localhost:5000/ws/chat?token={{JWT_TOKEN}}.",
       "item": [
         {
           "name": "Get Inbox (All Conversations)",
@@ -2188,7 +2188,8 @@
           },
           "response": []
         }
-      ]
+      ],
+      "description": "REST endpoints for managing chat history and inbox state. Real-time message delivery is handled via WebSocket connection at ws://localhost:5000/ws/chat?token={{JWT_TOKEN}}."
     }
   ]
 }
