@@ -7,7 +7,7 @@ import { Send, MessageSquare, Search, ArrowLeft, PlusCircle } from "lucide-react
 import { useModal } from "@/hooks/useModal";
 import { NewMessageModal } from "@/components/modals/NewMessageModal";
 
-const WS_BASE = API_BASE.replace(/^http/, "ws");
+
 
 
 // --- SKELETONS ---
@@ -45,6 +45,7 @@ export default function MessagesPage() {
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [loadingChat, setLoadingChat] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isConnected, setIsConnected] = useState(false);
   const newMessageModal = useModal();
   const wsRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -119,10 +120,21 @@ export default function MessagesPage() {
 
   // WebSocket connection — single persistent connection, no reconnect on chat switch
   useEffect(() => {
-    if (!token || !user?.id) return;
+    if (!token) {
+      console.log("WS: Waiting for token...");
+      return;
+    }
 
-    const ws = new WebSocket(`${WS_BASE}/ws/chat?token=${token}`);
+    const WS_BASE = API_BASE.replace(/^http/, "ws");
+    const wsUrl = `${WS_BASE}/ws/chat?token=${token}`;
+    console.log("Attempting WS connection to:", wsUrl);
+    const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
+
+    ws.onopen = () => {
+      console.log("WS: Connection established!");
+      setIsConnected(true);
+    };
 
     ws.onmessage = (event) => {
       try {
@@ -134,14 +146,27 @@ export default function MessagesPage() {
           
           if (isCurrentChat) {
             setMessages(prev => {
-              // Deduplicate
+              // 1. Check if this message (by real ID) already exists
               if (prev.find(m => m.id === msg.messageID)) return prev;
-              return [...prev, {
+
+              // 2. Check if we have an optimistic message with the same content from "Just now"
+              // This is a simple way to "replace" the temp bubble with the real one
+              const tempIndex = prev.findIndex(m => m.id.startsWith("temp-") && m.text === msg.content);
+              
+              const newMsg = {
                 id: msg.messageID,
                 sender: msg.senderID,
                 text: msg.content,
                 time: new Date(msg.timestampUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              }];
+              };
+
+              if (tempIndex !== -1) {
+                const updated = [...prev];
+                updated[tempIndex] = newMsg;
+                return updated;
+              }
+
+              return [...prev, newMsg];
             });
           }
 
@@ -163,12 +188,21 @@ export default function MessagesPage() {
       }
     };
 
-    ws.onerror = (err) => console.error("WS error:", err);
+    ws.onerror = (err) => {
+      console.error("WS error:", err);
+      setIsConnected(false);
+    };
+
+    ws.onclose = () => {
+      console.log("WS: Connection closed");
+      setIsConnected(false);
+    };
 
     return () => {
       ws.close();
+      setIsConnected(false);
     };
-  }, [token, user?.id]);
+  }, [token]);
 
   const activeConv = conversations.find((c) => c.id === activeConvId);
 
@@ -176,12 +210,22 @@ export default function MessagesPage() {
     if (!messageInput.trim() || !activeConvId) return;
 
     // Send via WebSocket for real-time delivery
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      console.log("WS: Sending message payload...", {
+        type: "SEND_MESSAGE",
+        receiverId: activeConvId,
+        content: messageInput.trim(),
+      });
+      ws.send(JSON.stringify({
         type: "SEND_MESSAGE",
         receiverId: activeConvId,
         content: messageInput.trim(),
       }));
+    } else {
+      const state = ws ? ws.readyState : "NULL";
+      console.error(`WS: Cannot send, socket is state ${state}. (0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED)`);
+      return; // Don't optimistic append if we can't send
     }
 
     // Optimistic local append (will be deduplicated when WS echoes back)
@@ -298,13 +342,12 @@ export default function MessagesPage() {
                 <img src={activeConv.friend.avatar} alt="" className="w-9 h-9 rounded-full bg-plasma-slate" />
                 <div>
                   <p className="text-sm font-bold text-plasma-text-primary">{activeConv.friend.name}</p>
-                  <p className="text-[11px] text-plasma-text-secondary">
-                    {activeConv.friend.online ? (
-                      <span className="text-plasma-success">Online</span>
-                    ) : (
-                      "Offline"
-                    )}
-                  </p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? "bg-plasma-success" : "bg-plasma-error animate-pulse"}`} />
+                    <p className="text-[10px] text-plasma-text-secondary uppercase tracking-tight">
+                      {isConnected ? "Connection Stable" : "Reconnecting..."}
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -354,7 +397,7 @@ export default function MessagesPage() {
                   />
                   <button
                     onClick={handleSend}
-                    disabled={!messageInput.trim()}
+                    disabled={!messageInput.trim() || !isConnected}
                     className="w-10 h-10 rounded-full bg-primary-gradient flex items-center justify-center text-white hover:shadow-card-glow transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shrink-0"
                   >
                     <Send className="w-4 h-4" />

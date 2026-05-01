@@ -149,7 +149,7 @@ export const TopNav = () => {
   }, [showNotifDropdown, showProfileDropdown]);
 
   // Resolve display values: prefer live user data, fall back to cached
-  const displayAvatar = user?.avatar || cachedAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=Fallback`;
+  const displayAvatar = user?.avatar || cachedAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id || user?.name || cachedName || 'User'}`;
   const displayName = user?.name || cachedName;
 
   return (

@@ -150,8 +150,8 @@ export const ActivityFeedSection = () => {
           userID: user?.id,
           rawIntent: user?.intent,
           user: {
-            name: user?.name || "You",
-            avatar: user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'You'}`,
+            name: user?.name || "User",
+            avatar: user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id || user?.name || 'User'}`,
           },
           text: data.data.content,
           image: data.data.mediaURL,
@@ -180,7 +180,7 @@ export const ActivityFeedSection = () => {
           <div className="flex items-start gap-4 relative self-stretch w-full">
             <div
               className={`relative shrink-0 w-10 h-10 rounded-full bg-cover bg-center border-2 ${getIntentStyle(user?.intent).border}`}
-              style={{ backgroundImage: `url(${user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'Me'}`})` }}
+              style={{ backgroundImage: `url(${user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id || user?.name || 'User'}`})` }}
             />
             <div className="flex flex-col flex-1 gap-3 w-full">
               <div className="flex items-center justify-center px-4 py-2 relative self-stretch bg-plasma-slate-hover rounded-full">

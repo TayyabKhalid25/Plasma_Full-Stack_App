@@ -9,11 +9,23 @@ function setupWebSocket(server) {
     const wss = new WebSocketServer({ server, path: '/ws/chat' });
 
     wss.on('connection', (ws, req) => {
-        // Extract token from query string: ws://host/ws/chat?token=xxx
-        const url = new URL(req.url, `http://${req.headers.host}`);
-        const token = url.searchParams.get('token');
+        console.log(`WS: Connection attempt from ${req.socket.remoteAddress}`);
+
+        // Safer token extraction using URLSearchParams
+        let token = null;
+        try {
+            const queryIndex = req.url.indexOf('?');
+            if (queryIndex !== -1) {
+                const query = req.url.substring(queryIndex + 1);
+                const params = new URLSearchParams(query);
+                token = params.get('token');
+            }
+        } catch (err) {
+            console.error('WS: Failed to parse query params:', err);
+        }
 
         if (!token) {
+            console.log('WS: Connection rejected - No token');
             ws.close(4001, 'Authentication required');
             return;
         }
@@ -22,7 +34,8 @@ function setupWebSocket(server) {
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             userId = decoded.userId;
-        } catch {
+        } catch (err) {
+            console.log('WS: Connection rejected - Invalid token:', err.message);
             ws.close(4003, 'Invalid token');
             return;
         }
@@ -41,36 +54,49 @@ function setupWebSocket(server) {
 
                 if (msg.type === 'SEND_MESSAGE') {
                     const { receiverId, content } = msg;
-                    if (!receiverId || !content) return;
-
-                    // Persist to database
-                    const result = await pool.query(`
-                        INSERT INTO "direct_messages" ("senderID", "receiverID", "content")
-                        VALUES ($1, $2, $3)
-                        RETURNING "messageID", "senderID", "receiverID", "content", "timestampUTC"
-                    `, [userId, receiverId, content]);
-
-                    const savedMsg = result.rows[0];
-
-                    const payload = JSON.stringify({
-                        type: 'NEW_MESSAGE',
-                        data: savedMsg
-                    });
-
-                    // Send to receiver if online
-                    const receiverSockets = clients.get(receiverId);
-                    if (receiverSockets) {
-                        receiverSockets.forEach(s => {
-                            if (s.readyState === 1) s.send(payload);
-                        });
+                    console.log(`WS: User ${userId} sending message to ${receiverId}`);
+                    
+                    if (!receiverId || !content) {
+                        console.log('WS: Missing receiverId or content');
+                        return;
                     }
 
-                    // Echo back to sender (for multi-tab sync)
-                    const senderSockets = clients.get(userId);
-                    if (senderSockets) {
-                        senderSockets.forEach(s => {
-                            if (s.readyState === 1) s.send(payload);
+                    // Persist to database
+                    try {
+                        const result = await pool.query(`
+                            INSERT INTO "direct_messages" ("senderID", "receiverID", "content")
+                            VALUES ($1, $2, $3)
+                            RETURNING "messageID", "senderID", "receiverID", "content", "timestampUTC"
+                        `, [userId, receiverId, content]);
+
+                        const savedMsg = result.rows[0];
+                        console.log(`WS: Message saved to DB with ID: ${savedMsg.messageID}`);
+
+                        const payload = JSON.stringify({
+                            type: 'NEW_MESSAGE',
+                            data: savedMsg
                         });
+
+                        // Send to receiver if online
+                        const receiverSockets = clients.get(receiverId);
+                        if (receiverSockets) {
+                            console.log(`WS: Sending to receiver ${receiverId} (${receiverSockets.size} sockets)`);
+                            receiverSockets.forEach(s => {
+                                if (s.readyState === 1) s.send(payload);
+                            });
+                        } else {
+                            console.log(`WS: Receiver ${receiverId} is offline`);
+                        }
+
+                        // Echo back to sender
+                        const senderSockets = clients.get(userId);
+                        if (senderSockets) {
+                            senderSockets.forEach(s => {
+                                if (s.readyState === 1) s.send(payload);
+                            });
+                        }
+                    } catch (dbErr) {
+                        console.error('WS: Database error during message save:', dbErr.message);
                     }
                 }
             } catch (err) {
@@ -78,16 +104,22 @@ function setupWebSocket(server) {
             }
         });
 
-        ws.on('close', () => {
+        ws.on('close', (code, reason) => {
             const set = clients.get(userId);
             if (set) {
                 set.delete(ws);
-                if (set.size === 0) clients.delete(userId);
+                const remaining = set.size;
+                if (remaining === 0) {
+                    clients.delete(userId);
+                    console.log(`WS: User ${userId} disconnected (0 connections left)`);
+                } else {
+                    console.log(`WS: User ${userId} closed one connection (${remaining} left)`);
+                }
             }
         });
 
         ws.on('error', (err) => {
-            console.error('WS error:', err);
+            console.error(`WS: Error for user ${userId}:`, err.message);
         });
     });
 

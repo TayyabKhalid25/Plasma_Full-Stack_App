@@ -9,7 +9,8 @@
     "audit_fix:all": "npm audit fix --force && npm audit fix --force --prefix client && npm audit fix --force --prefix server",
     "dev": "concurrently \"npm run dev --prefix client\" \"npm run dev --prefix server\"",
     "client": "npm run dev --prefix client",
-    "server": "npm run dev --prefix server"
+    "server": "npm run dev --prefix server",
+    "decrypt": "npm run decrypt --prefix server"
   },
   "keywords": [],
   "author": "",
