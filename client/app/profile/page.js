@@ -92,7 +92,7 @@ export default function Profile() {
         // Use user from auth context as profile data
         setProfileData({
           username: user.name || user.username,
-          avatar: user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name || user.username}`,
+          avatar: user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name || user.username || 'User'}`,
           bio: user.bio || "",
         });
 
@@ -207,7 +207,7 @@ export default function Profile() {
         {loading ? <ProfileHeaderSkeleton /> : profileData && (
           <header className="relative min-h-[280px] w-full flex items-center px-8 md:px-20 overflow-hidden py-10 md:py-0">
             <div className="absolute inset-0 z-0 bg-plasma-bg">
-              <div className="absolute inset-0 bg-gradient-to-br from-plasma-primary/30 to-plasma-secondary/15 backdrop-blur-3xl"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-plasma-primary/20 to-plasma-secondary/10"></div>
               <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-plasma-bg to-transparent"></div>
             </div>
 
@@ -240,35 +240,37 @@ export default function Profile() {
               </div>
 
               <div className="flex items-center gap-3 shrink-0">
-                {user?.steamID64 && (
-                  <button
-                    onClick={async () => {
-                      const btn = document.getElementById('sync-steam-btn');
-                      if (btn) btn.disabled = true;
-                      try {
-                        const res = await fetch(`${API_BASE}/api/library/sync/steam`, {
-                          method: "POST",
-                          headers: { Authorization: `Bearer ${token}` }
-                        });
-                        const data = await res.json();
-                        if (data.success) {
-                          alert(`Successfully synced ${data.syncedGames} games!`);
-                          window.location.reload();
-                        } else {
-                          alert(data.message || "Sync failed");
-                        }
-                      } catch (err) {
-                        console.error(err);
-                      } finally {
-                        if (btn) btn.disabled = false;
+                <button
+                  onClick={async () => {
+                    if (!user?.steamID64) {
+                      window.location.href = '/settings';
+                      return;
+                    }
+                    const btn = document.getElementById('sync-steam-btn');
+                    if (btn) btn.disabled = true;
+                    try {
+                      const res = await fetch(`${API_BASE}/api/library/sync/steam`, {
+                        method: "POST",
+                        headers: { Authorization: `Bearer ${token}` }
+                      });
+                      const data = await res.json();
+                      if (data.success) {
+                        alert(`Successfully synced ${data.syncedGames} games!`);
+                        window.location.reload();
+                      } else {
+                        alert(data.message || "Sync failed");
                       }
-                    }}
-                    id="sync-steam-btn"
-                    className="flex items-center gap-2 px-6 py-3 rounded-full bg-white/5 border border-white/10 text-white font-bold text-sm transition-all hover:bg-white/10 disabled:opacity-50 cursor-pointer"
-                  >
-                    <Cloud className="w-4 h-4 text-[#66c0f4]" /> Sync Steam
-                  </button>
-                )}
+                    } catch (err) {
+                      console.error(err);
+                    } finally {
+                      if (btn) btn.disabled = false;
+                    }
+                  }}
+                  id="sync-steam-btn"
+                  className="flex items-center gap-2 px-6 py-3 rounded-full bg-white/5 border border-white/10 text-white font-bold text-sm transition-all hover:bg-white/10 disabled:opacity-50 cursor-pointer"
+                >
+                  <Cloud className="w-4 h-4 text-[#66c0f4]" /> {user?.steamID64 ? "Sync Steam" : "Link Steam"}
+                </button>
                 <Link
                   href="/settings"
                   className="flex items-center gap-2 px-8 py-3 rounded-full bg-primary-gradient text-white font-bold text-sm transition-all hover:shadow-card-glow hover:scale-[1.02] shrink-0 cursor-pointer"

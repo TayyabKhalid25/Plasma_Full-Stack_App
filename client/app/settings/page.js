@@ -74,7 +74,7 @@ export default function SettingsPage() {
     if (!user) return;
     setUsername(user.name || user.username || "");
     setEmail(user.email || "");
-    setAvatar(user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name || user.username}`);
+    setAvatar(user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name || user.username || 'User'}`);
     setSteamID64(user.steamID64 || "");
   }, [user]);
 
