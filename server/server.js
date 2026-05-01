@@ -55,6 +55,7 @@ const pulseRoutes = require('./routes/pulse');
 const steamRoutes = require('./routes/steam');
 const libraryRoutes = require('./routes/library');
 const prestigeRoutes = require('./routes/prestige');
+const searchRoutes = require('./routes/search');
 
 // Mount routes under /api prefix for the frontend service layer
 app.use('/api/auth', authRoutes);
@@ -77,6 +78,7 @@ app.use('/api/pulse', pulseRoutes);
 app.use('/api/steam', steamRoutes);
 app.use('/api/library', libraryRoutes);
 app.use('/api/prestige', prestigeRoutes);
+app.use('/api/search', searchRoutes);
 
 const http = require('http');
 const { setupWebSocket } = require('./ws/chatSocket');
