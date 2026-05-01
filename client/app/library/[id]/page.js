@@ -15,6 +15,31 @@ export default function GameDetailPage({ params }) {
   const { token } = useAuth();
   const router = useRouter();
 
+  const [achievements, setAchievements] = useState([]);
+
+  useEffect(() => {
+    const fetchAchievements = async () => {
+      if (!token || !id) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/achievements/game/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setAchievements(data.data.map(ach => ({
+            id: ach.achievementID,
+            title: ach.title,
+            xp: `${ach.plasmaXP} XP`,
+            unlockedAt: new Date(ach.unlockedAt).toLocaleDateString()
+          })));
+        }
+      } catch (err) {
+        console.error("Failed to fetch achievements:", err);
+      }
+    };
+    fetchAchievements();
+  }, [id, token]);
+
   const getHeroImage = (appID, fallbackURL, platform) => {
     if (platform === "STEAM" && appID && !appID.startsWith("custom_") && !appID.startsWith("igdb_")) {
       // Use Steam's official 1920x620 hero banner for the detail page
@@ -129,31 +154,6 @@ export default function GameDetailPage({ params }) {
   }
 
   const friendsPlaying = []; // Placeholder for now
-
-  const [achievements, setAchievements] = useState([]);
-
-  useEffect(() => {
-    const fetchAchievements = async () => {
-      if (!token || !id) return;
-      try {
-        const res = await fetch(`${API_BASE}/api/achievements/game/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (data.success) {
-          setAchievements(data.data.map(ach => ({
-            id: ach.achievementID,
-            title: ach.title,
-            xp: `${ach.plasmaXP} XP`,
-            unlockedAt: new Date(ach.unlockedAt).toLocaleDateString()
-          })));
-        }
-      } catch (err) {
-        console.error("Failed to fetch achievements:", err);
-      }
-    };
-    fetchAchievements();
-  }, [id, token]);
 
   const formatPlaytime = (hours) => {
     if (!hours || hours === 0) return "0m";
