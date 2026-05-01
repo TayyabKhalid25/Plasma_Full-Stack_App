@@ -78,6 +78,7 @@ export default function Profile() {
   const [libraryGames, setLibraryGames] = useState([]);
   const [rallies, setRallies] = useState([]);
   const [hofData, setHofData] = useState([]);
+  const [squad, setSquad] = useState([]);
   const [loadingTab, setLoadingTab] = useState(false);
   const syncModal = useModal();
   const [syncedCount, setSyncedCount] = useState(0);
