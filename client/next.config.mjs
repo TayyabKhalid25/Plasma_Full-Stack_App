@@ -3,11 +3,10 @@ import path from 'path';
 
 const nextConfig = {
   /* config options here */
-  experimental: {
-    turbopack: {
-      root: path.join(process.cwd(), '../'),
-    },
+  turbopack: {
+    root: path.resolve(process.cwd(), '..'),
   },
 };
+
 
 export default nextConfig;
