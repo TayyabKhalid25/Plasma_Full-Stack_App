@@ -48,3 +48,6 @@ next-env.d.ts
 dist/
 .nyc_output
 Thumbs.db
+
+# IGDB token cache (auto-generated, contains access token)
+.igdb_token.json

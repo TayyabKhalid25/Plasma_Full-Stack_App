@@ -1299,7 +1299,8 @@
                                     "value": "valorant"
                                 }
                             ]
-                        }
+                        },
+                        "description": "Searches the IGDB database for games by name. Returns up to 20 results with high-resolution 1080p cover art URLs, platform information, and release dates (ISO format YYYY-MM-DD). Uses the Twitch OAuth token with persistent caching, automatic retry (3x with exponential backoff), and 10s timeouts. Response includes: id (igdb_<id>), title, coverArtURL, releaseDate, url."
                     },
                     "response": []
                 },
@@ -1333,7 +1334,8 @@
                                 "library",
                                 "manual"
                             ]
-                        }
+                        },
+                        "description": "Adds a non-Steam game to the user's Omni-Library. If no coverArtURL is provided, the backend automatically searches IGDB by title and fetches a high-res 1080p cover image. Games are tagged with the NON_STEAM platform type. If the game title already exists as a manual entry, it reuses the existing gameId."
                     },
                     "response": []
                 },

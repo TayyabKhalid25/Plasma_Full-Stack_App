@@ -77,6 +77,7 @@ router.get('/igdb/search', authenticateToken, async (req, res) => {
                 id: `igdb_${game.id}`,
                 title: game.name,
                 coverArtURL: game.cover ? game.cover.url : null,
+                releaseDate: game.releaseDate || null,
                 url: game.url
             }))
         });
@@ -111,6 +112,18 @@ router.post('/manual', authenticateToken, async (req, res) => {
         // 1. Ensure game exists in 'games' table
         const gameCheck = await pool.query(`SELECT "appID" FROM "games" WHERE "appID" = $1`, [gameId]);
         if (gameCheck.rows.length === 0) {
+            // If no cover art provided by the user, attempt to fetch one from IGDB
+            if (!coverArtURL && title) {
+                try {
+                    const igdbResults = await searchIgdbGames(title);
+                    if (igdbResults.length > 0 && igdbResults[0].cover && igdbResults[0].cover.url) {
+                        coverArtURL = igdbResults[0].cover.url;
+                        console.log(`[Library] Auto-fetched IGDB cover art for "${title}"`);
+                    }
+                } catch (igdbErr) {
+                    console.warn(`[Library] IGDB cover lookup failed for "${title}", continuing without cover:`, igdbErr.message);
+                }
+            }
             await pool.query(`
                 INSERT INTO "games" ("appID", "title", "coverArtURL", "platform", "isManualEntry") 
                 VALUES ($1, $2, $3, 'NON_STEAM', TRUE)
