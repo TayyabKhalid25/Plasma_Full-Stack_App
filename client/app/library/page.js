@@ -118,7 +118,23 @@ export default function Library() {
   const togglePlaying = async (gameId, e, currentPlaying) => {
     e.preventDefault();
     e.stopPropagation();
-    setGames((prev) => prev.map((g) => (g.id === gameId ? { ...g, nowPlaying: !currentPlaying } : g)));
+    
+    // Optimistic UI update: 
+    // If we are starting a game, turn off all others.
+    // If we are stopping a game, just turn that one off.
+    const newPlayingStatus = !currentPlaying;
+    
+    setGames((prev) => prev.map((g) => {
+      if (g.id === gameId) {
+        return { ...g, nowPlaying: newPlayingStatus };
+      }
+      if (newPlayingStatus === true) {
+        // If we just started a game, stop all others
+        return { ...g, nowPlaying: false };
+      }
+      return g;
+    }));
+
     try {
       await fetch(`${API_BASE}/api/library/${gameId}/status`, {
         method: "PUT",
@@ -306,7 +322,7 @@ export default function Library() {
                 <span className="w-1 h-1 rounded-full bg-plasma-text-secondary/30"></span>
                 <span>{games.filter(g => g.platform === "steam").length} Steam</span>
                 <span className="w-1 h-1 rounded-full bg-plasma-text-secondary/30"></span>
-                <span>{games.filter(g => g.platform === "non-steam").length} Non-Steam</span>
+                <span>{games.filter(g => g.platform !== "steam").length} Non-Steam</span>
                 <span className="w-1 h-1 rounded-full bg-plasma-text-secondary/30"></span>
                 <span>{games.filter(g => g.nowPlaying).length} Currently Playing</span>
                 <span className="w-1 h-1 rounded-full bg-plasma-text-secondary/30"></span>

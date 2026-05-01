@@ -40,7 +40,7 @@ const intentModes = [
     barTop: "top-[285px]",
   },
   {
-    title: "Casual/Chill",
+    title: "Chill",
     description: "Just vibing. Open to talk, exploring new\nworlds, or completing daily quests at a\nrelaxed pace.",
     icon: "/images/intent-2.png",
     barBg: "bg-[#05966933]",
@@ -49,11 +49,11 @@ const intentModes = [
     barTop: "top-[285px]",
   },
   {
-    title: "LFG",
-    description: "Looking for Group. Need more players for a\nspecific activity or just want to find new\nteammates.",
+    title: "Offline",
+    description: "Currently unavailable to play.",
     icon: "/images/intent-3.png",
-    barBg: "bg-[#ca8a0433]",
-    barFill: "bg-yellow-600 shadow-[0px_0px_10px_#f59e0b]",
+    barBg: "bg-[#0e0e0eff]",
+    barFill: "bg-neutral-600 shadow-[0px_0px_10px_#f59e0b]",
     glowBg: "bg-[#ca8a041a]",
     barTop: "top-[285px]",
   },
@@ -116,10 +116,10 @@ const TopNavBarSubsection = () => {
                 <div className="inline-flex flex-col items-start flex-[0_0_auto]">
                   <Button
                     asChild
-                    className="inline-flex flex-col justify-center px-6 py-5 rounded-full shadow-[0px_0px_20px_rgba(86,56,149,0.3)] bg-primary-gradient items-center flex-[0_0_auto] h-auto border-0 focus-visible:ring-0 hover:opacity-90 transition-all hover:scale-[1.02]"
+                    className="inline-flex flex-col justify-center px-6 py-5 rounded-full shadow-[0px_0px_20px_rgba(86,56,149,0.3)] bg-primary-gradient items-center flex-[0_0_auto] h-13 border-0 focus-visible:ring-0 hover:opacity-90 transition-all hover:scale-[1.02]"
                   >
                     <Link href="/sign-up">
-                      <span className="flex items-center justify-center font-sans font-bold text-white text-sm text-center tracking-[0] leading-5 whitespace-nowrap pt-[2px]">
+                      <span className="flex items-center justify-center font-sans font-bold text-white text-sm text-center tracking-[0] leading-5">
                         Get Started
                       </span>
                     </Link>
