@@ -131,13 +131,10 @@ async function igdbApiRequest(config, retries = 3, backoff = 1000) {
  */
 async function searchIgdbGames(query) {
     try {
-        // We use 'where name ~' instead of 'search' because 'search' results cannot be sorted by popularity.
-        // Sorting by popularity is essential to ensure that the main game (e.g. GTA V) 
-        // appears before its various DLCs or obscure similar titles.
-        const body = `fields name,cover.url,url,platforms,first_release_date,category,popularity; 
-                   where (name ~ *"${query}"* | alternative_names.name ~ *"${query}"*); 
-                   sort popularity desc; 
-                   limit 50;`;
+        // We go back to 'search' command because it's the most reliable way to find games.
+        // We'll fetch 50 results and sort them by popularity in JS since IGDB doesn't allow 
+        // sorting 'search' results directly.
+        const body = `search "${query}"; fields name,cover.url,url,platforms,first_release_date,category,popularity; limit 50;`;
         
         const response = await igdbApiRequest({
             url: 'https://api.igdb.com/v4/games',
@@ -147,17 +144,18 @@ async function searchIgdbGames(query) {
         
         if (!response.data || !Array.isArray(response.data)) return [];
 
-        console.log(`[IGDB] Raw results for "${query}":`, response.data.map(g => ({ name: g.name, cat: g.category, pop: Math.round(g.popularity) })));
-
-        // Filter categories: 
-        // 0: Main, 1: DLC, 2: Expansion Pack, 3: Bundle, 4: Expansion, 5: Standalone, 7: Episode, 
-        // 8: Remake, 9: Remaster, 10: Expanded, 11: Port
+        // Filter and then sort by popularity in JS
         const allowedCategories = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11];
-        const filtered = response.data.filter(game => allowedCategories.includes(game.category));
         
-        console.log(`[IGDB] ${filtered.length} results remained after category filtering`);
+        const filteredAndSorted = response.data
+            .filter(game => allowedCategories.includes(game.category))
+            .sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
 
-        return filtered
+        console.log(`[IGDB] Results for "${query}" (top 15 after JS sorting):`, 
+            filteredAndSorted.slice(0, 15).map(g => ({ name: g.name, cat: g.category, pop: Math.round(g.popularity) }))
+        );
+
+        return filteredAndSorted
             .slice(0, 15) 
             .map(game => {
                 if (game.cover && game.cover.url) {
