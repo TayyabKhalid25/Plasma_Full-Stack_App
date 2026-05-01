@@ -100,10 +100,12 @@ export const TopNav = () => {
           setNotifications(data.data.map(n => ({
             id: n.notificationID,
             type: n.notificationType,
-            title: n.senderName ? `${n.senderName} ${n.message}` : n.message,
+            title: n.message,
+            senderName: n.senderName,
             time: new Date(n.sentAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
             read: n.isRead,
             avatar: n.senderAvatar || null,
+            senderID: n.senderID,
           })));
         }
       } catch (err) {
@@ -180,8 +182,54 @@ export const TopNav = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showNotifDropdown, showProfileDropdown]);
 
+  // Search functionality
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState({ users: [], games: [] });
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const searchDropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (searchQuery.trim().length < 2) {
+      setSearchResults({ users: [], games: [] });
+      setShowSearchDropdown(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSearchLoading(true);
+      setShowSearchDropdown(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(searchQuery)}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setSearchResults(data.data);
+        }
+      } catch (err) {
+        console.error("Search failed:", err);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, token]);
+
+  // Close search dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchDropdownRef.current && !searchDropdownRef.current.contains(e.target)) {
+        setShowSearchDropdown(false);
+      }
+    };
+    if (showSearchDropdown) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showSearchDropdown]);
+
   // Resolve display values: prefer live user data, fall back to cached
-  const displayAvatar = user?.avatar || cachedAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id || user?.name || cachedName || 'User'}`;
+  const displayAvatar = user?.avatar || cachedAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || user?.username || cachedName || 'User'}`;
   const displayName = user?.name || cachedName;
 
   return (
@@ -206,17 +254,88 @@ export const TopNav = () => {
             </svg>
           </Link>
         </div>
-        <div className="inline-flex flex-col items-start relative flex-[0_0_auto]">
-          <div className="w-80 justify-center pl-10 pr-4 py-2.5 flex-[0_0_auto] bg-plasma-slate rounded-full overflow-hidden flex items-start relative">
+        <div className="inline-flex flex-col items-start relative flex-[0_0_auto]" ref={searchDropdownRef}>
+          <div className="w-80 justify-center pl-10 pr-4 py-2.5 flex-[0_0_auto] bg-plasma-slate rounded-full overflow-hidden flex items-start relative border border-transparent focus-within:border-plasma-primary/30 transition-colors">
             <input
-              className="relative grow border-none bg-transparent text-plasma-text-secondary text-sm outline-none"
+              className="relative grow border-none bg-transparent text-plasma-text-primary text-sm outline-none placeholder:text-plasma-text-secondary"
               placeholder="Search players, games..."
               type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => searchQuery.trim().length >= 2 && setShowSearchDropdown(true)}
             />
           </div>
           <div className="inline-flex flex-col items-start absolute top-3 left-4">
             <Search className="w-4 h-4 text-plasma-text-secondary" />
           </div>
+
+          {/* Search Dropdown */}
+          {showSearchDropdown && (
+            <div className="absolute top-12 left-0 w-[400px] bg-plasma-slate border border-white/10 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] z-[100] overflow-hidden animate-fade-in">
+              <div className="max-h-[480px] overflow-y-auto custom-scrollbar">
+                {searchLoading ? (
+                  <div className="p-6 text-center text-plasma-text-secondary text-xs">Searching...</div>
+                ) : (searchResults.users.length === 0 && searchResults.games.length === 0) ? (
+                  <div className="p-6 text-center text-plasma-text-secondary text-xs">No results found for "{searchQuery}"</div>
+                ) : (
+                  <>
+                    {/* Users Section */}
+                    {searchResults.users.length > 0 && (
+                      <div className="p-2">
+                        <div className="px-3 py-2 text-[10px] font-black text-plasma-text-secondary uppercase tracking-widest">Players</div>
+                        {searchResults.users.map(u => (
+                          <Link 
+                            key={u.id}
+                            href={`/profile/${u.id}`}
+                            onClick={() => setShowSearchDropdown(false)}
+                            className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/5 transition-colors group"
+                          >
+                            <img 
+                              src={u.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} 
+                              alt="" 
+                              className="w-8 h-8 rounded-full bg-plasma-bg border border-white/10"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-plasma-text-primary truncate group-hover:text-plasma-primary transition-colors">{u.username}</p>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Games Section */}
+                    {searchResults.games.length > 0 && (
+                      <div className="p-2 border-t border-white/5">
+                        <div className="px-3 py-2 text-[10px] font-black text-plasma-text-secondary uppercase tracking-widest">Games</div>
+                        {searchResults.games.map(g => (
+                          <Link 
+                            key={g.id}
+                            href={`/library/${g.id}`}
+                            onClick={() => setShowSearchDropdown(false)}
+                            className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/5 transition-colors group"
+                          >
+                            <div className="w-10 h-14 rounded-lg bg-plasma-bg border border-white/10 overflow-hidden flex-shrink-0">
+                              {g.coverArtURL ? (
+                                <img src={g.coverArtURL} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-[10px] text-plasma-text-secondary font-bold">GAME</div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-plasma-text-primary truncate group-hover:text-plasma-primary transition-colors">{g.title}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[10px] font-bold text-plasma-secondary bg-plasma-secondary/10 px-2 py-0.5 rounded-full">{g.platform}</span>
+                              </div>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <div className="inline-flex items-center gap-6 relative flex-[0_0_auto]">
@@ -312,9 +431,44 @@ export const TopNav = () => {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className={`text-xs leading-relaxed ${notif.read ? "text-plasma-text-secondary" : "text-plasma-text-primary"}`}>
+                              {notif.senderName && <span className="font-bold">{notif.senderName} </span>}
                               {notif.title}
                             </p>
                             <p className="text-[10px] text-plasma-text-secondary mt-0.5">{notif.time}</p>
+                            
+                            {/* Quick Accept for Friend Request */}
+                            {notif.type === "FRIEND_REQUEST" && !notif.read && (
+                              <div className="flex items-center gap-2 mt-2">
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    try {
+                                      const res = await fetch(`${API_BASE}/api/users/${notif.senderID}/follow`, {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+                                      });
+                                      if (res.ok) {
+                                        markNotifRead(notif.id);
+                                      }
+                                    } catch (err) {
+                                      console.error("Failed to accept friend request", err);
+                                    }
+                                  }}
+                                  className="px-3 py-1 rounded-lg bg-plasma-primary text-white text-[9px] font-bold hover:opacity-90 transition-opacity cursor-pointer"
+                                >
+                                  Accept
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    markNotifRead(notif.id);
+                                  }}
+                                  className="px-3 py-1 rounded-lg bg-white/5 text-plasma-text-secondary text-[9px] font-bold hover:text-white transition-colors cursor-pointer"
+                                >
+                                  Decline
+                                </button>
+                              </div>
+                            )}
                           </div>
                           {!notif.read && (
                             <div className="w-2 h-2 rounded-full bg-plasma-secondary shrink-0 mt-1" />

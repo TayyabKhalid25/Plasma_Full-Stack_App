@@ -3,10 +3,11 @@ import { ModalWrapper } from "../ui/ModalWrapper";
 import { Loader2, Plus, Trophy } from "lucide-react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 
-export function AddMilestoneModal({ isOpen, onClose, onAdded }) {
+export function AddMilestoneModal({ isOpen, onClose, onAdded, gameId }) {
   const { token } = useAuth();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [proofUrl, setProofUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -24,13 +25,19 @@ export function AddMilestoneModal({ isOpen, onClose, onAdded }) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ title: title.trim(), description: description.trim(), category: "manual" })
+        body: JSON.stringify({ 
+          title: title.trim(), 
+          description: description.trim(), 
+          gameId: gameId,
+          proofUrl: proofUrl.trim() 
+        })
       });
 
       const data = await res.json();
       if (data.success) {
         setTitle("");
         setDescription("");
+        setProofUrl("");
         onAdded();
         onClose();
       } else {
@@ -85,8 +92,18 @@ export function AddMilestoneModal({ isOpen, onClose, onAdded }) {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Any extra details..."
-            rows={3}
+            rows={2}
             className="w-full bg-plasma-bg border border-white/10 rounded-lg p-3 text-plasma-text-primary placeholder:text-plasma-text-secondary/50 focus:outline-none focus:border-plasma-primary transition-colors resize-none"
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-plasma-text-secondary">Proof URL (YouTube/Twitch/Screenshot)</label>
+          <input
+            type="url"
+            value={proofUrl}
+            onChange={(e) => setProofUrl(e.target.value)}
+            placeholder="https://..."
+            className="w-full bg-plasma-bg border border-white/10 rounded-lg p-3 text-plasma-text-primary placeholder:text-plasma-text-secondary/50 focus:outline-none focus:border-plasma-primary transition-colors"
           />
         </div>
 

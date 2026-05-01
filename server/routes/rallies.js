@@ -47,10 +47,12 @@ router.get('/upcoming', authenticateToken, async (req, res) => {
                 e."scheduledStartUTC",
                 e."requiredIntent"
             FROM "rally_events" e
+            LEFT JOIN "rsvps" r ON e."eventID" = r."eventID" AND r."userID" = $1
             WHERE e."scheduledStartUTC" > CURRENT_TIMESTAMP
+              AND (e."organizerID" = $1 OR r."status" = 'CONFIRMED')
             ORDER BY e."scheduledStartUTC" ASC
             LIMIT 2
-        `);
+        `, [req.userId]);
 
         res.json({ success: true, data: result.rows });
 

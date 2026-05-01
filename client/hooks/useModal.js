@@ -24,5 +24,6 @@ export function useModal(initialState = false) {
     close,
     toggle,
     modalData,
+    setModalData,
   };
 }

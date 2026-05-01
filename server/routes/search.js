@@ -1,0 +1,56 @@
+const express = require('express');
+const { pool } = require('../config/dbConfig');
+const { authenticateToken } = require('../middleware/authMiddleware');
+
+const router = express.Router();
+
+// GET /api/search
+// Returns combined results for users and games
+router.get('/', authenticateToken, async (req, res) => {
+    const { q } = req.query;
+    if (!q || q.trim().length < 2) {
+        return res.json({ success: true, data: { users: [], games: [] } });
+    }
+
+    const query = `%${q.trim()}%`;
+
+    try {
+        // 1. Search Users
+        const userResults = await pool.query(`
+            SELECT 
+                u."plasmaUserID" AS id, 
+                u."username", 
+                p."avatarURL"
+            FROM "users" u
+            LEFT JOIN "profiles" p ON u."plasmaUserID" = p."plasmaUserID"
+            WHERE u."username" ILIKE $1
+            LIMIT 5
+        `, [query]);
+
+        // 2. Search Games
+        const gameResults = await pool.query(`
+            SELECT 
+                "appID" AS id, 
+                "title", 
+                "coverArtURL", 
+                "platform"
+            FROM "games"
+            WHERE "title" ILIKE $1
+            LIMIT 5
+        `, [query]);
+
+        res.json({
+            success: true,
+            data: {
+                users: userResults.rows,
+                games: gameResults.rows
+            }
+        });
+
+    } catch (error) {
+        console.error('Global search error:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+module.exports = router;

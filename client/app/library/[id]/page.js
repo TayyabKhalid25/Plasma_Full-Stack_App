@@ -1,11 +1,13 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { ArrowLeft, Clock, Trophy, Users, Play, Calendar, Loader2, Cloud, Gamepad2 } from "lucide-react";
+import { ArrowLeft, Clock, Trophy, Users, Play, Calendar, Loader2, Cloud, Gamepad2, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth, API_BASE } from "@/context/AuthContext";
+import { useModal } from "@/hooks/useModal";
+import { AddMilestoneModal } from "@/components/modals/AddMilestoneModal";
 
 export default function GameDetailPage({ params }) {
   const { id } = use(params);
@@ -14,6 +16,33 @@ export default function GameDetailPage({ params }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const { token } = useAuth();
   const router = useRouter();
+  const milestoneModal = useModal();
+
+  const [achievements, setAchievements] = useState([]);
+
+  const fetchAchievements = useCallback(async () => {
+    if (!token || !id) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/achievements/game/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAchievements(data.data.map(ach => ({
+          id: ach.achievementID,
+          title: ach.title,
+          xp: `${ach.plasmaXP} XP`,
+          unlockedAt: new Date(ach.unlockedAt).toLocaleDateString()
+        })));
+      }
+    } catch (err) {
+      console.error("Failed to fetch achievements:", err);
+    }
+  }, [id, token]);
+
+  useEffect(() => {
+    fetchAchievements();
+  }, [fetchAchievements]);
 
   const getHeroImage = (appID, fallbackURL, platform) => {
     if (platform === "STEAM" && appID && !appID.startsWith("custom_") && !appID.startsWith("igdb_")) {
@@ -116,7 +145,7 @@ export default function GameDetailPage({ params }) {
       <DashboardLayout showRightRail={false}>
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6">
           <div className="w-20 h-20 bg-plasma-error/10 rounded-full flex items-center justify-center mb-6">
-             <Trophy className="w-10 h-10 text-plasma-error opacity-50" />
+            <Trophy className="w-10 h-10 text-plasma-error opacity-50" />
           </div>
           <h2 className="font-display font-bold text-2xl text-plasma-text-primary mb-2">Game Not Found</h2>
           <p className="text-plasma-text-secondary text-sm mb-8 max-w-xs">This game isn&apos;t in your collection or may have been removed.</p>
@@ -129,8 +158,6 @@ export default function GameDetailPage({ params }) {
   }
 
   const friendsPlaying = []; // Placeholder for now
-
-  const achievements = []; // Placeholder for now
 
   const formatPlaytime = (hours) => {
     if (!hours || hours === 0) return "0m";
@@ -164,11 +191,10 @@ export default function GameDetailPage({ params }) {
           <div className="absolute bottom-0 left-0 right-0 p-8 flex flex-col md:flex-row items-start md:items-end justify-between gap-6">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-3">
-                <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest border-2 transition-all shadow-2xl ${
-                  game.platform === "Steam" 
-                    ? "bg-[#171a21] text-[#66c0f4] border-[#66c0f4]/30 shadow-blue-500/20" 
+                <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest border-2 transition-all shadow-2xl ${game.platform === "Steam"
+                    ? "bg-[#171a21] text-[#66c0f4] border-[#66c0f4]/30 shadow-blue-500/20"
                     : "bg-[#1a1122] text-plasma-primary border-plasma-primary/40 shadow-plasma-primary/20"
-                }`}>
+                  }`}>
                   {game.platform === "Steam" ? <Cloud className="w-3 h-3 fill-current" /> : <Gamepad2 className="w-3 h-3 fill-current" />}
                   {game.platform}
                 </span>
@@ -186,11 +212,10 @@ export default function GameDetailPage({ params }) {
               </button>
               <button
                 onClick={togglePlaying}
-                className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer ${
-                  isPlaying
+                className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer ${isPlaying
                     ? "bg-plasma-secondary text-white shadow-[0_0_25px_rgba(255,42,122,0.4)]"
                     : "bg-primary-gradient text-white hover:shadow-card-glow hover:scale-[1.02]"
-                }`}
+                  }`}
               >
                 <Play className={`w-4 h-4 ${isPlaying ? "fill-white" : ""}`} />
                 {isPlaying ? "NOW PLAYING" : "Set Playing"}
@@ -203,7 +228,7 @@ export default function GameDetailPage({ params }) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
             { label: "Hours Played", value: formatPlaytime(game.hoursPlayed), icon: Clock },
-            { label: "Achievements", value: "0/0", icon: Trophy },
+            { label: "Achievements", value: `${achievements.length}`, icon: Trophy },
             { label: "Friends Playing", value: "0", icon: Users },
             { label: "Last Played", value: isPlaying ? "Now" : game.lastPlayed, icon: Calendar },
           ].map((stat) => {
@@ -221,27 +246,62 @@ export default function GameDetailPage({ params }) {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Achievements Placeholder */}
           <div className="lg:col-span-2">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display font-bold text-xl text-plasma-text-primary">Achievements</h2>
-              <span className="text-xs text-plasma-text-secondary font-medium">Coming Soon</span>
+              <div className="flex items-center gap-3">
+                <h2 className="font-display font-bold text-xl text-plasma-text-primary">Achievements</h2>
+                <button 
+                  onClick={milestoneModal.open}
+                  className="w-6 h-6 rounded-full bg-plasma-primary/10 border border-plasma-primary/30 flex items-center justify-center text-plasma-primary hover:bg-plasma-primary hover:text-white transition-all cursor-pointer"
+                  title="Add Custom Milestone"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <span className="text-xs text-plasma-text-secondary font-medium">{achievements.length} Unlocked</span>
             </div>
-            <div className="bg-plasma-slate/30 border border-dashed border-white/10 rounded-2xl p-12 text-center">
-              <Trophy className="w-12 h-12 text-plasma-text-secondary/20 mx-auto mb-4" />
-              <p className="text-plasma-text-secondary text-sm">Achievement synchronization for {game.title} is being calibrated.</p>
-            </div>
+
+            {achievements.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {achievements.map((ach) => (
+                  <div key={ach.id} className="flex items-center gap-4 p-4 rounded-2xl bg-plasma-slate/40 border border-white/5 hover:border-plasma-primary/30 transition-all group">
+                    <div className="w-12 h-12 rounded-full bg-plasma-primary/10 flex items-center justify-center shrink-0 border border-plasma-primary/20 group-hover:scale-110 transition-transform">
+                      <Trophy className="w-6 h-6 text-plasma-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-sans font-bold text-sm text-plasma-text-primary truncate">{ach.title}</p>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        <span className="text-[10px] font-mono text-plasma-secondary">{ach.xp}</span>
+                        <span className="w-1 h-1 rounded-full bg-white/10" />
+                        <span className="text-[10px] text-plasma-text-secondary">{ach.unlockedAt}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-plasma-slate/30 border border-dashed border-white/10 rounded-2xl p-12 text-center">
+                <Trophy className="w-12 h-12 text-plasma-text-secondary/20 mx-auto mb-4" />
+                <p className="text-plasma-text-secondary text-sm">No achievements unlocked for {game.title} yet.</p>
+              </div>
+            )}
           </div>
 
           {/* Friends Playing Placeholder */}
           <div>
             <h2 className="font-display font-bold text-xl text-plasma-text-primary mb-4">Activity</h2>
             <div className="bg-plasma-slate/60 backdrop-blur-md rounded-2xl border border-white/5 p-6">
-               <p className="text-sm text-plasma-text-secondary text-center py-8 italic">No recent activity found for this title.</p>
+              <p className="text-sm text-plasma-text-secondary text-center py-8 italic">No recent activity found for this title.</p>
             </div>
           </div>
         </div>
       </div>
+      <AddMilestoneModal 
+        isOpen={milestoneModal.isOpen} 
+        onClose={milestoneModal.close} 
+        onAdded={fetchAchievements} 
+        gameId={id} 
+      />
     </DashboardLayout>
   );
 }

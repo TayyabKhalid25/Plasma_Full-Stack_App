@@ -17,8 +17,8 @@ import { useEffect } from "react";
 const sectionNav = [
   { id: "account", label: "Account", icon: User },
   { id: "notifications", label: "Notifications", icon: Bell },
+  { id: "connections", label: "Connections", icon: Link2 },
   { id: "privacy", label: "Privacy", icon: Shield },
-
   { id: "danger", label: "Danger Zone", icon: Trash2 },
 ];
 
@@ -55,6 +55,7 @@ export default function SettingsPage() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [avatar, setAvatar] = useState("");
+  const [steamID64, setSteamID64] = useState("");
 
   // Settings state
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -68,12 +69,15 @@ export default function SettingsPage() {
   const avatarModal = useModal();
   const dangerModal = useModal();
 
+  const defaultAvatar = (name) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${name || 'User'}`;
+
   // Populate account from auth context user
   useEffect(() => {
     if (!user) return;
     setUsername(user.name || user.username || "");
     setEmail(user.email || "");
-    setAvatar(user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name || user.username}`);
+    setAvatar(user.avatar || defaultAvatar(user.name || user.username));
+    setSteamID64(user.steamID64 || "");
   }, [user]);
 
   // Fetch settings from API
@@ -141,6 +145,7 @@ export default function SettingsPage() {
           body: JSON.stringify({
             username: username || undefined,
             avatarURL: avatar || undefined,
+            steamID64: steamID64 || undefined,
           })
         });
         // Re-fetch user so the context updates globally
@@ -214,7 +219,7 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-6 mb-8">
                   <div className="relative">
                     <img
-                      src={avatar}
+                      src={avatar || defaultAvatar(username)}
                       alt="Avatar"
                       className="w-20 h-20 rounded-full border-2 border-plasma-primary bg-plasma-slate"
                     />
@@ -298,7 +303,50 @@ export default function SettingsPage() {
 
 
 
+            {/* Connections */}
+            {activeSection === "connections" && (
+              <section className="bg-plasma-slate rounded-2xl border border-white/5 p-6 animate-fade-in">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="font-display font-bold text-lg text-plasma-text-primary">Connections</h2>
+                  <div className="px-3 py-1 rounded-full bg-[#171a21]/50 border border-[#66c0f4]/20 flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${user?.steamID64 ? "bg-plasma-success shadow-[0_0_8px_#2ecc71]" : "bg-plasma-text-secondary"}`}></div>
+                    <span className="text-[10px] font-bold text-[#66c0f4] uppercase tracking-wider">Steam Engine</span>
+                  </div>
+                </div>
 
+                <div className="p-4 rounded-xl bg-white/5 border border-white/5 mb-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-[#171a21] flex items-center justify-center shrink-0">
+                      <Link2 className="w-5 h-5 text-[#66c0f4]" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-plasma-text-primary">Steam Integration</p>
+                      <p className="text-xs text-plasma-text-secondary mt-1">
+                        Link your Steam account to sync your game library, achievements, and friends automatically.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <SettingRow 
+                  label="SteamID64" 
+                  description={user?.steamID64 ? "Your account is currently linked." : "Enter your 17-digit Steam ID to link."}
+                >
+                  <div className="flex flex-col items-end gap-2">
+                    <input
+                      type="text"
+                      placeholder="76561198..."
+                      value={steamID64}
+                      onChange={(e) => setSteamID64(e.target.value)}
+                      className="bg-plasma-bg border border-white/10 rounded-lg px-4 py-2 text-sm text-plasma-text-primary outline-none focus:border-plasma-primary transition-colors w-48"
+                    />
+                    {!user?.steamID64 && (
+                      <p className="text-[10px] text-plasma-primary font-medium italic">Click Save below to link</p>
+                    )}
+                  </div>
+                </SettingRow>
+              </section>
+            )}
             {/* Danger Zone */}
             {activeSection === "danger" && (
               <section className="bg-plasma-slate rounded-2xl border border-plasma-error/20 p-6 animate-fade-in">

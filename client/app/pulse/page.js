@@ -97,6 +97,15 @@ export const ActivityFeedSection = () => {
           : p
       )
     );
+
+    // Sync active modal data if open
+    if (commentsModal.isOpen && commentsModal.modalData?.id === postId) {
+      commentsModal.setModalData(prev => ({
+        ...prev,
+        liked: !prev.liked,
+        likes: prev.liked ? prev.likes - 1 : prev.likes + 1
+      }));
+    }
     try {
       await fetch(`${API_BASE}/api/pulse/posts/${postId}/react`, {
         method: "POST",

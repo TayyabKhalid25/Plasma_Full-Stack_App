@@ -46,6 +46,7 @@ router.get('/:userId', authenticateToken, async (req, res) => {
                 u."plasmaUserID", 
                 u."username", 
                 u."intent", 
+                u."steamID64",
                 p."avatarURL", 
                 p."bio", 
                 p."totalPlasmaXP"
@@ -69,6 +70,13 @@ router.get('/:userId', authenticateToken, async (req, res) => {
         const isFollowing = followCheck.rows.length > 0;
         const isMutual = isFollowing ? followCheck.rows[0].isMutual : false;
 
+        // NEW: Check if THEY are following US (incoming request)
+        const followerCheck = await pool.query(`
+            SELECT 1 FROM "follow_relationships"
+            WHERE "followerID" = $1 AND "followedID" = $2
+        `, [userId, loggedInUserId]);
+        const isFollower = followerCheck.rows.length > 0;
+
         // Fetch Hall of Fame
         const hallOfFameResult = await pool.query(`
             SELECT 
@@ -89,6 +97,7 @@ router.get('/:userId', authenticateToken, async (req, res) => {
                 },
                 isFollowing,
                 isMutual,
+                isFollower,
                 hallOfFame: hallOfFameResult.rows
             }
         });
@@ -125,15 +134,20 @@ router.put('/me/intent', authenticateToken, async (req, res) => {
 });
 
 // PUT /api/users/me/profile
-// Sync with Postman: Update username, bio, and avatarURL
+// Sync with Postman: Update username, bio, avatarURL, and steamID64
 router.put('/me/profile', authenticateToken, async (req, res) => {
-    const { username, bio, avatarURL } = req.body;
+    const { username, bio, avatarURL, steamID64 } = req.body;
     const userId = req.userId;
 
     try {
-        // 1. Update username if provided
-        if (username) {
-            await pool.query(`UPDATE "users" SET "username" = $1 WHERE "plasmaUserID" = $2`, [username, userId]);
+        // 1. Update users table (username, steamID64)
+        if (username || steamID64) {
+            await pool.query(`
+                UPDATE "users" 
+                SET "username" = COALESCE($1, "username"),
+                    "steamID64" = COALESCE($2, "steamID64")
+                WHERE "plasmaUserID" = $3
+            `, [username, steamID64, userId]);
         }
 
         // 2. Update bio and avatarURL in profiles table
@@ -196,9 +210,21 @@ router.post('/:userId/follow', authenticateToken, async (req, res) => {
                 UPDATE "follow_relationships" SET "isMutual" = TRUE 
                 WHERE "followerID" = $1 AND "followedID" = $2
             `, [userId, followerId]);
+
+            // Notify: Friend Accepted
+            await pool.query(`
+                INSERT INTO "notifications" ("receiverID", "senderID", "notificationType", "message")
+                VALUES ($1, $2, 'FRIEND_ACCEPTED', 'accepted your friend request!')
+            `, [userId, followerId]);
+        } else {
+            // Notify: Friend Request
+            await pool.query(`
+                INSERT INTO "notifications" ("receiverID", "senderID", "notificationType", "message")
+                VALUES ($1, $2, 'FRIEND_REQUEST', 'sent you a friend request!')
+            `, [userId, followerId]);
         }
 
-        res.json({ success: true, message: 'Followed user successfully', isMutual });
+        res.json({ success: true, message: isMutual ? 'Friend request accepted!' : 'Friend request sent!', isMutual });
     } catch (error) {
         console.error('Error following user:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
