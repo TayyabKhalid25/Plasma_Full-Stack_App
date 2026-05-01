@@ -118,12 +118,34 @@ router.post('/manual', authenticateToken, async (req, res) => {
         }
 
         // 2. Add to library_entries
+        // If starting to play, stop others first
+        if (isCurrentlyPlaying) {
+            const now = new Date();
+            const otherPlaying = await pool.query(
+                'SELECT "appID", "lastPlayedAt" FROM "library_entries" WHERE "userID" = $1 AND "isCurrentlyPlaying" = TRUE AND "appID" != $2',
+                [req.userId, gameId]
+            );
+
+            for (const other of otherPlaying.rows) {
+                const start = new Date(other.lastPlayedAt);
+                const durationHours = Math.max(0, (now - start) / (1000 * 60 * 60));
+                await pool.query(`
+                    UPDATE "library_entries" 
+                    SET "isCurrentlyPlaying" = FALSE, "hoursPlayed" = "hoursPlayed" + $1, "lastPlayedAt" = $2
+                    WHERE "userID" = $3 AND "appID" = $4
+                `, [durationHours, now, req.userId, other.appID]);
+            }
+        }
+
         await pool.query(`
             INSERT INTO "library_entries" ("userID", "appID", "isCurrentlyPlaying", "lastPlayedAt")
             VALUES ($1, $2, COALESCE($3, FALSE), CASE WHEN $3 = TRUE THEN CURRENT_TIMESTAMP ELSE NULL END)
             ON CONFLICT ("userID", "appID") DO UPDATE SET
                 "isCurrentlyPlaying" = EXCLUDED."isCurrentlyPlaying",
-                "lastPlayedAt" = CASE WHEN EXCLUDED."isCurrentlyPlaying" = TRUE THEN CURRENT_TIMESTAMP ELSE "library_entries"."lastPlayedAt" END
+                "lastPlayedAt" = CASE 
+                    WHEN EXCLUDED."isCurrentlyPlaying" = TRUE THEN CURRENT_TIMESTAMP 
+                    ELSE "library_entries"."lastPlayedAt" 
+                END
         `, [req.userId, gameId, isCurrentlyPlaying]);
 
         res.status(201).json({ success: true, message: 'Game added to library' });
