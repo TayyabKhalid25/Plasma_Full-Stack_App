@@ -64,8 +64,8 @@ function setupWebSocket(server) {
             try {
                 const msg = JSON.parse(raw);
 
-                // HEARTBEAT HANDLER
-                if (msg.type === 'PING_PLAYING') {
+                // HEARTBEAT HANDLERS
+                if (msg.type === 'PING' || msg.type === 'PING_PLAYING') {
                     // Stay connected to prevent cleanup
                     return;
                 }

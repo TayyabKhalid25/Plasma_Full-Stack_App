@@ -33,6 +33,13 @@ export const SocketProvider = ({ children }) => {
             setIsConnected(true);
         };
 
+        // General heartbeat to keep 'Online' status fresh
+        const heartbeatInterval = setInterval(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "PING" }));
+            }
+        }, 30000);
+
         ws.onmessage = (event) => {
             try {
                 const payload = JSON.parse(event.data);
@@ -45,6 +52,7 @@ export const SocketProvider = ({ children }) => {
         ws.onclose = () => {
             console.log("WS: Disconnected");
             setIsConnected(false);
+            clearInterval(heartbeatInterval);
         };
 
         ws.onerror = (err) => {
@@ -55,6 +63,7 @@ export const SocketProvider = ({ children }) => {
             if (wsRef.current) {
                 wsRef.current.close();
             }
+            clearInterval(heartbeatInterval);
         };
     }, [token]);
 
