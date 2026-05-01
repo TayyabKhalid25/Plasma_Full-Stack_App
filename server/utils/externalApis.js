@@ -131,7 +131,7 @@ async function igdbApiRequest(config, retries = 3, backoff = 1000) {
  */
 async function searchIgdbGames(query) {
     try {
-        const body = `search "${query}"; fields name,cover.url,url,platforms,first_release_date; where category = (0,4,8,9,10,11); limit 10;`;
+        const body = `search "${query}"; fields name,cover.url,url,platforms,first_release_date; limit 10;`;
         
         console.log('[IGDB] Sending search query:', body);
         
@@ -140,6 +140,8 @@ async function searchIgdbGames(query) {
             method: 'POST',
             data: body
         });
+        
+        console.log('[IGDB] Raw response data:', JSON.stringify(response.data));
         
         // Transform the cover URLs to high-res 1080p and format release dates
         return response.data.map(game => {
