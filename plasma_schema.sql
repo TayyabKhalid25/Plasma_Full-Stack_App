@@ -32,8 +32,7 @@ CREATE TABLE "profiles" (
     "plasmaUserID" UUID UNIQUE NOT NULL REFERENCES "users"("plasmaUserID") ON DELETE CASCADE,
     "bio" TEXT,
     "avatarURL" VARCHAR(255),
-    "totalPlasmaXP" INTEGER DEFAULT 0,
-    "globalRank" INTEGER
+    "totalPlasmaXP" INTEGER DEFAULT 0
 );
 
 CREATE TABLE "follow_relationships" (
@@ -175,4 +174,4 @@ CREATE TABLE "direct_messages" (
     "isLobbyInvite" BOOLEAN DEFAULT FALSE,
     "lobbyLink" VARCHAR(255),
     "timestampUTC" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+);

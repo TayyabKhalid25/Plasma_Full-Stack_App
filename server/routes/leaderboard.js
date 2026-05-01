@@ -16,35 +16,52 @@ router.get('/', authenticateToken, async (req, res) => {
 
         if (scope === 'global') {
             query = `
-                SELECT 
-                    u."plasmaUserID", 
-                    u."username", 
-                    u."intent", 
-                    p."avatarURL", 
-                    p."totalPlasmaXP", 
-                    p."globalRank"
+                WITH ranked_profiles AS (
+                    SELECT
+                        p."plasmaUserID",
+                        p."avatarURL",
+                        p."totalPlasmaXP",
+                        RANK() OVER (ORDER BY p."totalPlasmaXP" DESC NULLS LAST) AS "globalRank"
+                    FROM "profiles" p
+                )
+                SELECT
+                    u."plasmaUserID",
+                    u."username",
+                    u."intent",
+                    rp."avatarURL",
+                    rp."totalPlasmaXP",
+                    rp."globalRank"
                 FROM "users" u
-                JOIN "profiles" p ON u."plasmaUserID" = p."plasmaUserID"
-                ORDER BY p."totalPlasmaXP" DESC NULLS LAST
+                JOIN ranked_profiles rp ON u."plasmaUserID" = rp."plasmaUserID"
+                ORDER BY rp."totalPlasmaXP" DESC NULLS LAST
                 LIMIT 100
             `;
         } else {
             // Friends scope
             query = `
-                SELECT 
-                    u."plasmaUserID", 
-                    u."username", 
-                    u."intent", 
-                    p."avatarURL", 
-                    p."totalPlasmaXP"
+                WITH ranked_profiles AS (
+                    SELECT
+                        p."plasmaUserID",
+                        p."avatarURL",
+                        p."totalPlasmaXP",
+                        RANK() OVER (ORDER BY p."totalPlasmaXP" DESC NULLS LAST) AS "globalRank"
+                    FROM "profiles" p
+                )
+                SELECT
+                    u."plasmaUserID",
+                    u."username",
+                    u."intent",
+                    rp."avatarURL",
+                    rp."totalPlasmaXP",
+                    rp."globalRank"
                 FROM "users" u
-                JOIN "profiles" p ON u."plasmaUserID" = p."plasmaUserID"
+                JOIN ranked_profiles rp ON u."plasmaUserID" = rp."plasmaUserID"
                 WHERE u."plasmaUserID" IN (
                     SELECT "followedID" FROM "follow_relationships" WHERE "followerID" = $1 AND "isMutual" = TRUE
                     UNION
                     SELECT $1::uuid
                 )
-                ORDER BY p."totalPlasmaXP" DESC NULLS LAST
+                ORDER BY rp."totalPlasmaXP" DESC NULLS LAST
             `;
             queryParams = [userId];
         }

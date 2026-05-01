@@ -57,4 +57,32 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/games/trending
+// Returns games currently being played, grouped and ordered by number of people playing
+router.get('/trending', authenticateToken, async (req, res) => {
+    try {
+        const trendingQuery = `
+            SELECT 
+                g."appID",
+                g."title",
+                g."platform",
+                g."coverArtURL",
+                COUNT(l."userID") AS "currentlyPlayingCount"
+            FROM "library_entries" l
+            JOIN "games" g ON l."appID" = g."appID"
+            WHERE l."isCurrentlyPlaying" = TRUE
+            GROUP BY g."appID", g."title", g."platform", g."coverArtURL"
+            ORDER BY "currentlyPlayingCount" DESC, g."title" ASC
+        `;
+        const result = await pool.query(trendingQuery);
+        res.json({
+            success: true,
+            data: result.rows
+        });
+    } catch (error) {
+        console.error('Error fetching trending games:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
 module.exports = router;

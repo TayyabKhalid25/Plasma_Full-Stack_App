@@ -39,7 +39,8 @@ router.post('/sync/steam', authenticateToken, async (req, res) => {
                 INSERT INTO "games" ("appID", "title", "platform", "coverArtURL")
                 SELECT id, title, 'STEAM', cover
                 FROM unnest($1::text[], $2::text[], $3::text[]) AS t(id, title, cover)
-                ON CONFLICT ("appID") DO NOTHING
+                ON CONFLICT ("appID") DO UPDATE SET
+                    "coverArtURL" = EXCLUDED."coverArtURL"
             `, [appIds, titles, coverArts]);
 
             // Batch insert/update user library entries

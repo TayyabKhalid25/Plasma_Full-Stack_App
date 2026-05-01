@@ -36,12 +36,12 @@ async function seedDatabase() {
         // 3. Insert Profiles
         console.log('🖼️ Inserting Profiles...');
         const profileQuery = `
-            INSERT INTO "profiles" ("plasmaUserID", "avatarURL", "totalPlasmaXP", "globalRank") VALUES
-            ($1, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Me', 12450, 42),
-            ($2, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ahmed', 15200, 1),
-            ($3, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', 14800, 2),
-            ($4, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ali', 5000, 100),
-            ($5, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Omar', 3000, 500)
+            INSERT INTO "profiles" ("plasmaUserID", "avatarURL", "totalPlasmaXP") VALUES
+            ($1, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Me', 12450),
+            ($2, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ahmed', 15200),
+            ($3, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', 14800),
+            ($4, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ali', 5000),
+            ($5, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Omar', 3000)
         `;
         await pool.query(profileQuery, [users['Wahaj'], users['Ahmed'], users['Sarah'], users['Ali'], users['Omar']]);
 

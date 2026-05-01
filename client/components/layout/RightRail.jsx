@@ -1,9 +1,54 @@
 "use client";
 
-import { trendingGames, upcomingRallies, currentUser } from "@/data/dummy";
+import { useEffect, useState } from "react";
+
 import Link from "next/link";
 
 export const RightRail = () => {
+  const [trendingGames, setTrendingGames] = useState([]);
+  const [upcomingRallies, setUpcomingRallies] = useState([]);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchTrending() {
+      try {
+        const token = typeof window !== "undefined" ? localStorage.getItem("plasma_token") : null;
+        const res = await fetch("http://localhost:5000/api/games/trending", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const data = await res.json();
+        if (data.success) setTrendingGames(data.data);
+      } catch {}
+    }
+    async function fetchRallies() {
+      try {
+        const token = typeof window !== "undefined" ? localStorage.getItem("plasma_token") : null;
+        const res = await fetch("http://localhost:5000/api/rallies/upcoming", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const data = await res.json();
+        if (data.success) setUpcomingRallies(data.data);
+      } catch {}
+    }
+    async function fetchUser() {
+      try {
+        const token = typeof window !== "undefined" ? localStorage.getItem("plasma_token") : null;
+        const res = await fetch("http://localhost:5000/api/prestige/me", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const data = await res.json();
+        if (data.success) setUser(data.data);
+      } catch {}
+    }
+    setLoading(true);
+    Promise.all([
+      fetchTrending(),
+      fetchRallies(),
+      fetchUser(),
+    ]).finally(() => setLoading(false));
+  }, []);
+
   return (
     <div className="flex flex-col w-[280px] h-[calc(100vh-64px)] items-start gap-6 px-6 py-8 fixed top-16 right-0 overflow-y-auto custom-scrollbar bg-transparent">
       {/* Trending */}
@@ -12,22 +57,26 @@ export const RightRail = () => {
           TRENDING IN SQUAD
         </div>
         <div className="flex flex-col items-start gap-4 relative self-stretch w-full">
-          {trendingGames.map((game) => (
-            <div key={game.name} className="flex items-center justify-between w-full cursor-pointer hover:opacity-80 transition-opacity">
-              <div className="flex items-center gap-3">
-                <div 
-                  className="flex w-8 h-8 items-center justify-center rounded-xl"
-                  style={{ backgroundColor: game.bgColor }}
-                >
-                  <span className="font-sans font-bold text-white text-[10px]">{game.initials}</span>
+          {loading ? (
+            <span className="text-xs text-plasma-text-secondary">Loading...</span>
+          ) : (
+            trendingGames.map((game) => (
+              <div key={game.appID || game.name} className="flex items-center justify-between w-full cursor-pointer hover:opacity-80 transition-opacity">
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="flex w-8 h-8 items-center justify-center rounded-xl"
+                    style={{ backgroundColor: game.bgColor || '#563895' }}
+                  >
+                    <span className="font-sans font-bold text-white text-[10px]">{game.initials || (game.title ? game.title.slice(0,2).toUpperCase() : "")}</span>
+                  </div>
+                  <span className="font-sans font-semibold text-plasma-text-primary text-xs">{game.title || game.name}</span>
                 </div>
-                <span className="font-sans font-semibold text-plasma-text-primary text-xs">{game.name}</span>
+                <div className="px-2 py-0.5 bg-plasma-slate-hover rounded-2xl">
+                  <span className="font-sans font-bold text-plasma-secondary text-[10px]">{game.currentlyPlayingCount || game.count}</span>
+                </div>
               </div>
-              <div className="px-2 py-0.5 bg-plasma-slate-hover rounded-2xl">
-                <span className="font-sans font-bold text-plasma-secondary text-[10px]">{game.count}</span>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 
@@ -37,17 +86,21 @@ export const RightRail = () => {
           UPCOMING RALLIES
         </div>
         <div className="flex flex-col items-start gap-4 relative self-stretch w-full">
-          {upcomingRallies.map((rally) => (
-            <Link 
-              key={rally.title}
-              href="/rally"
-              className="flex flex-col gap-1 pl-3 border-l-2 cursor-pointer hover:opacity-80 transition-opacity"
-              style={{ borderColor: rally.borderColor }}
-            >
-              <span className="font-sans font-bold text-plasma-text-primary text-xs">{rally.title}</span>
-              <span className="font-sans text-plasma-text-secondary text-[10px]">{rally.time}</span>
-            </Link>
-          ))}
+          {loading ? (
+            <span className="text-xs text-plasma-text-secondary">Loading...</span>
+          ) : (
+            upcomingRallies.map((rally) => (
+              <Link 
+                key={rally.eventID || rally.title}
+                href="/rally"
+                className="flex flex-col gap-1 pl-3 border-l-2 cursor-pointer hover:opacity-80 transition-opacity"
+                style={{ borderColor: rally.borderColor || '#563895' }}
+              >
+                <span className="font-sans font-bold text-plasma-text-primary text-xs">{rally.title}</span>
+                <span className="font-sans text-plasma-text-secondary text-[10px]">{rally.time || rally.scheduledStartUTC}</span>
+              </Link>
+            ))
+          )}
         </div>
       </div>
 
@@ -58,14 +111,14 @@ export const RightRail = () => {
         </div>
         <div className="flex flex-col gap-2 w-full z-10">
           <div className="bg-primary-gradient bg-clip-text text-transparent font-mono font-bold text-xl">
-            {currentUser.stats.xp} XP
+            {loading || !user ? "..." : `${user.stats?.xp || user.totalPlasmaXP || 0} XP`}
           </div>
           <div className="flex items-center justify-between w-full gap-4">
             <div className="flex-1 h-1 bg-plasma-slate-hover rounded-full overflow-hidden">
               <div className="w-[65%] h-full bg-plasma-primary shadow-[0px_0px_8px_#563895]" />
             </div>
             <div className="px-2 py-0.5 bg-plasma-primary rounded-full">
-              <span className="font-sans font-bold text-white text-[10px]">RANK #{currentUser.stats.globalRank}</span>
+              <span className="font-sans font-bold text-white text-[10px]">RANK #{loading || !user ? "..." : (user.stats?.globalRank || user.globalRank || "-")}</span>
             </div>
           </div>
         </div>
