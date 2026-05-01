@@ -95,28 +95,28 @@ async function getIgdbToken(forceRefresh = false) {
  * and automatic token refresh on 401 Unauthorized.
  */
 async function igdbApiRequest(config, retries = 3, backoff = 1000) {
-    // Ensure we have a valid token
-    const token = await getIgdbToken();
-    config.headers = {
-        ...config.headers,
-        'Client-ID': IGDB_CLIENT_ID,
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'text/plain',
-    };
-    config.timeout = config.timeout || 10000;
-
     try {
-        const response = await axios(config);
+        const token = await getIgdbToken();
+        const response = await axios({
+            ...config,
+            headers: {
+                ...config.headers,
+                'Client-ID': process.env.IGDB_CLIENT_ID,
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'text/plain'
+            }
+        });
         return response;
     } catch (error) {
-        // If we get a 401, the token is stale — force-refresh and retry once
         if (error.response && error.response.status === 401) {
-            console.warn('[IGDB] Received 401 Unauthorized, refreshing token...');
-            const freshToken = await getIgdbToken(true);
-            config.headers['Authorization'] = `Bearer ${freshToken}`;
-            return axios(config);
+            igdbToken = null;
+            if (retries > 0) return igdbApiRequest(config, retries - 1, backoff);
         }
-        // For other errors, retry with backoff
+        
+        if (error.response && error.response.data) {
+            console.error('[IGDB] API Error Data:', JSON.stringify(error.response.data));
+        }
+
         if (retries > 0) {
             console.log(`[IGDB] Request failed, retrying in ${backoff}ms... (${retries} retries left)`);
             await new Promise(resolve => setTimeout(resolve, backoff));
@@ -131,10 +131,9 @@ async function igdbApiRequest(config, retries = 3, backoff = 1000) {
  */
 async function searchIgdbGames(query) {
     try {
-        // We go back to 'search' command because it's the most reliable way to find games.
-        // We'll fetch 50 results and sort them by popularity in JS since IGDB doesn't allow 
-        // sorting 'search' results directly.
-        const body = `search "${query}"; fields name,cover.url,url,platforms,first_release_date,category,popularity; limit 50;`;
+        // Reordering fields to the front and removing newlines.
+        // IGDB v4 can be sensitive to the order of commands.
+        const body = `fields name,cover.url,url,platforms,first_release_date,category,popularity; search "${query}"; limit 50;`;
         
         const response = await igdbApiRequest({
             url: 'https://api.igdb.com/v4/games',
@@ -144,11 +143,16 @@ async function searchIgdbGames(query) {
         
         if (!response.data || !Array.isArray(response.data)) return [];
 
+        // Debug: Log the first raw result to see field names
+        if (response.data.length > 0) {
+            console.log(`[IGDB] Sample result fields:`, Object.keys(response.data[0]));
+        }
+
         // Filter and then sort by popularity in JS
         const allowedCategories = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11];
         
         const filteredAndSorted = response.data
-            .filter(game => allowedCategories.includes(game.category))
+            .filter(game => game.category !== undefined && allowedCategories.includes(game.category))
             .sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
 
         console.log(`[IGDB] Results for "${query}" (top 15 after JS sorting):`, 
