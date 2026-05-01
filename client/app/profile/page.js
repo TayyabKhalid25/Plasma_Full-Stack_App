@@ -9,6 +9,9 @@ import {
 import Link from "next/link";
 import { getIntentStyle } from "@/lib/intentStyles";
 
+import { useModal } from "@/hooks/useModal";
+import { SyncSuccessModal } from "@/components/modals/SyncSuccessModal";
+
 const iconMap = { Trophy, Swords, Shield, Target, Medal };
 
 
@@ -76,6 +79,8 @@ export default function Profile() {
   const [rallies, setRallies] = useState([]);
   const [hofData, setHofData] = useState([]);
   const [loadingTab, setLoadingTab] = useState(false);
+  const syncModal = useModal();
+  const [syncedCount, setSyncedCount] = useState(0);
 
   // Fetch profile + prestige on mount
   useEffect(() => {
@@ -255,8 +260,8 @@ export default function Profile() {
                       });
                       const data = await res.json();
                       if (data.success) {
-                        alert(`Successfully synced ${data.syncedGames} games!`);
-                        window.location.reload();
+                        setSyncedCount(data.syncedGames || 0);
+                        syncModal.open();
                       } else {
                         alert(data.message || "Sync failed");
                       }
