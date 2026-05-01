@@ -9,6 +9,7 @@ export const SocketProvider = ({ children }) => {
     const { token, user } = useAuth();
     const [isConnected, setIsConnected] = useState(false);
     const [lastMessage, setLastMessage] = useState(null);
+    const [reconnectCount, setReconnectCount] = useState(0);
     const wsRef = useRef(null);
 
     useEffect(() => {
@@ -21,24 +22,46 @@ export const SocketProvider = ({ children }) => {
             return;
         }
 
-        const WS_BASE = API_BASE.replace(/^http/, "ws");
-        const wsUrl = `${WS_BASE}/ws/chat?token=${token}`;
+        // Construct WebSocket URL safely
+        let wsUrl;
+        try {
+            const base = API_BASE.startsWith('http') 
+                ? API_BASE 
+                : typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000';
+            
+            const isSecure = base.startsWith('https');
+            const wsProtocol = isSecure ? "wss:" : "ws:";
+            const host = base.replace(/^https?:\/\//, "");
+            wsUrl = `${wsProtocol}//${host}/ws/chat?token=${token}`;
+        } catch (err) {
+            console.error("WS: URL construction failed", err);
+            return;
+        }
         
-        console.log("WS: Connecting to", wsUrl);
-        const ws = new WebSocket(wsUrl);
-        wsRef.current = ws;
+        console.log("WS: Attempting connection to:", wsUrl);
+        let ws;
+        try {
+            ws = new WebSocket(wsUrl);
+            wsRef.current = ws;
+        } catch (err) {
+            console.error("WS: Constructor failed", err);
+            return;
+        }
+
+        let heartbeatInterval;
 
         ws.onopen = () => {
             console.log("WS: Connected");
             setIsConnected(true);
-        };
+            setReconnectCount(0); // Reset on success
 
-        // General heartbeat to keep 'Online' status fresh
-        const heartbeatInterval = setInterval(() => {
-            if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: "PING" }));
-            }
-        }, 30000);
+            // General heartbeat to keep 'Online' status fresh
+            heartbeatInterval = setInterval(() => {
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: "PING" }));
+                }
+            }, 30000);
+        };
 
         ws.onmessage = (event) => {
             try {
@@ -49,23 +72,33 @@ export const SocketProvider = ({ children }) => {
             }
         };
 
-        ws.onclose = () => {
-            console.log("WS: Disconnected");
+        ws.onclose = (e) => {
+            console.log(`WS: Disconnected. Code: ${e.code}, Reason: ${e.reason}`);
             setIsConnected(false);
-            clearInterval(heartbeatInterval);
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
+            
+            // Reconnect logic with backoff
+            if (token) {
+                const delay = Math.min(1000 * Math.pow(2, reconnectCount), 10000);
+                console.log(`WS: Reconnecting in ${delay}ms...`);
+                setTimeout(() => {
+                    setReconnectCount(prev => prev + 1);
+                }, delay);
+            }
         };
 
         ws.onerror = (err) => {
-            console.error("WS: Error", err);
+            // Standard WebSocket errors are opaque in browsers
+            console.error("WS: Error event triggered");
         };
 
         return () => {
-            if (wsRef.current) {
-                wsRef.current.close();
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.close();
             }
-            clearInterval(heartbeatInterval);
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
         };
-    }, [token]);
+    }, [token, reconnectCount]);
 
     const sendMessage = (type, data) => {
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
