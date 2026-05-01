@@ -154,6 +154,15 @@ function setupWebSocket(server) {
     return wss;
 }
 
+function sendToUser(userId, payload) {
+    const userSockets = clients.get(userId);
+    if (userSockets) {
+        userSockets.forEach(s => {
+            if (s.readyState === 1) s.send(JSON.stringify(payload));
+        });
+    }
+}
+
 async function startupCleanup() {
     try {
         console.log('WS: Running startup cleanup for stale activities...');
