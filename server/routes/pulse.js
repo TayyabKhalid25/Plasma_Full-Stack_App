@@ -90,6 +90,21 @@ router.post('/posts/:postId/react', authenticateToken, async (req, res) => {
                 INSERT INTO "post_reactions" ("postID", "userID", "reactionType")
                 VALUES ($1, $2, $3)
             `, [postId, req.userId, reactionType]);
+
+            // Trigger Notification
+            try {
+                const postOwnerRes = await pool.query(`SELECT "userID" FROM "posts" WHERE "postID" = $1`, [postId]);
+                if (postOwnerRes.rows.length > 0) {
+                    const ownerId = postOwnerRes.rows[0].userID;
+                    if (ownerId !== req.userId) {
+                        await pool.query(`
+                            INSERT INTO "notifications" ("receiverID", "senderID", "notificationType", "message")
+                            VALUES ($1, $2, 'SYSTEM', $3)
+                        `, [ownerId, req.userId, `liked your post`]);
+                    }
+                }
+            } catch (notifErr) {}
+
             res.json({ success: true, message: 'Reaction added' });
         }
     } catch (error) {
@@ -138,7 +153,26 @@ router.post('/posts/:postId/comments', authenticateToken, async (req, res) => {
             LEFT JOIN "profiles" pr ON u."plasmaUserID" = pr."plasmaUserID"
         `, [postId, req.userId, content]);
 
-        res.status(201).json({ success: true, data: result.rows[0], message: 'Comment added' });
+        const comment = result.rows[0];
+
+        // Trigger Notification for post owner
+        try {
+            const postOwnerRes = await pool.query(`SELECT "userID" FROM "posts" WHERE "postID" = $1`, [postId]);
+            if (postOwnerRes.rows.length > 0) {
+                const ownerId = postOwnerRes.rows[0].userID;
+                // Don't notify if commenting on own post
+                if (ownerId !== req.userId) {
+                    await pool.query(`
+                        INSERT INTO "notifications" ("receiverID", "senderID", "notificationType", "message")
+                        VALUES ($1, $2, 'SYSTEM', $3)
+                    `, [ownerId, req.userId, `commented on your post: "${content.substring(0, 30)}${content.length > 30 ? '...' : ''}"`]);
+                }
+            }
+        } catch (notifErr) {
+            console.error("Failed to trigger comment notification:", notifErr);
+        }
+
+        res.status(201).json({ success: true, data: comment, message: 'Comment added' });
     } catch (error) {
         console.error('Error adding comment:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
