@@ -1,17 +1,43 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ModalWrapper } from "../ui/ModalWrapper";
-import { Copy, Link2, Check, Send } from "lucide-react";
+import { Copy, Link2, Check, Send, Loader2 } from "lucide-react";
+import { useAuth, API_BASE } from "@/context/AuthContext";
 
 export function ShareModal({ isOpen, onClose, shareType = "post", shareId }) {
+  const { token } = useAuth();
   const [copied, setCopied] = useState(false);
   const [friendSearch, setFriendSearch] = useState("");
+  const [friends, setFriends] = useState([]);
+  const [loadingFriends, setLoadingFriends] = useState(false);
+  const [sentTo, setSentTo] = useState(new Set());
 
-  // Dummy friend list to share with
-  const friends = [
-    { id: 1, name: "Vanguard", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Vanguard" },
-    { id: 2, name: "Nebula", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Nebula" },
-    { id: 3, name: "ApexHunter", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Apex" }
-  ];
+  // Fetch real friends when modal opens
+  useEffect(() => {
+    if (!isOpen || !token) return;
+    const fetchFriends = async () => {
+      setLoadingFriends(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/friends`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          const all = [...(data.data.online || []), ...(data.data.offline || [])];
+          setFriends(all.map(f => ({
+            id: f.id,
+            name: f.name,
+            avatar: f.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${f.name}`,
+          })));
+        }
+      } catch (err) {
+        console.error("Failed to fetch friends", err);
+      } finally {
+        setLoadingFriends(false);
+      }
+    };
+    fetchFriends();
+    setSentTo(new Set());
+  }, [isOpen, token]);
 
   const shareLink = `https://plasma.gg/${shareType}/${shareId || "1234"}`;
 
@@ -21,10 +47,20 @@ export function ShareModal({ isOpen, onClose, shareType = "post", shareId }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleSendToFriend = (friendId) => {
-    // In a real app, send via apiService
-    console.log(`Shared with friend ${friendId}`);
-    onClose();
+  const handleSendToFriend = async (friendId) => {
+    try {
+      await fetch(`${API_BASE}/api/messages/${friendId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ content: `Check this out: ${shareLink}` })
+      });
+      setSentTo(prev => new Set(prev).add(friendId));
+    } catch (err) {
+      console.error("Failed to share with friend", err);
+    }
   };
 
   return (
@@ -45,7 +81,7 @@ export function ShareModal({ isOpen, onClose, shareType = "post", shareId }) {
             </div>
             <button 
               onClick={handleCopy}
-              className={`p-3 rounded-lg flex items-center justify-center transition-colors shrink-0 ${copied ? "bg-plasma-success text-white" : "bg-plasma-primary text-white hover:bg-plasma-primary/80"}`}
+              className={`p-3 rounded-lg flex items-center justify-center transition-colors shrink-0 cursor-pointer ${copied ? "bg-plasma-success text-white" : "bg-plasma-primary text-white hover:bg-plasma-primary/80"}`}
             >
               {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
             </button>
@@ -63,20 +99,32 @@ export function ShareModal({ isOpen, onClose, shareType = "post", shareId }) {
             className="w-full bg-plasma-bg border border-white/10 rounded-lg px-4 py-2 text-sm text-plasma-text-primary outline-none focus:border-plasma-primary mb-3"
           />
           <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
-            {friends.filter(f => f.name.toLowerCase().includes(friendSearch.toLowerCase())).map(friend => (
-              <div key={friend.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition-colors group">
-                <div className="flex items-center gap-3">
-                  <img src={friend.avatar} alt="" className="w-8 h-8 rounded-full bg-plasma-slate" />
-                  <span className="text-sm font-medium text-plasma-text-primary">{friend.name}</span>
-                </div>
-                <button 
-                  onClick={() => handleSendToFriend(friend.id)}
-                  className="p-2 rounded-full bg-plasma-primary/20 text-plasma-primary opacity-0 group-hover:opacity-100 transition-all hover:bg-plasma-primary hover:text-white"
-                >
-                  <Send className="w-4 h-4" />
-                </button>
+            {loadingFriends ? (
+              <div className="flex items-center justify-center py-4 text-plasma-text-secondary text-sm gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" /> Loading friends...
               </div>
-            ))}
+            ) : friends.filter(f => f.name.toLowerCase().includes(friendSearch.toLowerCase())).length === 0 ? (
+              <p className="text-sm text-plasma-text-secondary text-center py-4">No friends found.</p>
+            ) : (
+              friends.filter(f => f.name.toLowerCase().includes(friendSearch.toLowerCase())).map(friend => (
+                <div key={friend.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <img src={friend.avatar} alt="" className="w-8 h-8 rounded-full bg-plasma-slate" />
+                    <span className="text-sm font-medium text-plasma-text-primary">{friend.name}</span>
+                  </div>
+                  {sentTo.has(friend.id) ? (
+                    <span className="text-[10px] font-bold text-plasma-success bg-plasma-success/10 px-3 py-1.5 rounded-lg">Sent!</span>
+                  ) : (
+                    <button 
+                      onClick={() => handleSendToFriend(friend.id)}
+                      className="p-2 rounded-full bg-plasma-primary/20 text-plasma-primary opacity-0 group-hover:opacity-100 transition-all hover:bg-plasma-primary hover:text-white cursor-pointer"
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

@@ -9,6 +9,7 @@ import { NewMessageModal } from "@/components/modals/NewMessageModal";
 
 const WS_BASE = API_BASE.replace(/^http/, "ws");
 
+
 // --- SKELETONS ---
 function ConversationSkeleton() {
   return (
@@ -112,9 +113,13 @@ export default function MessagesPage() {
     fetchMessages();
   }, [token, activeConvId]);
 
-  // WebSocket connection
+  // Keep a ref so the WS handler always sees the latest activeConvId
+  const activeConvIdRef = useRef(activeConvId);
+  useEffect(() => { activeConvIdRef.current = activeConvId; }, [activeConvId]);
+
+  // WebSocket connection — single persistent connection, no reconnect on chat switch
   useEffect(() => {
-    if (!token) return;
+    if (!token || !user?.id) return;
 
     const ws = new WebSocket(`${WS_BASE}/ws/chat?token=${token}`);
     wsRef.current = ws;
@@ -124,7 +129,8 @@ export default function MessagesPage() {
         const payload = JSON.parse(event.data);
         if (payload.type === "NEW_MESSAGE") {
           const msg = payload.data;
-          const isCurrentChat = (msg.senderID === activeConvId || msg.receiverID === activeConvId);
+          const currentConvId = activeConvIdRef.current;
+          const isCurrentChat = (msg.senderID === currentConvId || msg.receiverID === currentConvId);
           
           if (isCurrentChat) {
             setMessages(prev => {
@@ -140,7 +146,7 @@ export default function MessagesPage() {
           }
 
           // Update conversation list preview
-          const contactId = msg.senderID === user?.plasmaUserID ? msg.receiverID : msg.senderID;
+          const contactId = msg.senderID === user?.id ? msg.receiverID : msg.senderID;
           setConversations(prev => {
             const exists = prev.find(c => c.id === contactId);
             if (exists) {
@@ -162,7 +168,7 @@ export default function MessagesPage() {
     return () => {
       ws.close();
     };
-  }, [token, activeConvId, user?.plasmaUserID]);
+  }, [token, user?.id]);
 
   const activeConv = conversations.find((c) => c.id === activeConvId);
 
@@ -181,7 +187,7 @@ export default function MessagesPage() {
     // Optimistic local append (will be deduplicated when WS echoes back)
     const optimisticMsg = {
       id: `temp-${Date.now()}`,
-      sender: user?.plasmaUserID,
+      sender: user?.id,
       text: messageInput.trim(),
       time: "Just now",
     };
@@ -317,7 +323,7 @@ export default function MessagesPage() {
                   </div>
                 ) : (
                   messages.map((msg) => {
-                    const isMe = msg.sender === user?.plasmaUserID;
+                    const isMe = msg.sender === user?.id;
                     return (
                       <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                         <div className={`max-w-[70%] px-4 py-2.5 rounded-2xl ${

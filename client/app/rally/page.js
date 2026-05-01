@@ -174,6 +174,12 @@ export default function Rally() {
     return true;
   });
 
+  const selectedDayEvents = filteredEvents.filter(e => 
+    e.date.getDate() === selectedDay && 
+    e.date.getMonth() === currentMonth && 
+    e.date.getFullYear() === currentYear
+  );
+
   // Group events for list view
   const groupedEvents = [];
   const todayStr = now.toDateString();
@@ -319,7 +325,7 @@ export default function Rally() {
             <div className="flex-1 w-full space-y-6">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-lg font-display font-bold text-plasma-text-primary">
-                  {MONTHS[currentMonth]} {selectedDay} — {filteredEvents.length} Event{filteredEvents.length !== 1 && "s"}
+                  {MONTHS[currentMonth]} {selectedDay} — {selectedDayEvents.length} Event{selectedDayEvents.length !== 1 && "s"}
                 </h3>
               </div>
               
@@ -332,8 +338,8 @@ export default function Rally() {
               )}
 
               {/* Event Cards */}
-              {!loading && filteredEvents.length > 0 ? (
-                filteredEvents.map(event => (
+              {!loading && selectedDayEvents.length > 0 ? (
+                selectedDayEvents.map(event => (
                   <div key={event.id} className="bg-plasma-slate/40 backdrop-blur-md rounded-2xl p-6 relative overflow-hidden group border border-white/5">
                     <div className="flex flex-col sm:flex-row gap-6">
                       <div className="w-full sm:w-32 h-40 rounded-lg overflow-hidden flex-shrink-0 relative">

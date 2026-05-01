@@ -1,22 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ModalWrapper } from "../ui/ModalWrapper";
 import { Loader2, Search, Link2, UserPlus, Check } from "lucide-react";
+import { useAuth, API_BASE } from "@/context/AuthContext";
 
 export function InviteFriendsModal({ isOpen, onClose }) {
+  const { token, user } = useAuth();
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [invitedIds, setInvitedIds] = useState([]);
+  const [invitedIds, setInvitedIds] = useState(new Set());
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
   
-  // Dummy users to invite
-  const searchResults = [
-    { id: "u1", name: "CyberNinja", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=CyberNinja" },
-    { id: "u2", name: "GhostRider", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=GhostRider" },
-    { id: "u3", name: "PlasmaFan", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=PlasmaFan" },
-  ];
-
-  const filtered = searchResults.filter(f => f.name.toLowerCase().includes(search.toLowerCase()));
-  const inviteLink = "https://plasma.gg/invite/wahaj-1234";
+  const inviteLink = `https://plasma.gg/invite/${user?.username || "user"}-${user?.id?.split('-')[0] || "1234"}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(inviteLink);
@@ -24,12 +20,50 @@ export function InviteFriendsModal({ isOpen, onClose }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Search API
+  useEffect(() => {
+    if (!search || !token) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/users/search?q=${encodeURIComponent(search)}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setSearchResults(data.data.map(u => ({
+            id: u.plasmaUserID,
+            name: u.username,
+            avatar: u.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`,
+            isRequested: u.isRequested,
+            isMutual: u.isMutual
+          })));
+        }
+      } catch (err) {
+        console.error("Search failed", err);
+      } finally {
+        setSearching(false);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search, token]);
+
   const handleInvite = async (userId) => {
     setLoading(true);
-    // Simulate API delay
-    await new Promise(r => setTimeout(r, 500));
-    setInvitedIds(prev => [...prev, userId]);
-    setLoading(false);
+    try {
+      await fetch(`${API_BASE}/api/friends/request/${userId}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setInvitedIds(prev => new Set(prev).add(userId));
+    } catch (err) {
+      console.error("Invite failed", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -49,7 +83,7 @@ export function InviteFriendsModal({ isOpen, onClose }) {
             </div>
             <button 
               onClick={handleCopy}
-              className={`p-3 rounded-lg flex items-center justify-center transition-colors shrink-0 ${copied ? "bg-plasma-success text-white" : "bg-plasma-primary text-white hover:bg-plasma-primary/80"}`}
+              className={`p-3 rounded-lg flex items-center justify-center transition-colors shrink-0 cursor-pointer ${copied ? "bg-plasma-success text-white" : "bg-plasma-primary text-white hover:bg-plasma-primary/80"}`}
             >
               {copied ? <Check className="w-5 h-5" /> : "Copy"}
             </button>
@@ -69,13 +103,17 @@ export function InviteFriendsModal({ isOpen, onClose }) {
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2">
-          {search.length > 0 && filtered.length === 0 ? (
+          {search.length > 0 && searching ? (
+            <div className="text-center py-6 text-plasma-text-secondary flex items-center justify-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" /> <span className="text-sm">Searching...</span>
+            </div>
+          ) : search.length > 0 && searchResults.length === 0 ? (
             <div className="text-center py-6 text-plasma-text-secondary">
               <p className="text-sm">No users found.</p>
             </div>
           ) : search.length > 0 ? (
-            filtered.map((user) => {
-              const isInvited = invitedIds.includes(user.id);
+            searchResults.map((user) => {
+              const isInvited = invitedIds.has(user.id) || user.isRequested;
               return (
                 <div
                   key={user.id}
@@ -85,14 +123,18 @@ export function InviteFriendsModal({ isOpen, onClose }) {
                     <img src={user.avatar} alt="" className="w-10 h-10 rounded-full bg-plasma-slate" />
                     <span className="text-sm font-bold text-plasma-text-primary">{user.name}</span>
                   </div>
-                  <button 
-                    onClick={() => handleInvite(user.id)}
-                    disabled={isInvited || loading}
-                    className={`px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50 ${isInvited ? "bg-plasma-success/20 text-plasma-success" : "bg-plasma-primary/20 text-plasma-primary hover:bg-plasma-primary hover:text-white"}`}
-                  >
-                    {isInvited ? <Check className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
-                    {isInvited ? "Sent" : "Invite"}
-                  </button>
+                  {user.isMutual ? (
+                    <span className="text-[10px] font-bold text-plasma-success bg-plasma-success/10 px-3 py-1.5 rounded-lg">Friends</span>
+                  ) : (
+                    <button 
+                      onClick={() => handleInvite(user.id)}
+                      disabled={isInvited || loading}
+                      className={`px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 ${isInvited ? "bg-plasma-success/20 text-plasma-success" : "bg-plasma-primary/20 text-plasma-primary hover:bg-plasma-primary hover:text-white"}`}
+                    >
+                      {isInvited ? <Check className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+                      {isInvited ? "Sent" : "Invite"}
+                    </button>
+                  )}
                 </div>
               );
             })

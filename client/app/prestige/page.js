@@ -478,7 +478,7 @@ export default function Prestige() {
       <EditHallOfFameModal 
         isOpen={editHofModal.isOpen} 
         onClose={editHofModal.close}
-        initialSelectedIds={hof.map(h => h.title)}
+        initialSelectedIds={hof.map(h => h.id)}
         onUpdate={(ids) => handleUpdateHof(ids)}
       />
       <InviteFriendsModal 
@@ -490,15 +490,8 @@ export default function Prestige() {
         onClose={addMilestoneModal.close}
         onAdded={() => {
           // Trigger a re-fetch of the achievements
-          setActiveAchTab((prev) => {
-            if (prev === "manual") {
-              // Force re-render if already on manual
-              setLoading(true);
-              setTimeout(() => setActiveAchTab("all"), 10);
-              setTimeout(() => setActiveAchTab("manual"), 20);
-            }
-            return prev;
-          });
+          setActiveAchTab((prev) => prev === "manual" ? "all" : "manual");
+          setTimeout(() => setActiveAchTab("manual"), 50);
         }}
       />
     </DashboardLayout>

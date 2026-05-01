@@ -16,7 +16,7 @@ export function NewMessageModal({ isOpen, onClose, onStartChat }) {
     const fetchFriends = async () => {
       setLoadingFriends(true);
       try {
-        const res = await fetch(`${API_BASE}/api/users/${user.plasmaUserID}/following`, {
+        const res = await fetch(`${API_BASE}/api/users/${user.id}/following`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();

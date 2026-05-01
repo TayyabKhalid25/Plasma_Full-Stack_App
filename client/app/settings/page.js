@@ -7,7 +7,6 @@ import {
   Trash2, Download, Save, Check, ChevronRight, Camera
 } from "lucide-react";
 import Image from "next/image";
-import { userSettings as initialSettings } from "@/data/dummy";
 import { useModal } from "@/hooks/useModal";
 import { ChangePasswordModal } from "@/components/modals/ChangePasswordModal";
 import { UploadAvatarModal } from "@/components/modals/UploadAvatarModal";
@@ -48,19 +47,36 @@ function SettingRow({ label, description, children }) {
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState("account");
-  const [settings, setSettings] = useState(initialSettings);
   const [saved, setSaved] = useState(false);
-  const { token, logout } = useAuth();
+  const { token, logout, user, fetchUser } = useAuth();
   const [isFetching, setIsFetching] = useState(true);
+
+  // Account state — populated from auth context
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [avatar, setAvatar] = useState("");
+
+  // Settings state
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [privacy, setPrivacy] = useState({
+    profileVisibility: "public",
+    activityVisibility: "friends",
+    showOnlineStatus: true,
+  });
 
   const passwordModal = useModal();
   const avatarModal = useModal();
   const dangerModal = useModal();
 
-  const handleAvatarUpload = (newAvatar) => {
-    setSettings((s) => ({ ...s, account: { ...s.account, avatar: newAvatar } }));
-  };
+  // Populate account from auth context user
+  useEffect(() => {
+    if (!user) return;
+    setUsername(user.name || user.username || "");
+    setEmail(user.email || "");
+    setAvatar(user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name || user.username}`);
+  }, [user]);
 
+  // Fetch settings from API
   useEffect(() => {
     if (!token) return;
     const loadSettings = async () => {
@@ -70,13 +86,11 @@ export default function SettingsPage() {
         });
         const data = await res.json();
         if (data.success) {
-          setSettings(s => ({
-            ...s,
-            notificationsEnabled: data.data.notificationsEnabled,
-            privacy: {
-              ...s.privacy,
-              profileVisibility: data.data.privacy.toLowerCase(),
-            }
+          setNotificationsEnabled(data.data.notificationsEnabled ?? true);
+          const privacyVal = (data.data.privacy || "Public").toLowerCase();
+          setPrivacy(p => ({
+            ...p,
+            profileVisibility: privacyVal === "friends only" ? "friends" : privacyVal,
           }));
         }
       } catch (err) {
@@ -88,35 +102,52 @@ export default function SettingsPage() {
     loadSettings();
   }, [token]);
 
+  const handleAvatarUpload = (newAvatar) => {
+    setAvatar(newAvatar);
+  };
+
   const toggleNotif = () => {
-    setSettings((s) => ({
-      ...s,
-      notificationsEnabled: !s.notificationsEnabled,
-    }));
+    setNotificationsEnabled(prev => !prev);
   };
 
   const togglePrivacy = (key) => {
-    setSettings((s) => ({
-      ...s,
-      privacy: { ...s.privacy, [key]: !s.privacy[key] },
-    }));
+    setPrivacy(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
   const handleSave = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/settings`, {
+      // Save settings (notifications + privacy)
+      const settingsRes = await fetch(`${API_BASE}/api/settings`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          notificationsEnabled: settings.notificationsEnabled,
+          notificationsEnabled,
           timezone: "UTC",
-          privacy: settings.privacy.profileVisibility === "public" ? "Public" : settings.privacy.profileVisibility === "friends" ? "Friends Only" : "Private"
+          privacy: privacy.profileVisibility === "public" ? "Public" : privacy.profileVisibility === "friends" ? "Friends Only" : "Private"
         })
       });
-      const data = await res.json();
+
+      // Save account changes (username, avatar) via profile endpoint
+      if (activeSection === "account") {
+        await fetch(`${API_BASE}/api/users/me/profile`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            username: username || undefined,
+            avatarURL: avatar || undefined,
+          })
+        });
+        // Re-fetch user so the context updates globally
+        if (fetchUser && token) await fetchUser(token);
+      }
+
+      const data = await settingsRes.json();
       if (data.success) {
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
@@ -183,7 +214,7 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-6 mb-8">
                   <div className="relative">
                     <img
-                      src={settings.account.avatar}
+                      src={avatar}
                       alt="Avatar"
                       className="w-20 h-20 rounded-full border-2 border-plasma-primary bg-plasma-slate"
                     />
@@ -205,15 +236,8 @@ export default function SettingsPage() {
                 <SettingRow label="Username">
                   <input
                     type="text"
-                    defaultValue={settings.account.username}
-                    className="bg-plasma-bg border border-white/10 rounded-lg px-4 py-2 text-sm text-plasma-text-primary outline-none focus:border-plasma-primary transition-colors w-48"
-                  />
-                </SettingRow>
-
-                <SettingRow label="Email Address">
-                  <input
-                    type="email"
-                    defaultValue={settings.account.email}
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     className="bg-plasma-bg border border-white/10 rounded-lg px-4 py-2 text-sm text-plasma-text-primary outline-none focus:border-plasma-primary transition-colors w-48"
                   />
                 </SettingRow>
@@ -232,7 +256,7 @@ export default function SettingsPage() {
                 <h2 className="font-display font-bold text-lg text-plasma-text-primary mb-6">Notification Preferences</h2>
 
                 <SettingRow label="Global Notifications" description="Enable or disable all notifications across Plasma">
-                  <ToggleSwitch enabled={settings.notificationsEnabled} onToggle={toggleNotif} />
+                  <ToggleSwitch enabled={notificationsEnabled} onToggle={toggleNotif} />
                 </SettingRow>
               </section>
             )}
@@ -244,8 +268,8 @@ export default function SettingsPage() {
 
                 <SettingRow label="Profile Visibility" description="Who can see your profile page">
                   <select
-                    value={settings.privacy.profileVisibility}
-                    onChange={(e) => setSettings((s) => ({ ...s, privacy: { ...s.privacy, profileVisibility: e.target.value } }))}
+                    value={privacy.profileVisibility}
+                    onChange={(e) => setPrivacy(prev => ({ ...prev, profileVisibility: e.target.value }))}
                     className="bg-plasma-bg border border-white/10 rounded-lg px-4 py-2 text-sm text-plasma-text-primary outline-none cursor-pointer"
                   >
                     <option value="public">Public</option>
@@ -256,8 +280,8 @@ export default function SettingsPage() {
 
                 <SettingRow label="Activity Visibility" description="Who can see your gaming activity">
                   <select
-                    value={settings.privacy.activityVisibility}
-                    onChange={(e) => setSettings((s) => ({ ...s, privacy: { ...s.privacy, activityVisibility: e.target.value } }))}
+                    value={privacy.activityVisibility}
+                    onChange={(e) => setPrivacy(prev => ({ ...prev, activityVisibility: e.target.value }))}
                     className="bg-plasma-bg border border-white/10 rounded-lg px-4 py-2 text-sm text-plasma-text-primary outline-none cursor-pointer"
                   >
                     <option value="public">Public</option>
@@ -267,7 +291,7 @@ export default function SettingsPage() {
                 </SettingRow>
 
                 <SettingRow label="Show Online Status" description="Let others see when you're online">
-                  <ToggleSwitch enabled={settings.privacy.showOnlineStatus} onToggle={() => togglePrivacy("showOnlineStatus")} />
+                  <ToggleSwitch enabled={privacy.showOnlineStatus} onToggle={() => togglePrivacy("showOnlineStatus")} />
                 </SettingRow>
               </section>
             )}
@@ -338,7 +362,7 @@ export default function SettingsPage() {
       <UploadAvatarModal 
         isOpen={avatarModal.isOpen} 
         onClose={avatarModal.close} 
-        currentAvatar={settings.account.avatar}
+        currentAvatar={avatar}
         onUpload={handleAvatarUpload}
       />
       <ConfirmActionModal 

@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ModalWrapper } from "../ui/ModalWrapper";
 import { Loader2, Plus, X } from "lucide-react";
 import { apiService } from "@/services/apiService";
+import { useAuth, API_BASE } from "@/context/AuthContext";
 
 export function CreateRallyModal({ isOpen, onClose, onRallyCreated }) {
+  const { token } = useAuth();
   const [formData, setFormData] = useState({
     title: "",
     gameId: "",
@@ -14,6 +16,30 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated }) {
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [games, setGames] = useState([]);
+  const [loadingGames, setLoadingGames] = useState(false);
+
+  // Fetch user's library games when modal opens
+  useEffect(() => {
+    if (!isOpen || !token) return;
+    const fetchGames = async () => {
+      setLoadingGames(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/library`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setGames(data.data.map(g => ({ id: g.gameID, title: g.title })));
+        }
+      } catch (err) {
+        console.error("Failed to fetch library games", err);
+      } finally {
+        setLoadingGames(false);
+      }
+    };
+    fetchGames();
+  }, [isOpen, token]);
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -54,13 +80,13 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated }) {
 
   const footer = (
     <div className="flex justify-end gap-3">
-      <button onClick={onClose} className="px-5 py-2 rounded-xl text-sm font-bold text-plasma-text-secondary hover:text-white transition-colors">
+      <button onClick={onClose} className="px-5 py-2 rounded-xl text-sm font-bold text-plasma-text-secondary hover:text-white transition-colors cursor-pointer">
         Cancel
       </button>
       <button 
         onClick={handleSubmit} 
         disabled={loading}
-        className="px-6 py-2 rounded-xl bg-primary-gradient text-white text-sm font-bold flex items-center gap-2 hover:shadow-[0_0_15px_rgba(86,56,149,0.4)] transition-all disabled:opacity-50"
+        className="px-6 py-2 rounded-xl bg-primary-gradient text-white text-sm font-bold flex items-center gap-2 hover:shadow-[0_0_15px_rgba(86,56,149,0.4)] transition-all disabled:opacity-50 cursor-pointer"
       >
         {loading && <Loader2 className="w-4 h-4 animate-spin" />}
         Create Rally
@@ -92,12 +118,13 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated }) {
             <select 
               value={formData.gameId}
               onChange={e => setFormData({...formData, gameId: e.target.value})}
-              className={`w-full bg-plasma-bg border ${errors.gameId ? 'border-plasma-error' : 'border-white/10'} rounded-lg px-4 py-2 text-sm text-plasma-text-primary outline-none focus:border-plasma-primary appearance-none cursor-pointer`}
+              disabled={loadingGames}
+              className={`w-full bg-plasma-bg border ${errors.gameId ? 'border-plasma-error' : 'border-white/10'} rounded-lg px-4 py-2 text-sm text-plasma-text-primary outline-none focus:border-plasma-primary appearance-none cursor-pointer disabled:opacity-50`}
             >
-              <option value="" disabled>Select a game...</option>
-              <option value="apex">Apex Legends</option>
-              <option value="valorant">Valorant</option>
-              <option value="destiny2">Destiny 2</option>
+              <option value="" disabled>{loadingGames ? "Loading games..." : "Select a game..."}</option>
+              {games.map(g => (
+                <option key={g.id} value={g.id}>{g.title}</option>
+              ))}
             </select>
             {errors.gameId && <span className="text-xs text-plasma-error mt-1">{errors.gameId}</span>}
           </div>
@@ -133,7 +160,7 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated }) {
               <button
                 key={intent}
                 onClick={() => setFormData({...formData, intent})}
-                className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all border ${
+                className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
                   formData.intent === intent 
                     ? "bg-plasma-primary/20 border-plasma-primary text-plasma-primary" 
                     : "bg-plasma-bg border-white/5 text-plasma-text-secondary hover:border-white/20 hover:text-white"
@@ -149,7 +176,7 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated }) {
         <div className="pt-2 border-t border-white/5">
           <div className="flex items-center justify-between mb-3">
             <label className="text-xs font-bold text-plasma-text-secondary uppercase tracking-wider">Roles / Squad composition</label>
-            <button onClick={addRole} className="text-[10px] uppercase font-bold text-plasma-primary hover:text-white transition-colors flex items-center gap-1">
+            <button onClick={addRole} className="text-[10px] uppercase font-bold text-plasma-primary hover:text-white transition-colors flex items-center gap-1 cursor-pointer">
               <Plus className="w-3 h-3" /> Add Role
             </button>
           </div>
@@ -175,7 +202,7 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated }) {
                 <button 
                   onClick={() => removeRole(role.id)}
                   disabled={formData.roles.length <= 1}
-                  className="p-2 text-plasma-text-secondary hover:text-plasma-error disabled:opacity-30 transition-colors rounded-lg bg-white/5 hover:bg-white/10"
+                  className="p-2 text-plasma-text-secondary hover:text-plasma-error disabled:opacity-30 transition-colors rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>

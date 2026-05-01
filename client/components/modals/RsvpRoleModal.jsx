@@ -90,6 +90,28 @@ export function RsvpRoleModal({ isOpen, onClose, event, onRsvp }) {
                   </button>
                 );
               })}
+              {(!event.roles || event.roles.length === 0) && (
+                <button
+                  onClick={() => {
+                    if (event.slotsFilled < event.slotsTotal) setSelectedRole(-1);
+                  }}
+                  disabled={event.slotsFilled >= event.slotsTotal}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl transition-all border-2 text-left ${
+                    event.slotsFilled >= event.slotsTotal 
+                      ? "opacity-50 bg-white/5 border-transparent cursor-not-allowed"
+                      : selectedRole === -1 
+                        ? "border-plasma-primary bg-plasma-primary/10"
+                        : "border-transparent bg-white/5 hover:bg-white/10 hover:border-white/10 cursor-pointer"
+                  }`}
+                >
+                  <div>
+                    <span className="text-sm font-bold text-plasma-text-primary">Open Slots</span>
+                    <p className="text-xs text-plasma-text-secondary mt-0.5">{event.slotsFilled} / {event.slotsTotal} filled</p>
+                  </div>
+                  {selectedRole === -1 && <Check className="w-5 h-5 text-plasma-primary" />}
+                  {event.slotsFilled >= event.slotsTotal && <span className="text-[10px] font-bold text-plasma-error uppercase">Full</span>}
+                </button>
+              )}
             </div>
 
             <div className="flex gap-3 pt-4">
