@@ -124,6 +124,15 @@ export default function GameDetailPage({ params }) {
 
   const achievements = []; // Placeholder for now
 
+  const formatPlaytime = (hours) => {
+    if (!hours || hours === 0) return "0m";
+    const totalMinutes = Math.floor(hours * 60);
+    if (totalMinutes < 60) {
+      return `${totalMinutes}m`;
+    }
+    return `${hours.toFixed(1)}h`;
+  };
+
   return (
     <DashboardLayout showRightRail={false}>
       <div className="max-w-4xl mx-auto px-8 py-8 pb-20 animate-fade-in">
@@ -180,7 +189,7 @@ export default function GameDetailPage({ params }) {
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
-            { label: "Hours Played", value: game.hoursPlayed + "h", icon: Clock },
+            { label: "Hours Played", value: formatPlaytime(game.hoursPlayed), icon: Clock },
             { label: "Achievements", value: "0/0", icon: Trophy },
             { label: "Friends Playing", value: "0", icon: Users },
             { label: "Last Played", value: isPlaying ? "Now" : game.lastPlayed, icon: Calendar },
