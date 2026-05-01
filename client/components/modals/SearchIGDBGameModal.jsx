@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { ModalWrapper } from "../ui/ModalWrapper";
 import { Search, Loader2, Gamepad2, Plus } from "lucide-react";
 import { apiService } from "@/services/apiService";
-import Link from "next/link";
 
 export function SearchIGDBGameModal({ isOpen, onClose, onAddGame }) {
   const [query, setQuery] = useState("");
@@ -87,17 +86,11 @@ export function SearchIGDBGameModal({ isOpen, onClose, onAddGame }) {
 
           {results.map((game) => (
             <div key={game.id} className="flex items-center gap-4 p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-transparent hover:border-white/10 transition-colors group">
-              <Link 
-                href={`/library/igdb-${game.id}`}
-                onClick={onClose}
-                className="flex flex-1 items-center gap-4 min-w-0"
-              >
-                <img src={game.cover} alt="" className="w-12 h-16 object-cover rounded-md bg-plasma-slate shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-bold text-plasma-text-primary truncate group-hover:text-plasma-primary transition-colors">{game.title}</h4>
-                  <p className="text-xs text-plasma-text-secondary mt-1">{game.platform}</p>
-                </div>
-              </Link>
+              <img src={game.cover} alt="" className="w-12 h-16 object-cover rounded-md bg-plasma-slate shrink-0" />
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-bold text-plasma-text-primary truncate">{game.title}</h4>
+                <p className="text-xs text-plasma-text-secondary mt-1">{game.platform}</p>
+              </div>
               <button
                 onClick={() => handleAddGame(game)}
                 disabled={addingId === game.id}

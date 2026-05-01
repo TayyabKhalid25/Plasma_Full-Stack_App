@@ -143,17 +143,14 @@ async function searchIgdbGames(query) {
         
         if (!response.data || !Array.isArray(response.data)) return [];
 
-        console.log(`[IGDB] Raw response (first 3):`, JSON.stringify(response.data.slice(0, 3)));
-
         // Filter by category in JS
         const allowedCategories = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11];
         
         const filtered = response.data
-            .filter(game => game.category !== undefined && allowedCategories.includes(game.category));
-
-        console.log(`[IGDB] Results for "${query}" (top 15 after JS filtering):`, 
-            filtered.slice(0, 15).map(g => ({ name: g.name, cat: g.category }))
-        );
+            .filter(game => {
+                const cat = game.category ?? 0; // IGDB omits category if it's 0 (Main Game)
+                return allowedCategories.includes(cat);
+            });
 
         return filtered
             .slice(0, 15) 
