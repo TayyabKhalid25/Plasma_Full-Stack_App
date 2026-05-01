@@ -105,9 +105,9 @@ router.post('/milestones', authenticateToken, async (req, res) => {
         // For now, we'll store them in the achievement title/description stub or metadata
         const result = await pool.query(`
             INSERT INTO "achievements" ("achievementID", "appID", "title", "rarityWeight", "plasmaXP")
-            VALUES ($1, $2, $3, 1.0, 50)
+            VALUES (gen_random_uuid(), $1, $2, 1.0, 50)
             RETURNING "achievementID"
-        `, [`milestone_${Date.now()}`, gameId || 'custom_milestone', title]);
+        `, [gameId || 'custom_milestone', title]);
         
         await pool.query(`
             INSERT INTO "user_achievements" ("userID", "achievementID", "unlockedAt")

@@ -47,6 +47,22 @@ router.put('/:notificationId/read', authenticateToken, async (req, res) => {
     }
 });
 
+// PUT /api/notifications/mark-all-read
+router.put('/mark-all-read', authenticateToken, async (req, res) => {
+    try {
+        await pool.query(`
+            UPDATE "notifications"
+            SET "isRead" = TRUE
+            WHERE "receiverID" = $1 AND "isRead" = FALSE
+        `, [req.userId]);
+        
+        res.json({ success: true, message: 'All notifications marked as read' });
+    } catch (error) {
+        console.error('Error marking all notifications as read:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
 // POST /api/notifications/subscribe
 // Register a Push API Subscription token (Service Worker)
 router.post('/subscribe', authenticateToken, async (req, res) => {
