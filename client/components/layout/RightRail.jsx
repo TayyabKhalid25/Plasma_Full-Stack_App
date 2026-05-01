@@ -61,17 +61,17 @@ export const RightRail = () => {
             <span className="text-xs text-plasma-text-secondary">Loading...</span>
           ) : (
             trendingGames.map((game) => (
-              <div key={game.appID || game.name} className="flex items-center justify-between w-full cursor-pointer hover:opacity-80 transition-opacity">
-                <div className="flex items-center gap-3">
+              <div key={game.appID || game.name} className="flex items-center justify-between w-full gap-2 cursor-pointer hover:opacity-80 transition-opacity">
+                <div className="flex items-center gap-3 min-w-0">
                   <div 
-                    className="flex w-8 h-8 items-center justify-center rounded-xl"
+                    className="flex w-8 h-8 items-center justify-center rounded-xl shrink-0"
                     style={{ backgroundColor: game.bgColor || '#563895' }}
                   >
                     <span className="font-sans font-bold text-white text-[10px]">{game.initials || (game.title ? game.title.slice(0,2).toUpperCase() : "")}</span>
                   </div>
-                  <span className="font-sans font-semibold text-plasma-text-primary text-xs">{game.title || game.name}</span>
+                  <span className="font-sans font-semibold text-plasma-text-primary text-xs truncate">{game.title || game.name}</span>
                 </div>
-                <div className="px-2 py-0.5 bg-plasma-slate-hover rounded-2xl">
+                <div className="px-2 py-0.5 bg-plasma-slate-hover rounded-2xl shrink-0">
                   <span className="font-sans font-bold text-plasma-secondary text-[10px]">{game.currentlyPlayingCount || game.count}</span>
                 </div>
               </div>
