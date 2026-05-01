@@ -184,4 +184,43 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/pulse/trending
+// Calculates which games are "trending" based on mutual friends' current play status
+router.get('/trending', authenticateToken, async (req, res) => {
+    const myId = req.userId;
+    try {
+        const result = await pool.query(`
+            WITH mutual_friends AS (
+                SELECT DISTINCT
+                    CASE 
+                        WHEN "followerID" = $1 THEN "followedID"
+                        ELSE "followerID"
+                    END as "friendID"
+                FROM "follow_relationships"
+                WHERE ("followerID" = $1 OR "followedID" = $1)
+                  AND "isMutual" = TRUE
+            ),
+            friend_activity AS (
+                SELECT 
+                    le."appID",
+                    g."title",
+                    COUNT(*) as "playingCount"
+                FROM "library_entries" le
+                JOIN mutual_friends mf ON le."userID" = mf."friendID"
+                JOIN "games" g ON le."appID" = g."appID"
+                WHERE le."isCurrentlyPlaying" = TRUE
+                GROUP BY le."appID", g."title"
+            )
+            SELECT * FROM friend_activity
+            ORDER BY "playingCount" DESC
+            LIMIT 3
+        `, [myId]);
+
+        res.json({ success: true, data: result.rows });
+    } catch (error) {
+        console.error('Error fetching trending games:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
 module.exports = router;
