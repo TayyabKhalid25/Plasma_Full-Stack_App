@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import Link from "next/link";
+import { getTrending, getUpcomingRallies } from "@/services/api";
 
 export const RightRail = () => {
   const [trendingGames, setTrendingGames] = useState([]);
@@ -13,22 +14,14 @@ export const RightRail = () => {
   useEffect(() => {
     async function fetchTrending() {
       try {
-        const token = typeof window !== "undefined" ? localStorage.getItem("plasma_token") : null;
-        const res = await fetch("http://localhost:5000/api/games/trending", {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        const data = await res.json();
-        if (data.success) setTrendingGames(data.data);
+        const data = await getTrending();
+        setTrendingGames(data || []);
       } catch {}
     }
     async function fetchRallies() {
       try {
-        const token = typeof window !== "undefined" ? localStorage.getItem("plasma_token") : null;
-        const res = await fetch("http://localhost:5000/api/rallies/upcoming", {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        const data = await res.json();
-        if (data.success) setUpcomingRallies(data.data);
+        const data = await getUpcomingRallies();
+        setUpcomingRallies(data || []);
       } catch {}
     }
     async function fetchUser() {

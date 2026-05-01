@@ -6,6 +6,7 @@ const router = express.Router();
 
 // POST /api/pulse/posts
 router.post('/posts', authenticateToken, async (req, res) => {
+    const { content } = req.body;
     const mediaURL = req.body.mediaURL || req.body.mediaUrl;
 
     try {

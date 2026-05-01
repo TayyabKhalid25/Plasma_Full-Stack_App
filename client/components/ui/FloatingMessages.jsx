@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { MessageSquare, X, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { getConversations } from "@/services/api";
+import { useAuth, API_BASE } from "@/context/AuthContext";
 
 export const FloatingMessages = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,17 +13,34 @@ export const FloatingMessages = () => {
   const widgetRef = useRef(null);
   const pathname = usePathname();
 
+  const { token } = useAuth();
+
   useEffect(() => {
-    // Fetch conversations (uses API with dummy fallback)
-    getConversations().then(data => {
-      // The dummy data uses lastMessageTime like "2m ago" rather than ISO dates.
-      // We will just slice the top 5 directly since dummy is pre-sorted.
-      setConversations(data.slice(0, 5));
-      
-      const totalUnread = data.reduce((acc, conv) => acc + (conv.unread || 0), 0);
-      setUnreadCount(totalUnread);
-    });
-  }, [isOpen]); // Refetch when opened
+    if (!token) return;
+    fetch(`${API_BASE}/api/messages`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          const mapped = data.data.map(c => ({
+            id: c.contactID,
+            friend: {
+              name: c.contactUsername,
+              avatar: c.contactAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.contactUsername}`,
+              online: false,
+            },
+            lastMessage: c.content,
+            lastMessageTime: new Date(c.timestampUTC).toLocaleString([], { hour: '2-digit', minute: '2-digit' }),
+            unread: 0,
+          }));
+          setConversations(mapped.slice(0, 5));
+          const totalUnread = mapped.reduce((acc, conv) => acc + (conv.unread || 0), 0);
+          setUnreadCount(totalUnread);
+        }
+      })
+      .catch(err => console.error("Failed to fetch floating messages", err));
+  }, [isOpen, token]); // Refetch when opened
 
   // Close on click outside
   useEffect(() => {
