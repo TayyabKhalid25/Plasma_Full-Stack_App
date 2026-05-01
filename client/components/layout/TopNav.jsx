@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useLayoutEffect } from "react";
-import { Search, Bell, Trophy, UserPlus, Calendar, AlertCircle } from "lucide-react";
+import { Search, Bell, Trophy, UserPlus, Calendar, AlertCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { LogOut } from "lucide-react";
