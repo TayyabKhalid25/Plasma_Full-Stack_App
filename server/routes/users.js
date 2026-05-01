@@ -229,6 +229,8 @@ router.delete('/:userId/follow', authenticateToken, async (req, res) => {
     }
 });
 
+const { isOnline } = require('../ws/presence');
+
 // GET /api/users/:userId/followers
 router.get('/:userId/followers', authenticateToken, async (req, res) => {
     const { userId } = req.params;
@@ -241,7 +243,13 @@ router.get('/:userId/followers', authenticateToken, async (req, res) => {
             LEFT JOIN "profiles" p ON u."plasmaUserID" = p."plasmaUserID"
             WHERE fr."followedID" = $1
         `, [userId]);
-        res.json({ success: true, data: result.rows });
+
+        const data = result.rows.map(row => ({
+            ...row,
+            online: isOnline(row.plasmaUserID)
+        }));
+
+        res.json({ success: true, data });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
@@ -259,7 +267,13 @@ router.get('/:userId/following', authenticateToken, async (req, res) => {
             LEFT JOIN "profiles" p ON u."plasmaUserID" = p."plasmaUserID"
             WHERE fr."followerID" = $1
         `, [userId]);
-        res.json({ success: true, data: result.rows });
+
+        const data = result.rows.map(row => ({
+            ...row,
+            online: isOnline(row.plasmaUserID)
+        }));
+
+        res.json({ success: true, data });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Internal server error' });
     }

@@ -1,6 +1,7 @@
 const express = require('express');
 const { pool } = require('../config/dbConfig');
 const { authenticateToken } = require('../middleware/authMiddleware');
+const { isOnline } = require('../ws/presence');
 
 const router = express.Router();
 
@@ -16,7 +17,7 @@ async function checkMutualFollow(userA, userB) {
 }
 
 // GET /api/messages
-// Retrieves inbox (latest message from all active conversations + unread counts)
+// Retrieves inbox (latest message from all active conversations + unread counts + online status)
 router.get('/', authenticateToken, async (req, res) => {
     const myId = req.userId;
     try {
@@ -67,7 +68,13 @@ router.get('/', authenticateToken, async (req, res) => {
             ORDER BY lm."timestampUTC" DESC
         `, [myId]);
         
-        res.json({ success: true, data: result.rows });
+        // Map real-time online status
+        const conversations = result.rows.map(row => ({
+            ...row,
+            online: isOnline(row.contactID)
+        }));
+        
+        res.json({ success: true, data: conversations });
     } catch (error) {
         console.error('Error fetching inbox:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });

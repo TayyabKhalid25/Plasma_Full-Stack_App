@@ -28,7 +28,7 @@ export function NewMessageModal({ isOpen, onClose, onStartChat }) {
               id: f.plasmaUserID,
               name: f.username,
               avatar: f.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${f.username}`,
-              online: false,
+              online: f.online,
             }))
           );
         }

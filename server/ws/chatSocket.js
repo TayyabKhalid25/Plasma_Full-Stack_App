@@ -1,6 +1,7 @@
 const { WebSocketServer } = require('ws');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../config/dbConfig');
+const { setOnline, setOffline } = require('./presence');
 
 // Map of userId -> Set of WebSocket connections
 const clients = new Map();
@@ -43,6 +44,7 @@ function setupWebSocket(server) {
         // Register this connection
         if (!clients.has(userId)) {
             clients.set(userId, new Set());
+            setOnline(userId); // Mark user as online
         }
         clients.get(userId).add(ws);
 
@@ -111,6 +113,7 @@ function setupWebSocket(server) {
                 const remaining = set.size;
                 if (remaining === 0) {
                     clients.delete(userId);
+                    setOffline(userId); // Mark user as offline
                     console.log(`WS: User ${userId} disconnected (0 connections left)`);
                 } else {
                     console.log(`WS: User ${userId} closed one connection (${remaining} left)`);
