@@ -6,7 +6,7 @@ test.describe('Messages Page', () => {
   });
 
   test('should load conversation history', async ({ page }) => {
-    await expect(page.locator('h1').filter({ hasText: 'Messages' }).or(page.locator('text=Messages'))).toBeVisible();
+    await expect(page.locator('h3').filter({ hasText: 'Your Messages' })).toBeVisible();
   });
 
   test('should send a new message', async ({ page }) => {
