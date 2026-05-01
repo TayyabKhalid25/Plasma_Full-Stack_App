@@ -239,12 +239,43 @@ export default function Profile() {
                 </div>
               </div>
 
-              <Link
-                href="/settings"
-                className="flex items-center gap-2 px-8 py-3 rounded-full bg-primary-gradient text-white font-bold text-sm transition-all hover:shadow-card-glow hover:scale-[1.02] shrink-0 cursor-pointer"
-              >
-                <User className="w-4 h-4" /> Edit Profile
-              </Link>
+              <div className="flex items-center gap-3 shrink-0">
+                {user?.steamID64 && (
+                  <button
+                    onClick={async () => {
+                      const btn = document.getElementById('sync-steam-btn');
+                      if (btn) btn.disabled = true;
+                      try {
+                        const res = await fetch(`${API_BASE}/api/library/sync/steam`, {
+                          method: "POST",
+                          headers: { Authorization: `Bearer ${token}` }
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                          alert(`Successfully synced ${data.syncedGames} games!`);
+                          window.location.reload();
+                        } else {
+                          alert(data.message || "Sync failed");
+                        }
+                      } catch (err) {
+                        console.error(err);
+                      } finally {
+                        if (btn) btn.disabled = false;
+                      }
+                    }}
+                    id="sync-steam-btn"
+                    className="flex items-center gap-2 px-6 py-3 rounded-full bg-white/5 border border-white/10 text-white font-bold text-sm transition-all hover:bg-white/10 disabled:opacity-50 cursor-pointer"
+                  >
+                    <Cloud className="w-4 h-4 text-[#66c0f4]" /> Sync Steam
+                  </button>
+                )}
+                <Link
+                  href="/settings"
+                  className="flex items-center gap-2 px-8 py-3 rounded-full bg-primary-gradient text-white font-bold text-sm transition-all hover:shadow-card-glow hover:scale-[1.02] shrink-0 cursor-pointer"
+                >
+                  <User className="w-4 h-4" /> Edit Profile
+                </Link>
+              </div>
             </div>
           </header>
         )}

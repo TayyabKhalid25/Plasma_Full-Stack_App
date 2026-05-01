@@ -55,6 +55,7 @@ export default function SettingsPage() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [avatar, setAvatar] = useState("");
+  const [steamID64, setSteamID64] = useState("");
 
   // Settings state
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -74,6 +75,7 @@ export default function SettingsPage() {
     setUsername(user.name || user.username || "");
     setEmail(user.email || "");
     setAvatar(user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name || user.username}`);
+    setSteamID64(user.steamID64 || "");
   }, [user]);
 
   // Fetch settings from API
@@ -141,6 +143,7 @@ export default function SettingsPage() {
           body: JSON.stringify({
             username: username || undefined,
             avatarURL: avatar || undefined,
+            steamID64: steamID64 || undefined,
           })
         });
         // Re-fetch user so the context updates globally
@@ -331,12 +334,12 @@ export default function SettingsPage() {
                     <input
                       type="text"
                       placeholder="76561198..."
-                      value={user?.steamID64 || ""}
-                      readOnly
-                      className="bg-plasma-bg/50 border border-white/10 rounded-lg px-4 py-2 text-sm text-plasma-text-secondary outline-none w-48 cursor-not-allowed"
+                      value={steamID64}
+                      onChange={(e) => setSteamID64(e.target.value)}
+                      className="bg-plasma-bg border border-white/10 rounded-lg px-4 py-2 text-sm text-plasma-text-primary outline-none focus:border-plasma-primary transition-colors w-48"
                     />
                     {!user?.steamID64 && (
-                      <p className="text-[10px] text-plasma-primary font-medium italic">Visit your profile to link Steam</p>
+                      <p className="text-[10px] text-plasma-primary font-medium italic">Click Save below to link</p>
                     )}
                   </div>
                 </SettingRow>
