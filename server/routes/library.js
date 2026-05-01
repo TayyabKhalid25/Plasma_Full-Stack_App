@@ -309,8 +309,8 @@ router.put('/:gameId/status', authenticateToken, async (req, res) => {
                 const content = `Started playing ${title}`;
 
                 await pool.query(`
-                    INSERT INTO "posts" ("userID", "type", "content")
-                    VALUES ($1, 'ACTIVITY_UPDATE', $2)
+                    INSERT INTO "posts" ("userID", "type", "content", "intent")
+                    VALUES ($1, 'ACTIVITY_UPDATE', $2, (SELECT "intent" FROM "users" WHERE "plasmaUserID" = $1))
                 `, [req.userId, content]);
             }
         }

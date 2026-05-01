@@ -65,6 +65,8 @@ export const ActivityFeedSection = () => {
               type: "post",
               userID: p.plasmaUserID,
               rawIntent: p.intent,
+              intent: getIntentStyle(p.intent).label,
+              intentColor: getIntentStyle(p.intent).badge,
               user: {
                 name: p.username,
                 avatar: p.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.username}`,
@@ -164,11 +166,13 @@ export const ActivityFeedSection = () => {
         const newPost = {
           id: data.data.postID,
           type: "post",
-          userID: user?.id,
-          rawIntent: user?.intent,
+          userID: user?.plasmaUserID || user?.id,
+          rawIntent: data.data.intent,
+          intent: getIntentStyle(data.data.intent).label,
+          intentColor: getIntentStyle(data.data.intent).badge,
           user: {
-            name: user?.name || "User",
-            avatar: user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id || user?.name || 'User'}`,
+            name: user?.username || user?.name || "User",
+            avatar: user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.plasmaUserID || user?.username || 'User'}`,
           },
           text: data.data.content,
           image: data.data.mediaURL,
@@ -299,9 +303,8 @@ export const ActivityFeedSection = () => {
 
           {/* Posts */}
           {filteredPosts.map((post) => {
-            // Derive intent dynamically: use live context for current user's posts
-            const liveIntent = String(post.userID) === String(user?.id) ? user?.intent : post.rawIntent;
-            const style = getIntentStyle(liveIntent);
+            // Use the historical intent captured with the post
+            const style = getIntentStyle(post.rawIntent);
             return (
             <div key={post.id} className="flex flex-col items-start gap-4 p-5 relative self-stretch w-full bg-plasma-slate rounded-xl border border-white/5">
               <div className="flex items-start justify-between relative self-stretch w-full">

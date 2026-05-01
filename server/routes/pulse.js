@@ -10,11 +10,15 @@ router.post('/posts', authenticateToken, async (req, res) => {
     const mediaURL = req.body.mediaURL || req.body.mediaUrl;
 
     try {
+        // Fetch user's current intent
+        const userRes = await pool.query('SELECT "intent" FROM "users" WHERE "plasmaUserID" = $1', [req.userId]);
+        const currentIntent = userRes.rows[0]?.intent || 'CHILL';
+
         const result = await pool.query(`
-            INSERT INTO "posts" ("userID", "type", "content", "mediaURL")
-            VALUES ($1, 'MOMENT', $2, $3)
-            RETURNING "postID", "content", "mediaURL", "timestampUTC"
-        `, [req.userId, content, mediaURL]);
+            INSERT INTO "posts" ("userID", "type", "content", "mediaURL", "intent")
+            VALUES ($1, 'MOMENT', $2, $3, $4)
+            RETURNING "postID", "content", "mediaURL", "timestampUTC", "intent"
+        `, [req.userId, content, mediaURL, currentIntent]);
 
         res.status(201).json({ success: true, data: result.rows[0], message: 'Post created successfully' });
     } catch (error) {
@@ -199,7 +203,7 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
         }
 
         const result = await pool.query(`
-            SELECT p."postID", p."type", p."content", p."mediaURL", p."timestampUTC", p."deepLinkURI",
+            SELECT p."postID", p."type", p."content", p."mediaURL", p."timestampUTC", p."deepLinkURI", p."intent",
                    u."username", pr."avatarURL",
                    (SELECT COUNT(*) FROM "comments" WHERE "postID" = p."postID") AS "commentCount",
                    (SELECT COUNT(*) FROM "post_reactions" WHERE "postID" = p."postID") AS "reactionCount",
