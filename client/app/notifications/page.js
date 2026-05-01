@@ -80,19 +80,15 @@ export default function NotificationsPage() {
   const unreadCount = notifs.filter((n) => !n.read).length;
 
   const markAllRead = async () => {
-    // Optimistic
+    // Optimistic UI update
     setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
-    // Mark each unread notification individually
-    const unread = notifs.filter(n => !n.read);
-    for (const n of unread) {
-      try {
-        await fetch(`${API_BASE}/api/notifications/${n.id}/read`, {
-          method: "PUT",
-          headers: { Authorization: `Bearer ${token}` }
-        });
-      } catch (err) {
-        console.error("Failed to mark notification as read", err);
-      }
+    try {
+      await fetch(`${API_BASE}/api/notifications/mark-all-read`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error("Failed to mark all as read", err);
     }
   };
 

@@ -14,6 +14,7 @@ export function FriendManagementDrawer({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState("all");
   const [actionLoading, setActionLoading] = useState(null);
   const [sentRequests, setSentRequests] = useState(new Set());
+  const [activeDropdown, setActiveDropdown] = useState(null); // track which user's dropdown is open
 
   const fetchFriends = async () => {
     if (!token) return;
@@ -283,12 +284,33 @@ export function FriendManagementDrawer({ isOpen, onClose }) {
                                     <p className="text-[10px] text-plasma-primary">{friend.intent === "COMPETITIVE" ? "Competitive" : "Chill"}</p>
                                   </div>
                                 </div>
-                                <button 
-                                  onClick={() => removeFriend(friend.id)}
-                                  className="text-plasma-text-secondary opacity-0 group-hover:opacity-100 hover:text-plasma-error transition-all cursor-pointer"
-                                >
-                                  <MoreVertical className="w-4 h-4" />
-                                </button>
+                                <div className="relative">
+                                  <button 
+                                    onClick={() => setActiveDropdown(activeDropdown === friend.id ? null : friend.id)}
+                                    className="p-2 text-plasma-text-secondary opacity-0 group-hover:opacity-100 hover:text-white transition-all cursor-pointer rounded-lg hover:bg-white/5"
+                                  >
+                                    <MoreVertical className="w-4 h-4" />
+                                  </button>
+                                  {activeDropdown === friend.id && (
+                                    <>
+                                      <div className="fixed inset-0 z-40" onClick={() => setActiveDropdown(null)} />
+                                      <div className="absolute right-0 top-full mt-1 w-40 bg-plasma-slate border border-white/10 rounded-xl overflow-hidden shadow-2xl z-50">
+                                        <button 
+                                          onClick={() => { removeFriend(friend.id); setActiveDropdown(null); }}
+                                          className="w-full text-left px-4 py-2 text-sm text-plasma-error hover:bg-white/5 transition-colors cursor-pointer"
+                                        >
+                                          Remove Friend
+                                        </button>
+                                        <button 
+                                          onClick={() => { alert("Block user not implemented yet"); setActiveDropdown(null); }}
+                                          className="w-full text-left px-4 py-2 text-sm text-plasma-text-secondary hover:bg-white/5 transition-colors cursor-pointer"
+                                        >
+                                          Block User
+                                        </button>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -309,12 +331,33 @@ export function FriendManagementDrawer({ isOpen, onClose }) {
                                     <p className="text-[10px] text-plasma-text-secondary">Offline</p>
                                   </div>
                                 </div>
-                                <button 
-                                  onClick={() => removeFriend(friend.id)}
-                                  className="text-plasma-text-secondary opacity-0 group-hover:opacity-100 hover:text-plasma-error transition-all cursor-pointer"
-                                >
-                                  <MoreVertical className="w-4 h-4" />
-                                </button>
+                                <div className="relative">
+                                  <button 
+                                    onClick={() => setActiveDropdown(activeDropdown === friend.id ? null : friend.id)}
+                                    className="p-2 text-plasma-text-secondary opacity-0 group-hover:opacity-100 hover:text-white transition-all cursor-pointer rounded-lg hover:bg-white/5"
+                                  >
+                                    <MoreVertical className="w-4 h-4" />
+                                  </button>
+                                  {activeDropdown === friend.id && (
+                                    <>
+                                      <div className="fixed inset-0 z-40" onClick={() => setActiveDropdown(null)} />
+                                      <div className="absolute right-0 top-full mt-1 w-40 bg-plasma-slate border border-white/10 rounded-xl overflow-hidden shadow-2xl z-50">
+                                        <button 
+                                          onClick={() => { removeFriend(friend.id); setActiveDropdown(null); }}
+                                          className="w-full text-left px-4 py-2 text-sm text-plasma-error hover:bg-white/5 transition-colors cursor-pointer"
+                                        >
+                                          Remove Friend
+                                        </button>
+                                        <button 
+                                          onClick={() => { alert("Block user not implemented yet"); setActiveDropdown(null); }}
+                                          className="w-full text-left px-4 py-2 text-sm text-plasma-text-secondary hover:bg-white/5 transition-colors cursor-pointer"
+                                        >
+                                          Block User
+                                        </button>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
                               </div>
                             ))}
                           </div>
