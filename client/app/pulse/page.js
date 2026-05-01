@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
+import Link from "next/link";
 import {
   Gamepad2,
   Heart,
@@ -304,16 +305,19 @@ export const ActivityFeedSection = () => {
             return (
             <div key={post.id} className="flex flex-col items-start gap-4 p-5 relative self-stretch w-full bg-plasma-slate rounded-xl border border-white/5">
               <div className="flex items-start justify-between relative self-stretch w-full">
-                <div className="inline-flex items-start gap-3">
+                <Link 
+                  href={String(post.userID) === String(user?.id) ? "/profile" : `/profile/${post.userID}`}
+                  className="inline-flex items-start gap-3 hover:opacity-80 transition-opacity group"
+                >
                   <div
-                    className={`w-10 h-10 shrink-0 rounded-full border-2 bg-cover bg-center ${style.border}`}
+                    className={`w-10 h-10 shrink-0 rounded-full border-2 bg-cover bg-center ${style.border} group-hover:scale-105 transition-transform`}
                     style={{ backgroundImage: `url('${post.user.avatar}')` }}
                   />
                   <div className="flex flex-col">
-                    <span className="font-sans font-semibold text-plasma-text-primary text-base">{post.user.name}</span>
+                    <span className="font-sans font-semibold text-plasma-text-primary text-base group-hover:text-plasma-primary transition-colors">{post.user.name}</span>
                     <span className="font-sans text-plasma-text-secondary text-[11px]">{post.time}</span>
                   </div>
-                </div>
+                </Link>
                 <div className="flex items-center gap-3">
                   <div className={`px-3 py-1 rounded-full ${style.badge} flex items-center gap-2`}>
                     <span className="font-sans font-bold text-[10px]">{style.label}</span>

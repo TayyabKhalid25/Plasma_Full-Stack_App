@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ModalWrapper } from "../ui/ModalWrapper";
 import { Heart, Send, MoreHorizontal } from "lucide-react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
+import Link from "next/link";
 
 export function PostCommentsModal({ isOpen, onClose, post, onAddComment, onToggleLike }) {
   const { token, user } = useAuth();
@@ -25,6 +26,7 @@ export function PostCommentsModal({ isOpen, onClose, post, onAddComment, onToggl
               id: c.commentID,
               user: { 
                 name: c.username, 
+                id: c.plasmaUserID,
                 avatar: c.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.username}` 
               },
               text: c.text,
@@ -91,11 +93,23 @@ export function PostCommentsModal({ isOpen, onClose, post, onAddComment, onToggl
       <div className="flex flex-col h-[60vh] overflow-x-hidden">
         {/* Original Post Recap */}
         <div className="flex gap-4 pb-4 border-b border-white/5 shrink-0">
-          <img src={post.user?.avatar} className="w-10 h-10 rounded-full border-2 border-plasma-slate bg-plasma-slate" />
+          <Link 
+            href={String(post.userID) === String(user?.id) ? "/profile" : `/profile/${post.userID}`}
+            onClick={onClose}
+            className="shrink-0"
+          >
+            <img src={post.user?.avatar} className="w-10 h-10 rounded-full border-2 border-plasma-slate bg-plasma-slate hover:border-plasma-primary transition-colors" />
+          </Link>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
               <div>
-                <span className="font-sans font-semibold text-plasma-text-primary text-sm">{post.user?.name}</span>
+                <Link 
+                  href={String(post.userID) === String(user?.id) ? "/profile" : `/profile/${post.userID}`}
+                  onClick={onClose}
+                  className="font-sans font-semibold text-plasma-text-primary text-sm hover:text-plasma-primary transition-colors"
+                >
+                  {post.user?.name}
+                </Link>
                 <span className="font-sans text-plasma-text-secondary text-[11px] ml-2">{post.time}</span>
               </div>
               {post.intent && (
@@ -137,10 +151,22 @@ export function PostCommentsModal({ isOpen, onClose, post, onAddComment, onToggl
           ) : comments.length > 0 ? (
             comments.map((comment) => (
               <div key={comment.id} className="flex gap-3 group">
-                <img src={comment.user.avatar} className="w-8 h-8 rounded-full bg-plasma-slate shrink-0" />
+                <Link 
+                  href={String(comment.user.id) === String(user?.id) ? "/profile" : `/profile/${comment.user.id}`}
+                  onClick={onClose}
+                  className="shrink-0"
+                >
+                  <img src={comment.user.avatar} className="w-8 h-8 rounded-full bg-plasma-slate hover:ring-2 hover:ring-plasma-primary transition-all" />
+                </Link>
                 <div className="flex-1 bg-white/5 rounded-2xl rounded-tl-none p-3 relative group/comment">
                   <div className="flex justify-between items-start mb-1">
-                    <span className="text-xs font-bold text-plasma-text-primary">{comment.user.name}</span>
+                    <Link 
+                      href={String(comment.user.id) === String(user?.id) ? "/profile" : `/profile/${comment.user.id}`}
+                      onClick={onClose}
+                      className="text-xs font-bold text-plasma-text-primary hover:text-plasma-primary transition-colors"
+                    >
+                      {comment.user.name}
+                    </Link>
                     <span className="text-[10px] text-plasma-text-secondary">{comment.time}</span>
                   </div>
                   <p className="text-sm text-plasma-text-primary pr-8">{comment.text}</p>
