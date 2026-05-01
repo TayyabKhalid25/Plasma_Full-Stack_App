@@ -143,6 +143,8 @@ async function searchIgdbGames(query) {
         
         if (!response.data || !Array.isArray(response.data)) return [];
 
+        console.log(`[IGDB] Raw response (first 3):`, JSON.stringify(response.data.slice(0, 3)));
+
         // Filter by category in JS
         const allowedCategories = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11];
         
