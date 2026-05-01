@@ -60,13 +60,15 @@ export default function UserProfile({ params }) {
     const fetchUserProfile = async () => {
       setLoading(true);
       try {
-        const [userRes, prestigeRes] = await Promise.all([
+        const [userRes, prestigeRes, squadRes] = await Promise.all([
           fetch(`${API_BASE}/api/users/${targetUserId}`, { headers: { Authorization: `Bearer ${token}` } }),
           fetch(`${API_BASE}/api/prestige/${targetUserId}`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API_BASE}/api/users/${targetUserId}/followers`, { headers: { Authorization: `Bearer ${token}` } }),
         ]);
         
         const userData = await userRes.json();
         const prestigeJson = await prestigeRes.json();
+        const squadJson = await squadRes.json();
         
         if (userData.success) {
           const p = userData.data.profile;
@@ -88,6 +90,9 @@ export default function UserProfile({ params }) {
           })));
         }
         
+        if (squadJson.success) {
+          setSquad(squadJson.data.filter(u => u.isMutual));
+        }
         if (prestigeJson.success) {
           setPrestigeData(prestigeJson.data);
         }
@@ -194,6 +199,7 @@ export default function UserProfile({ params }) {
   const userStats = profileData && prestigeData ? [
     { label: "Plasma XP", value: (profileData.totalPlasmaXP || prestigeData.totalPlasmaXP || 0).toLocaleString(), highlight: true },
     { label: "Achievements", value: String(prestigeData.unlockedCount) },
+    { label: "Squad", value: String(squad.length || 0) },
   ] : [];
 
   return (
@@ -288,7 +294,7 @@ export default function UserProfile({ params }) {
         {!loading && (
           <section className="px-8 md:px-20 mt-2">
             <div className="flex gap-8 border-b border-white/5 overflow-x-auto hide-scrollbar">
-              {["Activity", "Library", "Achievements", "Rallies"].map(tab => (
+              {["Activity", "Library", "Achievements", "Squad", "Rallies"].map(tab => (
                 <button 
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -402,6 +408,43 @@ export default function UserProfile({ params }) {
                       <p className={`text-[10px] font-mono ${item.color}`}>{item.xp}</p>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* SQUAD TAB */}
+            {activeTab === "Squad" && (
+              <div className="py-8 animate-fade-in max-w-[680px]">
+                <div className="flex items-center justify-between mb-6">
+                  <p className="text-sm text-plasma-text-secondary">{squad.length} members in their squad</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {squad.length > 0 ? squad.map((member) => (
+                    <Link 
+                      key={member.plasmaUserID} 
+                      href={`/profile/${member.plasmaUserID}`}
+                      className="flex items-center gap-4 p-4 bg-plasma-slate/60 rounded-xl border border-white/5 hover:bg-white/5 transition-colors group"
+                    >
+                      <div className="relative shrink-0">
+                        <img 
+                          src={member.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.username}`} 
+                          alt="" 
+                          className="w-12 h-12 rounded-full border border-white/10"
+                        />
+                        {member.online && (
+                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-plasma-success rounded-full border-2 border-plasma-slate" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-plasma-text-primary truncate group-hover:text-plasma-primary transition-colors">{member.username}</p>
+                        <p className="text-[10px] text-plasma-text-secondary uppercase tracking-widest mt-1">SQUAD MEMBER</p>
+                      </div>
+                    </Link>
+                  )) : (
+                    <div className="text-center py-12 col-span-2">
+                      <p className="text-plasma-text-secondary text-sm">They haven't added any squad members yet.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

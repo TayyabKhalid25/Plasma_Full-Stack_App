@@ -88,11 +88,13 @@ export default function Profile() {
     const fetchProfile = async () => {
       setLoading(true);
       try {
-        const [prestigeRes] = await Promise.all([
+        const [prestigeRes, squadRes] = await Promise.all([
           fetch(`${API_BASE}/api/prestige/me`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API_BASE}/api/users/${user.id}/followers`, { headers: { Authorization: `Bearer ${token}` } }),
         ]);
 
         const prestigeJson = await prestigeRes.json();
+        const squadJson = await squadRes.json();
 
         // Use user from auth context as profile data
         setProfileData({
@@ -109,6 +111,10 @@ export default function Profile() {
             xp: `${item.plasmaXP} XP`,
             color: i === 0 ? "text-plasma-secondary" : "text-plasma-primary",
           })));
+        }
+
+        if (squadJson.success) {
+          setSquad(squadJson.data.filter(u => u.isMutual));
         }
         // Pre-fetch library for the stats counter
         try {
@@ -201,6 +207,7 @@ export default function Profile() {
   const userStats = profileData && prestigeData ? [
     { label: "Plasma XP", value: prestigeData.totalPlasmaXP.toLocaleString(), highlight: true },
     { label: "Achievements", value: String(prestigeData.unlockedCount) },
+    { label: "Squad", value: String(squad.length || 0) },
     { label: "Library", value: String(libraryGames.length) },
   ] : [];
 
@@ -309,7 +316,7 @@ export default function Profile() {
         {!loading && (
           <section className="px-8 md:px-20 mt-2">
             <div className="flex gap-8 border-b border-white/5 overflow-x-auto hide-scrollbar">
-              {["Activity", "Library", "Achievements", "Rallies"].map(tab => (
+              {["Activity", "Library", "Achievements", "Squad", "Rallies"].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -420,6 +427,44 @@ export default function Profile() {
                       <p className={`text-[10px] font-mono ${item.color}`}>{item.xp}</p>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* SQUAD TAB */}
+            {activeTab === "Squad" && (
+              <div className="py-8 animate-fade-in max-w-[680px]">
+                <div className="flex items-center justify-between mb-6">
+                  <p className="text-sm text-plasma-text-secondary">{squad.length} members in your squad</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {squad.length > 0 ? squad.map((member) => (
+                    <Link 
+                      key={member.plasmaUserID} 
+                      href={`/profile/${member.plasmaUserID}`}
+                      className="flex items-center gap-4 p-4 bg-plasma-slate/60 rounded-xl border border-white/5 hover:bg-white/5 transition-colors group"
+                    >
+                      <div className="relative shrink-0">
+                        <img 
+                          src={member.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.username}`} 
+                          alt="" 
+                          className="w-12 h-12 rounded-full border border-white/10"
+                        />
+                        {member.online && (
+                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-plasma-success rounded-full border-2 border-plasma-slate" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-plasma-text-primary truncate group-hover:text-plasma-primary transition-colors">{member.username}</p>
+                        <p className="text-[10px] text-plasma-text-secondary uppercase tracking-widest mt-1">SQUAD MEMBER</p>
+                      </div>
+                    </Link>
+                  )) : (
+                    <div className="text-center py-12 col-span-2">
+                      <p className="text-plasma-text-secondary text-sm">You haven't added any squad members yet.</p>
+                      <Link href="/pulse" className="text-plasma-primary text-xs font-bold mt-4 inline-block hover:underline">Find Players on Pulse →</Link>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
