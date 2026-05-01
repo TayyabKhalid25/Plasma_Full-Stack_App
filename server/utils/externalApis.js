@@ -131,17 +131,13 @@ async function igdbApiRequest(config, retries = 3, backoff = 1000) {
  */
 async function searchIgdbGames(query) {
     try {
-        const body = `search "${query}"; fields name,cover.url,url,platforms,first_release_date; limit 10;`;
-        
-        console.log('[IGDB] Sending search query:', body);
+        const body = `search "${query}"; fields name,cover.url,url,platforms,first_release_date; where category = (0,8,9,10,11); limit 10;`;
         
         const response = await igdbApiRequest({
             url: 'https://api.igdb.com/v4/games',
             method: 'POST',
             data: body
         });
-        
-        console.log('[IGDB] Raw response data:', JSON.stringify(response.data));
         
         // Transform the cover URLs to high-res 1080p and format release dates
         return response.data.map(game => {
@@ -246,9 +242,34 @@ async function getSteamPlayerAchievements(steamId, appId) {
     }
 }
 
+async function getIgdbGameById(gameId) {
+    try {
+        const response = await igdbApiRequest({
+            url: 'https://api.igdb.com/v4/games',
+            method: 'POST',
+            data: `fields name,cover.url,summary,first_release_date,platforms.name,genres.name,screenshots.url,videos.video_id; where id = ${gameId};`
+        });
+        
+        if (!response.data || response.data.length === 0) return null;
+        
+        const game = response.data[0];
+        if (game.cover && game.cover.url) {
+            game.cover.url = game.cover.url.replace('t_thumb', 't_1080p').replace('//', 'https://');
+        }
+        if (game.screenshots) {
+            game.screenshots = game.screenshots.map(s => s.url.replace('t_thumb', 't_1080p').replace('//', 'https://'));
+        }
+        return game;
+    } catch (error) {
+        console.error(`[IGDB] Detail Lookup Error for ID ${gameId}:`, error.message);
+        return null;
+    }
+}
+
 module.exports = {
     getIgdbToken,
     searchIgdbGames,
+    getIgdbGameById,
     fetchHighResCover,
     getSteamPlayerSummaries,
     getSteamOwnedGames,

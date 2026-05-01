@@ -46,6 +46,8 @@ export default function GameDetailPage({ params }) {
     fetchAchievements();
   }, [fetchAchievements]);
 
+  const [isOwned, setIsOwned] = useState(false);
+
   const getHeroImage = (appID, fallbackURL, platform) => {
     if (platform === "STEAM" && appID && !appID.startsWith("custom_") && !appID.startsWith("igdb_")) {
       // Use Steam's official 1920x620 hero banner for the detail page
@@ -58,10 +60,12 @@ export default function GameDetailPage({ params }) {
     const fetchGameDetails = async () => {
       if (!token || !id) return;
       try {
+        // 1. Try local library first
         const res = await fetch(`${API_BASE}/api/library/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
+        
         if (data.success) {
           const g = data.data;
           setGame({
@@ -72,9 +76,36 @@ export default function GameDetailPage({ params }) {
             hoursPlayed: g.hoursPlayed || 0,
             lastPlayed: formatLastPlayed(g.lastPlayedAt),
             nowPlaying: g.isCurrentlyPlaying,
-            description: "No description available for this title."
+            description: "No description available for this title.",
+            coverArtURL: g.coverArtURL
           });
           setIsPlaying(g.isCurrentlyPlaying);
+          setIsOwned(true);
+        } else if (id.startsWith("igdb_")) {
+          // 2. If not in library but it's an IGDB ID, fetch global info
+          const igdbId = id.replace("igdb_", "");
+          const igdbRes = await fetch(`${API_BASE}/api/library/igdb/${igdbId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const igdbData = await igdbRes.json();
+          
+          if (igdbData.success) {
+            const g = igdbData.data;
+            setGame({
+              id: `igdb_${g.id}`,
+              title: g.name,
+              image: g.screenshots?.[0] || g.cover?.url,
+              platform: "Global DB",
+              hoursPlayed: 0,
+              lastPlayed: "Never",
+              nowPlaying: false,
+              description: g.summary || "No description available.",
+              coverArtURL: g.cover?.url,
+              genres: g.genres?.map(gn => gn.name).join(", "),
+              releaseDate: g.first_release_date ? new Date(g.first_release_date * 1000).getFullYear() : null
+            });
+            setIsOwned(false);
+          }
         }
       } catch (err) {
         console.error("Failed to fetch game details:", err);
@@ -200,28 +231,63 @@ export default function GameDetailPage({ params }) {
                   {game.platform === "Steam" ? <Cloud className="w-3 h-3 fill-current" /> : <Gamepad2 className="w-3 h-3 fill-current" />}
                   {game.platform}
                 </span>
+                {game.releaseDate && (
+                  <span className="text-[10px] font-bold text-plasma-text-secondary bg-white/5 px-2 py-1 rounded-md">{game.releaseDate}</span>
+                )}
               </div>
               <h1 className="font-display font-bold text-4xl md:text-5xl text-plasma-text-primary mb-2 truncate drop-shadow-lg">{game.title}</h1>
-              <p className="text-[15px] text-plasma-text-secondary max-w-xl line-clamp-2 drop-shadow-md">{game.description}</p>
+              <p className="text-[15px] text-plasma-text-secondary max-w-xl line-clamp-2 drop-shadow-md">
+                {game.genres ? <span className="text-plasma-primary font-bold mr-2">{game.genres} •</span> : ""}
+                {game.description}
+              </p>
             </div>
 
             <div className="flex items-center gap-3 shrink-0">
-              <button
-                onClick={handleRemove}
-                className="px-5 py-3 rounded-xl font-bold text-sm bg-plasma-error/10 text-plasma-error border border-plasma-error/20 hover:bg-plasma-error hover:text-white transition-all cursor-pointer"
-              >
-                Remove
-              </button>
-              <button
-                onClick={togglePlaying}
-                className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer ${isPlaying
-                    ? "bg-plasma-secondary text-white shadow-[0_0_25px_rgba(255,42,122,0.4)]"
-                    : "bg-primary-gradient text-white hover:shadow-card-glow hover:scale-[1.02]"
-                  }`}
-              >
-                <Play className={`w-4 h-4 ${isPlaying ? "fill-white" : ""}`} />
-                {isPlaying ? "NOW PLAYING" : "Set Playing"}
-              </button>
+              {!isOwned ? (
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await fetch(`${API_BASE}/api/library/manual`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                        body: JSON.stringify({
+                          gameId: game.id,
+                          title: game.title,
+                          coverArtURL: game.coverArtURL
+                        })
+                      });
+                      if (res.ok) {
+                        setIsOwned(true);
+                      }
+                    } catch (err) {
+                      console.error("Failed to add game:", err);
+                    }
+                  }}
+                  className="flex items-center gap-2 px-8 py-3 rounded-xl font-bold text-sm bg-plasma-primary text-white hover:shadow-card-glow hover:scale-[1.02] transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                  ADD TO COLLECTION
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={handleRemove}
+                    className="px-5 py-3 rounded-xl font-bold text-sm bg-plasma-error/10 text-plasma-error border border-plasma-error/20 hover:bg-plasma-error hover:text-white transition-all cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                  <button
+                    onClick={togglePlaying}
+                    className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer ${isPlaying
+                        ? "bg-plasma-secondary text-white shadow-[0_0_25px_rgba(255,42,122,0.4)]"
+                        : "bg-primary-gradient text-white hover:shadow-card-glow hover:scale-[1.02]"
+                      }`}
+                  >
+                    <Play className={`w-4 h-4 ${isPlaying ? "fill-white" : ""}`} />
+                    {isPlaying ? "NOW PLAYING" : "Set Playing"}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

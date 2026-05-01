@@ -48,7 +48,6 @@ function GameCardSkeleton() {
 
 export default function Library() {
   const [games, setGames] = useState([]);
-  const [igdbResults, setIgdbResults] = useState([]);
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -100,28 +99,6 @@ export default function Library() {
   useEffect(() => {
     fetchLibrary();
   }, [token, activeFilter, searchQuery]);
-
-  // Search IGDB when query is present
-  useEffect(() => {
-    if (!searchQuery || !token) {
-      setIgdbResults([]);
-      return;
-    }
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/library/igdb/search?q=${searchQuery}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (data.success) {
-          setIgdbResults(data.data);
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchQuery, token]);
 
   const togglePlaying = async (gameId, e, currentPlaying) => {
     e.preventDefault();
@@ -236,7 +213,6 @@ export default function Library() {
               </button>
             </div>
 
-            {/* Search Bar */}
             <div className="mt-8 flex justify-center md:justify-start">
               <div className="relative w-full max-w-[600px] group">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-plasma-text-secondary group-focus-within:text-plasma-primary transition-colors" />
@@ -244,24 +220,9 @@ export default function Library() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-plasma-slate-hover border-none rounded-lg py-[14px] pl-12 pr-4 text-plasma-text-primary placeholder:text-plasma-text-secondary focus:ring-1 focus:ring-plasma-primary transition-all outline-none" 
-                  placeholder="Search any game..." 
+                  placeholder="Filter your library..." 
                   type="text"
                 />
-                {igdbResults.length > 0 && searchQuery && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-plasma-bg border border-white/10 rounded-xl overflow-hidden z-50 shadow-2xl">
-                    {igdbResults.map(res => (
-                      <div key={res.id} onClick={() => addToLibrary(res)} className="flex items-center gap-3 p-3 hover:bg-plasma-slate-hover cursor-pointer transition-colors border-b border-white/5 last:border-b-0">
-                        {res.coverArtURL ? (
-                          <img src={res.coverArtURL} alt="" className="w-8 h-10 rounded object-cover" />
-                        ) : (
-                          <div className="w-8 h-10 rounded bg-white/5 flex items-center justify-center"><Gamepad2 className="w-4 h-4 text-plasma-text-secondary" /></div>
-                        )}
-                        <span className="text-sm font-semibold text-plasma-text-primary">{res.title}</span>
-                        <span className="text-[10px] ml-auto bg-plasma-primary/20 text-plasma-primary px-2 py-1 rounded">Add</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
 

@@ -1,7 +1,7 @@
 const express = require('express');
 const { pool } = require('../config/dbConfig');
 const { authenticateToken } = require('../middleware/authMiddleware');
-const { getSteamOwnedGames, getSteamPlayerSummaries, searchIgdbGames, fetchHighResCover } = require('../utils/externalApis');
+const { getSteamOwnedGames, getSteamPlayerSummaries, searchIgdbGames, fetchHighResCover, getIgdbGameById } = require('../utils/externalApis');
 
 const router = express.Router();
 
@@ -84,6 +84,19 @@ router.get('/igdb/search', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error('IGDB Search Route Error:', error.message);
         res.status(500).json({ success: false, message: 'Failed to search IGDB' });
+    }
+});
+
+// GET /api/library/igdb/:id
+router.get('/igdb/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    try {
+        const game = await getIgdbGameById(id);
+        if (!game) return res.status(404).json({ success: false, message: 'Game not found in IGDB' });
+        res.json({ success: true, data: game });
+    } catch (error) {
+        console.error('IGDB Detail Route Error:', error.message);
+        res.status(500).json({ success: false, message: 'Failed to fetch IGDB details' });
     }
 });
 

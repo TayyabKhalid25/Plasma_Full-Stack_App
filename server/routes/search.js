@@ -1,16 +1,15 @@
 const express = require('express');
 const { pool } = require('../config/dbConfig');
 const { authenticateToken } = require('../middleware/authMiddleware');
-const { searchIgdbGames } = require('../utils/externalApis');
 
 const router = express.Router();
 
 // GET /api/search
-// Returns combined results for users, local games, and global (IGDB) games
+// Returns combined results for users and local games
 router.get('/', authenticateToken, async (req, res) => {
     const { q } = req.query;
     if (!q || q.trim().length < 2) {
-        return res.json({ success: true, data: { users: [], games: [], igdb: [] } });
+        return res.json({ success: true, data: { users: [], games: [] } });
     }
 
     const searchQuery = q.trim();
@@ -41,20 +40,11 @@ router.get('/', authenticateToken, async (req, res) => {
             LIMIT 5
         `, [dbQuery]);
 
-        // 3. Search IGDB (External)
-        let igdbResults = [];
-        try {
-            igdbResults = await searchIgdbGames(searchQuery);
-        } catch (igdbErr) {
-            console.error('[Search] IGDB search failed:', igdbErr.message);
-        }
-
         res.json({
             success: true,
             data: {
                 users: userResults.rows,
-                games: gameResults.rows,
-                igdb: igdbResults
+                games: gameResults.rows
             }
         });
 
