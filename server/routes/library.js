@@ -58,6 +58,9 @@ router.post('/sync/steam', authenticateToken, async (req, res) => {
 
         res.json({ success: true, message: 'Steam library and profile synced successfully', syncedGames: addedCount });
     } catch (error) {
+        if (error.response && error.response.status === 403) {
+            return res.status(403).json({ success: false, message: "User's profile is private" });
+        }
         console.error('Steam Sync Error:', error.message);
         res.status(500).json({ success: false, message: 'Failed to sync with Steam' });
     }

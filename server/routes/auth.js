@@ -1,6 +1,5 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
-const axios = require('axios');
 const passport = require('passport');
 const SteamStrategy = require('passport-steam').Strategy;
 const { jwt, authenticateToken } = require('../middleware/authMiddleware');
@@ -84,20 +83,32 @@ router.post('/register', async (req, res) => {
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '60d' });
 
         // 6. Trigger background Steam sync automatically
-        const port = process.env.PORT || 5000;
-        axios.post(`http://localhost:${port}/api/library/sync/steam`, {}, {
-            headers: { Authorization: `Bearer ${token}` }
-        }).then(() => {
-            return axios.post(`http://localhost:${port}/api/steam/sync/achievements`, {}, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-        }).catch(err => {
-            console.error('Background sync after registration failed:', err.message);
-            const { sendToUser } = require('../ws/chatSocket');
-            sendToUser(user.plasmaUserID, { 
-                type: 'SYNC_FAILED', 
-                message: `Post-registration background synchronization failed while attempting to fetch your Steam library and achievements. Error details: ${err.message}. Please initiate a manual sync from your dashboard.` 
-            });
+        // Uses the extracted service functions directly instead of HTTP self-calls,
+        // and enqueues background retry jobs on failure instead of giving up.
+        const { syncSteamLibrary, syncSteamAchievements } = require('../utils/steamSyncService');
+        const { enqueueJob } = require('../utils/jobQueue');
+
+        // Run sync in the background — do NOT await (user gets their response immediately)
+        (async () => {
+            try {
+                await syncSteamLibrary(user.plasmaUserID);
+                console.log(`[Auth] Post-registration library sync succeeded for ${user.plasmaUserID}`);
+            } catch (libErr) {
+                console.error(`[Auth] Post-registration library sync failed: ${libErr.message}`);
+                // Enqueue for automatic retry in 5 minutes
+                await enqueueJob('STEAM_LIBRARY_SYNC', { userId: user.plasmaUserID }, 5 * 60 * 1000);
+            }
+
+            try {
+                await syncSteamAchievements(user.plasmaUserID);
+                console.log(`[Auth] Post-registration achievement sync succeeded for ${user.plasmaUserID}`);
+            } catch (achErr) {
+                console.error(`[Auth] Post-registration achievement sync failed: ${achErr.message}`);
+                // Enqueue for automatic retry in 5 minutes
+                await enqueueJob('STEAM_ACHIEVEMENT_SYNC', { userId: user.plasmaUserID }, 5 * 60 * 1000);
+            }
+        })().catch(err => {
+            console.error('[Auth] Background sync task error:', err.message);
         });
 
         res.status(201).json({

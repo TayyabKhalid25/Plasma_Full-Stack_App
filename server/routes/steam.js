@@ -119,7 +119,13 @@ router.post('/sync/achievements', authenticateToken, async (req, res) => {
                 if (gameErr.response && gameErr.response.status === 400) {
                     continue;
                 }
-                failedGames.push(appId);
+                // Capture detailed failure info for diagnostics and retry decisions
+                failedGames.push({
+                    appId,
+                    reason: gameErr.message || 'Unknown error',
+                    httpStatus: gameErr.response?.status || null
+                });
+                console.warn(`[Steam] Achievement sync failed for appId ${appId}: HTTP ${gameErr.response?.status || 'N/A'} — ${gameErr.message}`);
             }
         }
 
@@ -160,12 +166,34 @@ router.post('/sync/achievements', authenticateToken, async (req, res) => {
             UPDATE "profiles" SET "totalPlasmaXP" = $1 WHERE "plasmaUserID" = $2
         `, [parseInt(xpResult.rows[0].totalXP) || 0, req.userId]);
 
+        // Enqueue background retries for games that failed due to transient errors
+        // (skip 403 = private profile — retrying won't help)
+        const retryableGames = failedGames
+            .filter(g => g.httpStatus !== 403)
+            .map(g => g.appId);
+
+        if (retryableGames.length > 0) {
+            const { enqueueJob } = require('../utils/jobQueue');
+            await enqueueJob('STEAM_ACHIEVEMENT_RETRY', {
+                userId: req.userId,
+                appIds: retryableGames
+            }, 5 * 60 * 1000); // Retry in 5 minutes
+            console.log(`[Steam] Enqueued retry for ${retryableGames.length} failed games.`);
+        }
+
+        // Check if the profile is private (403 errors on games)
+        const privateProfileErrors = failedGames.filter(g => g.httpStatus === 403);
+        if (privateProfileErrors.length > 0 && gamesProcessed === 0) {
+            return res.status(403).json({ success: false, message: "User's profile is private" });
+        }
+
         res.json({
             success: true,
             message: `Synced ${totalSynced} achievements across ${gamesProcessed} games`,
             syncedAchievements: totalSynced,
             gamesProcessed,
-            failedGames
+            failedGames: failedGames.map(g => g.appId),
+            retriesEnqueued: retryableGames.length
         });
     } catch (error) {
         console.error('Achievement Sync Error:', error);
