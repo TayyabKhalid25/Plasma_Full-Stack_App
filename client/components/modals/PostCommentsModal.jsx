@@ -88,7 +88,7 @@ export function PostCommentsModal({ isOpen, onClose, post, onAddComment, onToggl
 
   return (
     <ModalWrapper isOpen={isOpen} onClose={onClose} title="Post Details" maxWidth="max-w-2xl">
-      <div className="flex flex-col h-[60vh]">
+      <div className="flex flex-col h-[60vh] overflow-x-hidden">
         {/* Original Post Recap */}
         <div className="flex gap-4 pb-4 border-b border-white/5 shrink-0">
           <img src={post.user?.avatar} className="w-10 h-10 rounded-full border-2 border-plasma-slate bg-plasma-slate" />
@@ -138,14 +138,14 @@ export function PostCommentsModal({ isOpen, onClose, post, onAddComment, onToggl
             comments.map((comment) => (
               <div key={comment.id} className="flex gap-3 group">
                 <img src={comment.user.avatar} className="w-8 h-8 rounded-full bg-plasma-slate shrink-0" />
-                <div className="flex-1 bg-white/5 rounded-2xl rounded-tl-none p-3 relative">
+                <div className="flex-1 bg-white/5 rounded-2xl rounded-tl-none p-3 relative group/comment">
                   <div className="flex justify-between items-start mb-1">
                     <span className="text-xs font-bold text-plasma-text-primary">{comment.user.name}</span>
                     <span className="text-[10px] text-plasma-text-secondary">{comment.time}</span>
                   </div>
-                  <p className="text-sm text-plasma-text-primary">{comment.text}</p>
-                  <div className="absolute -right-10 top-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
-                    <button className="p-1 text-plasma-text-secondary hover:text-plasma-secondary transition-colors">
+                  <p className="text-sm text-plasma-text-primary pr-8">{comment.text}</p>
+                  <div className="absolute right-3 bottom-3 opacity-0 group-hover/comment:opacity-100 transition-opacity flex items-center gap-2">
+                    <button className="p-1 text-plasma-text-secondary hover:text-plasma-secondary transition-colors cursor-pointer">
                       <Heart className={`w-3.5 h-3.5 ${comment.liked ? "fill-plasma-secondary text-plasma-secondary" : ""}`} />
                     </button>
                   </div>
