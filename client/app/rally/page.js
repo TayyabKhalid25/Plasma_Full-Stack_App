@@ -7,6 +7,7 @@ import { PlusCircle, ChevronLeft, ChevronRight, ChevronDown, Calendar } from "lu
 import { useModal } from "@/hooks/useModal";
 import { CreateRallyModal } from "@/components/modals/CreateRallyModal";
 import { RsvpRoleModal } from "@/components/modals/RsvpRoleModal";
+import { getIntentStyle } from "@/lib/intentStyles";
 
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const DAYS_IN_MONTH = [31,28,31,30,31,30,31,31,30,31,30,31];
@@ -22,12 +23,6 @@ function getDaysInMonth(year, month) {
 
 const intentOptions = ["All Intents", "COMP", "CHILL", "LFG"];
 
-const getIntentColor = (intent) => {
-  const i = intent?.toUpperCase();
-  if (i === "COMPETITIVE" || i === "COMP") return "text-plasma-error bg-plasma-error/20 border-plasma-error/30";
-  if (i === "LFG") return "text-yellow-500 bg-yellow-500/20 border-yellow-500/30";
-  return "text-plasma-success bg-plasma-success/20 border-plasma-success/30";
-};
 
 // --- SKELETON ---
 function RallySkeleton() {
@@ -91,7 +86,7 @@ export default function Rally() {
             time: new Date(e.scheduledStartUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             dateLabel: new Date(e.scheduledStartUTC).toLocaleDateString([], { month: 'short', day: 'numeric' }),
             intent: e.requiredIntent,
-            intentColor: getIntentColor(e.requiredIntent),
+            intentColor: getIntentStyle(e.requiredIntent).badge,
             slotsFilled: filled,
             slotsTotal: total,
             organizerName: e.organizerName,

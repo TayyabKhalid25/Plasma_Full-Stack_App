@@ -7,13 +7,8 @@ import {
   Gamepad2, Play, Medal, Trophy, Calendar, Users, UserPlus, UserMinus
 } from "lucide-react";
 import Link from "next/link";
+import { getIntentStyle } from "@/lib/intentStyles";
 
-const getIntentColor = (intent) => {
-  const i = intent?.toUpperCase();
-  if (i === "COMPETITIVE" || i === "COMP") return "text-plasma-error bg-plasma-error/20 border-plasma-error/30";
-  if (i === "LFG") return "text-yellow-500 bg-yellow-500/20 border-yellow-500/30";
-  return "text-plasma-success bg-plasma-success/20 border-plasma-success/30";
-};
 
 function ProfileHeaderSkeleton() {
   return (
@@ -150,7 +145,7 @@ export default function UserProfile({ params }) {
               date: new Date(e.scheduledStartUTC).toLocaleDateString([], { month: 'short', day: 'numeric' }),
               time: new Date(e.scheduledStartUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               intent: e.requiredIntent,
-              intentColor: getIntentColor(e.requiredIntent),
+              intentColor: getIntentStyle(e.requiredIntent).badge,
               slotsFilled: parseInt(e.currentAttendees) || 0,
               slotsTotal: e.maxCapacity,
             })));
@@ -214,17 +209,17 @@ export default function UserProfile({ params }) {
             <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center w-full justify-between gap-6 md:gap-0 mt-8 md:mt-0">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
                 <div className="relative shrink-0">
-                  <div className="w-[120px] h-[120px] rounded-full border-[3px] border-[#2ECC71] p-1 bg-plasma-slate overflow-hidden">
+                  <div className={`w-[120px] h-[120px] rounded-full border-[3px] ${getIntentStyle(profileData.intent).border} p-1 bg-plasma-slate overflow-hidden`}>
                     <img src={profileData.avatar} alt="User Profile" className="w-full h-full object-cover rounded-full" />
                   </div>
-                  <div className="absolute bottom-2 right-2 w-5 h-5 bg-[#2ECC71] rounded-full border-[3px] border-plasma-bg"></div>
+                  <div className="absolute bottom-2 right-2 w-5 h-5 rounded-full border-[3px] border-plasma-bg" style={{ backgroundColor: getIntentStyle(profileData.intent).border === 'border-plasma-secondary' ? '#FF2A7A' : getIntentStyle(profileData.intent).border === 'border-slate-500' ? '#94a3b8' : '#2ECC71' }}></div>
                 </div>
                 
                 <div>
                   <div className="flex items-center gap-4 flex-wrap">
                     <h1 className="font-display font-bold text-[32px] text-plasma-text-primary leading-tight">{profileData.username}</h1>
-                    <span className="px-3 py-1 rounded-full bg-[#2ECC71]/10 border border-[#2ECC71]/30 text-[#2ECC71] text-[10px] font-bold font-sans flex items-center gap-1.5">
-                      <Gamepad2 className="w-3.5 h-3.5" /> {profileData.intent}
+                    <span className={`px-3 py-1 rounded-full ${getIntentStyle(profileData.intent).badge} border ${getIntentStyle(profileData.intent).border} text-[10px] font-bold font-sans flex items-center gap-1.5`}>
+                      <Gamepad2 className="w-3.5 h-3.5" /> {getIntentStyle(profileData.intent).label}
                     </span>
                     {isMutual && (
                       <span className="px-2 py-0.5 rounded-full bg-plasma-secondary/10 border border-plasma-secondary/30 text-plasma-secondary text-[10px] font-bold">

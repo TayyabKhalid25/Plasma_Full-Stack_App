@@ -6,7 +6,7 @@ const router = express.Router();
 
 // POST /api/pulse/posts
 router.post('/posts', authenticateToken, async (req, res) => {
-    const { content, mediaURL } = req.body;
+    const mediaURL = req.body.mediaURL || req.body.mediaUrl;
 
     try {
         const result = await pool.query(`
@@ -46,14 +46,15 @@ router.delete('/posts/:postId', authenticateToken, async (req, res) => {
 // PUT /api/pulse/posts/:postId
 router.put('/posts/:postId', authenticateToken, async (req, res) => {
     const { postId } = req.params;
-    const { content, mediaURL } = req.body;
+    const { content } = req.body;
+    const mediaURL = req.body.mediaURL || req.body.mediaUrl;
 
     try {
         // Only allow updating own posts
         const result = await pool.query(`
             UPDATE "posts"
             SET "content" = COALESCE($1, "content"),
-                "mediaURL" = $2
+                "mediaURL" = COALESCE($2, "mediaURL")
             WHERE "postID" = $3 AND "userID" = $4
             RETURNING "postID", "content", "mediaURL", "timestampUTC"
         `, [content, mediaURL, postId, req.userId]);
@@ -102,9 +103,10 @@ router.get('/posts/:postId/comments', authenticateToken, async (req, res) => {
 
     try {
         const result = await pool.query(`
-            SELECT c."commentID", c."text", c."timestampUTC", u."username", u."plasmaUserID"
+            SELECT c."commentID", c."text", c."timestampUTC", u."username", u."plasmaUserID", pr."avatarURL"
             FROM "comments" c
             JOIN "users" u ON c."userID" = u."plasmaUserID"
+            LEFT JOIN "profiles" pr ON u."plasmaUserID" = pr."plasmaUserID"
             WHERE c."postID" = $1
             ORDER BY c."timestampUTC" ASC
         `, [postId]);
@@ -124,13 +126,20 @@ router.post('/posts/:postId/comments', authenticateToken, async (req, res) => {
 
     try {
         const result = await pool.query(`
-            INSERT INTO "comments" ("postID", "userID", "text")
-            VALUES ($1, $2, $3)
-            RETURNING "commentID", "text", "timestampUTC"
+            WITH inserted_comment AS (
+                INSERT INTO "comments" ("postID", "userID", "text")
+                VALUES ($1, $2, $3)
+                RETURNING "commentID", "text", "timestampUTC", "userID"
+            )
+            SELECT ic.*, u."username", pr."avatarURL"
+            FROM inserted_comment ic
+            JOIN "users" u ON ic."userID" = u."plasmaUserID"
+            LEFT JOIN "profiles" pr ON u."plasmaUserID" = pr."plasmaUserID"
         `, [postId, req.userId, content]);
 
         res.status(201).json({ success: true, data: result.rows[0], message: 'Comment added' });
     } catch (error) {
+        console.error('Error adding comment:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
@@ -156,13 +165,16 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
 
         const result = await pool.query(`
             SELECT p."postID", p."type", p."content", p."mediaURL", p."timestampUTC", p."deepLinkURI",
-                   u."username", pr."avatarURL"
+                   u."username", pr."avatarURL",
+                   (SELECT COUNT(*) FROM "comments" WHERE "postID" = p."postID") AS "commentCount",
+                   (SELECT COUNT(*) FROM "post_reactions" WHERE "postID" = p."postID") AS "reactionCount",
+                   (SELECT EXISTS (SELECT 1 FROM "post_reactions" WHERE "postID" = p."postID" AND "userID" = $2)) AS "hasReacted"
             FROM "posts" p
             JOIN "users" u ON p."userID" = u."plasmaUserID"
             LEFT JOIN "profiles" pr ON u."plasmaUserID" = pr."plasmaUserID"
             WHERE p."userID" = $1 AND p."isVisible" = TRUE
             ORDER BY p."timestampUTC" DESC
-        `, [userId]);
+        `, [userId, req.userId]);
 
         res.json({ success: true, data: result.rows });
     } catch (error) {

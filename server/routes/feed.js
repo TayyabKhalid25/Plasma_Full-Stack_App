@@ -9,7 +9,8 @@ const router = express.Router();
 router.get('/', authenticateToken, async (req, res) => {
     const userId = req.userId;
     const filter = req.query.filter || 'all';
-    const profileUserId = req.query.userId !== 'undefined' ? req.query.userId : null; // Optional: fetch posts for a specific user's profile
+    const intentFilter = req.query.intent; // New: support intent filter from Postman
+    const profileUserId = req.query.userId !== 'undefined' ? req.query.userId : null;
 
     try {
         let baseQuery = `
@@ -23,15 +24,18 @@ router.get('/', authenticateToken, async (req, res) => {
                 u."plasmaUserID", 
                 u."username", 
                 u."intent",
-                pr."avatarURL"
+                pr."avatarURL",
+                (SELECT COUNT(*) FROM "comments" WHERE "postID" = p."postID") AS "commentCount",
+                (SELECT COUNT(*) FROM "post_reactions" WHERE "postID" = p."postID") AS "reactionCount",
+                (SELECT EXISTS (SELECT 1 FROM "post_reactions" WHERE "postID" = p."postID" AND "userID" = $1)) AS "hasReacted"
             FROM "posts" p
             JOIN "users" u ON p."userID" = u."plasmaUserID"
             LEFT JOIN "profiles" pr ON u."plasmaUserID" = pr."plasmaUserID"
             WHERE p."isVisible" = TRUE
         `;
 
-        const queryParams = [];
-        let paramIndex = 1;
+        const queryParams = [userId];
+        let paramIndex = 2;
 
         // If a specific user's timeline is requested, filter by their userId
         if (profileUserId) {
@@ -49,6 +53,15 @@ router.get('/', authenticateToken, async (req, res) => {
         } else if (filter === 'friends') {
             baseQuery += ` AND p."userID" IN (SELECT "followedID" FROM "follow_relationships" WHERE "followerID" = $${paramIndex} AND "isMutual" = TRUE)`;
             queryParams.push(userId);
+            paramIndex++;
+        }
+        
+        // Apply independent intent filter if provided (Postman Sync)
+        if (intentFilter) {
+            let dbIntent = intentFilter.toUpperCase();
+            if (dbIntent === 'COMP') dbIntent = 'COMPETITIVE';
+            baseQuery += ` AND u."intent" = $${paramIndex}`;
+            queryParams.push(dbIntent);
             paramIndex++;
         }
 

@@ -121,6 +121,33 @@ router.put('/me/intent', authenticateToken, async (req, res) => {
     }
 });
 
+// PUT /api/users/me/profile
+// Sync with Postman: Update username, bio, and avatarURL
+router.put('/me/profile', authenticateToken, async (req, res) => {
+    const { username, bio, avatarURL } = req.body;
+    const userId = req.userId;
+
+    try {
+        // 1. Update username if provided
+        if (username) {
+            await pool.query(`UPDATE "users" SET "username" = $1 WHERE "plasmaUserID" = $2`, [username, userId]);
+        }
+
+        // 2. Update bio and avatarURL in profiles table
+        await pool.query(`
+            UPDATE "profiles" 
+            SET "bio" = COALESCE($1, "bio"),
+                "avatarURL" = COALESCE($2, "avatarURL")
+            WHERE "plasmaUserID" = $3
+        `, [bio, avatarURL, userId]);
+
+        res.json({ success: true, message: 'Profile updated successfully' });
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
 // DELETE /api/users/me -> GDPR Right to be forgotten
 router.delete('/me', authenticateToken, async (req, res) => {
     try {

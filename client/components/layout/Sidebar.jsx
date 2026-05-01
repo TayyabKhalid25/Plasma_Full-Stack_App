@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
+import { getIntentStyle } from "@/lib/intentStyles";
 
 const navItems = [
   { id: "/pulse", label: "PULSE", icon: Activity },
@@ -114,7 +115,7 @@ export const Sidebar = ({ onOpenDrawer }) => {
               >
                 <div className="relative flex-[0_0_auto]">
                   <div
-                    className="relative w-8 h-8 rounded-full bg-cover bg-center border-2 border-plasma-primary"
+                    className={`relative w-8 h-8 rounded-full bg-cover bg-center border-2 ${getIntentStyle(member.intent).border}`}
                     style={{ backgroundImage: `url(${member.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.name}`})` }}
                   />
                   <div className="absolute right-0 bottom-0 w-2.5 h-2.5 bg-plasma-success rounded-full border-2 border-solid border-plasma-slate" />
@@ -124,7 +125,7 @@ export const Sidebar = ({ onOpenDrawer }) => {
                     {member.name}
                   </div>
                   <div className="font-sans text-plasma-text-secondary text-[11px] truncate w-full">
-                    {member.intent === "COMPETITIVE" ? "🔥 Competitive" : member.intent === "CHILL" ? "😎 Chill" : "Online"}
+                    {getIntentStyle(member.intent).label}
                   </div>
                 </div>
               </Link>

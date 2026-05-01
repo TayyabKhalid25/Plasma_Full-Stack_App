@@ -50,8 +50,8 @@ function getCachedData() {
 }
 
 export const TopNav = () => {
-  const { user, logout, token } = useAuth();
-  const [activeMode, setActiveMode] = useState("chill"); // SSR Default
+  const { user, logout, token, updateIntent } = useAuth();
+  const [cachedMode, setCachedMode] = useState("chill"); // SSR Default
   const [cachedAvatar, setCachedAvatar] = useState(null); // SSR Default
   const [cachedName, setCachedName] = useState("User"); // SSR Default
   const [isMounted, setIsMounted] = useState(false);
@@ -62,13 +62,16 @@ export const TopNav = () => {
   const dropdownRef = useRef(null);
   const profileDropdownRef = useRef(null);
 
+  // Derive active mode: prefer live user.intent from context, fall back to cached
+  const activeMode = user?.intent ? user.intent.toLowerCase() : cachedMode;
+
   const unreadCount = notifications.filter((n) => !n.read).length;
   const previewNotifs = notifications.slice(0, 4);
 
   // Synchronously update state and reveal component after client hydration
   useIsomorphicLayoutEffect(() => {
     const { mode, avatar, name } = getCachedData();
-    if (mode) setActiveMode(mode);
+    if (mode) setCachedMode(mode);
     if (avatar) setCachedAvatar(avatar);
     if (name) setCachedName(name);
     setIsMounted(true);
@@ -81,12 +84,6 @@ export const TopNav = () => {
       localStorage.setItem("plasma_cached_user", JSON.stringify(cacheData));
       setCachedAvatar(user.avatar || null);
       setCachedName(user.name || "User");
-
-      // Sync intent from server if no localStorage override exists
-      const savedMode = localStorage.getItem("plasma_active_mode");
-      if (!savedMode && user.intent) {
-        setActiveMode(user.intent.toLowerCase());
-      }
     }
   }, [user]);
 
@@ -119,23 +116,9 @@ export const TopNav = () => {
     fetchNotifications();
   }, [token]);
 
-  // Handle mode change
-  const handleModeChange = async (modeId) => {
-    setActiveMode(modeId);
-    localStorage.setItem("plasma_active_mode", modeId);
-    
-    try {
-      await fetch(`${API_BASE}/api/users/me/intent`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ intent: modeId.toUpperCase() })
-      });
-    } catch (error) {
-      console.error("Failed to update intent:", error);
-    }
+  // Handle mode change — delegates to AuthContext
+  const handleModeChange = (modeId) => {
+    updateIntent(modeId);
   };
 
   // Mark a single notification as read

@@ -10,6 +10,7 @@ import { useModal } from "@/hooks/useModal";
 import { EditHallOfFameModal } from "@/components/modals/EditHallOfFameModal";
 import { InviteFriendsModal } from "@/components/modals/InviteFriendsModal";
 import { AddMilestoneModal } from "@/components/modals/AddMilestoneModal";
+import { getIntentStyle } from "@/lib/intentStyles";
 
 const iconMap = { Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Diamond, Zap, Activity };
 
@@ -161,7 +162,9 @@ export default function Prestige() {
             xp: `${(u.totalPlasmaXP || 0).toLocaleString()} XP`,
             rank: idx < 3 ? ["🥇", "🥈", "🥉"][idx] : String(idx + 1),
             avatar: u.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`,
-            isCurrentUser: u.plasmaUserID === user?.plasmaUserID,
+            rawIntent: u.intent,
+            plasmaUserID: u.plasmaUserID,
+            isCurrentUser: String(u.plasmaUserID) === String(user?.id),
           })));
         }
       } catch (err) {
@@ -171,7 +174,7 @@ export default function Prestige() {
       }
     };
     fetchLeaderboard();
-  }, [token, activeLeaderboard, user?.plasmaUserID]);
+  }, [token, activeLeaderboard, user?.id]);
 
   const handleUpdateHof = async (achievementIds) => {
     try {
@@ -428,33 +431,35 @@ export default function Prestige() {
             {/* Leaderboard Rows */}
             {loadingLeaderboard ? <LeaderboardSkeleton /> : (
               <div className="space-y-1">
-                {leaderboardData.map((lb) => (
-                  <div 
-                    key={lb.id} 
-                    className={`flex items-center gap-3 p-2.5 border-b border-white/5 transition-colors ${
-                      lb.isCurrentUser ? 'bg-white/10 rounded-lg' : 'hover:bg-white/5'
-                    }`}
-                  >
-                    <span className={`w-6 text-center ${lb.id <= 3 ? 'text-lg' : 'text-sm text-plasma-text-secondary font-mono'}`}>
-                      {lb.rank}
-                    </span>
-                    <div className="relative shrink-0">
-                      <img 
-                        src={lb.avatar} 
-                        alt={lb.name} 
-                        className={`w-8 h-8 rounded-full border-2 ${
-                          lb.id <= 2 ? 'border-plasma-error' : lb.isCurrentUser ? 'border-plasma-primary' : 'border-transparent opacity-80'
-                        }`} 
-                      />
+                {leaderboardData.map((lb) => {
+                  const liveIntent = lb.isCurrentUser ? user?.intent : lb.rawIntent;
+                  const style = getIntentStyle(liveIntent);
+                  return (
+                    <div 
+                      key={lb.id} 
+                      className={`flex items-center gap-3 p-2.5 border-b border-white/5 transition-colors ${
+                        lb.isCurrentUser ? 'bg-white/10 rounded-lg' : 'hover:bg-white/5'
+                      }`}
+                    >
+                      <span className={`w-6 text-center ${lb.id <= 3 ? 'text-lg' : 'text-sm text-plasma-text-secondary font-mono'}`}>
+                        {lb.rank}
+                      </span>
+                      <div className="relative shrink-0">
+                        <img 
+                          src={lb.avatar} 
+                          alt={lb.name} 
+                          className={`w-8 h-8 rounded-full border-2 ${style.border}`} 
+                        />
+                      </div>
+                      <span className={`flex-1 text-sm truncate ${lb.isCurrentUser ? 'text-plasma-secondary font-bold' : lb.id <= 3 ? 'text-plasma-text-primary font-medium' : 'text-plasma-text-secondary'}`}>
+                        {lb.name}
+                      </span>
+                      <span className={`font-mono text-sm ${lb.isCurrentUser ? 'text-plasma-secondary' : lb.id === 1 ? 'text-plasma-secondary' : lb.id === 2 ? 'text-plasma-text-primary' : 'text-plasma-text-secondary'}`}>
+                        {lb.xp}
+                      </span>
                     </div>
-                    <span className={`flex-1 text-sm truncate ${lb.isCurrentUser ? 'text-plasma-secondary font-bold' : lb.id <= 2 ? 'text-plasma-text-primary font-medium' : 'text-plasma-text-secondary'}`}>
-                      {lb.name}
-                    </span>
-                    <span className={`font-mono text-sm ${lb.isCurrentUser ? 'text-plasma-secondary' : lb.id === 1 ? 'text-plasma-secondary' : lb.id === 2 ? 'text-plasma-text-primary' : 'text-plasma-text-secondary'}`}>
-                      {lb.xp}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
             

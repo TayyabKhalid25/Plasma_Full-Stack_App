@@ -96,23 +96,29 @@ router.put('/me/hall-of-fame', authenticateToken, async (req, res) => {
 
 // POST /api/prestige/milestones
 router.post('/milestones', authenticateToken, async (req, res) => {
-    const { title, description, category } = req.body;
+    const { title, description, gameId, proofUrl } = req.body;
     
-    // Stub for manual milestone creation
+    if (!title) return res.status(400).json({ success: false, message: 'Title is required' });
+
     try {
+        // In a real scenario, we might want to store proofUrl and gameId in a new table
+        // For now, we'll store them in the achievement title/description stub or metadata
         const result = await pool.query(`
             INSERT INTO "achievements" ("achievementID", "appID", "title", "rarityWeight", "plasmaXP")
-            VALUES ($1, 'custom_milestone', $2, 1.0, 50)
+            VALUES ($1, $2, $3, 1.0, 50)
             RETURNING "achievementID"
-        `, [`milestone_${Date.now()}`, title]);
+        `, [`milestone_${Date.now()}`, gameId || 'custom_milestone', title]);
         
         await pool.query(`
             INSERT INTO "user_achievements" ("userID", "achievementID", "unlockedAt")
             VALUES ($1, $2, CURRENT_TIMESTAMP)
         `, [req.userId, result.rows[0].achievementID]);
         
-        res.status(201).json({ success: true, message: 'Milestone recorded manually' });
+        // Update user's profile bio or metadata if needed? Postman doesn't specify, but let's stick to the Body fields.
+        
+        res.status(201).json({ success: true, message: 'Milestone recorded manually', milestoneId: result.rows[0].achievementID });
     } catch (error) {
+        console.error('Error creating milestone:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });

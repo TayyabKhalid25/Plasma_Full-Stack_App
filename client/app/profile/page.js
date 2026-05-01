@@ -3,19 +3,14 @@
 import { useState, useEffect } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { 
+import {
   Gamepad2, Play, Medal, Trophy, Swords, Shield, Target, Calendar, Users, User
 } from "lucide-react";
 import Link from "next/link";
+import { getIntentStyle } from "@/lib/intentStyles";
 
 const iconMap = { Trophy, Swords, Shield, Target, Medal };
 
-const getIntentColor = (intent) => {
-  const i = intent?.toUpperCase();
-  if (i === "COMPETITIVE" || i === "COMP") return "text-plasma-error bg-plasma-error/20 border-plasma-error/30";
-  if (i === "LFG") return "text-yellow-500 bg-yellow-500/20 border-yellow-500/30";
-  return "text-plasma-success bg-plasma-success/20 border-plasma-success/30";
-};
 
 // Prefer Steam's high-res vertical capsule over the tiny icon
 function getHighResImage(appID, fallbackURL, platform) {
@@ -40,7 +35,7 @@ function ProfileHeaderSkeleton() {
             <div className="w-40 h-8 rounded bg-plasma-slate-hover" />
             <div className="w-24 h-4 rounded bg-plasma-slate-hover" />
             <div className="flex gap-3 mt-4">
-              {[1,2,3,4].map(i => <div key={i} className="w-[100px] h-[56px] rounded-lg bg-plasma-slate-hover" />)}
+              {[1, 2, 3, 4].map(i => <div key={i} className="w-[100px] h-[56px] rounded-lg bg-plasma-slate-hover" />)}
             </div>
           </div>
         </div>
@@ -52,7 +47,7 @@ function ProfileHeaderSkeleton() {
 function FeedSkeleton() {
   return (
     <div className="space-y-4 animate-pulse">
-      {[1,2].map(i => (
+      {[1, 2].map(i => (
         <div key={i} className="bg-plasma-slate/60 rounded-2xl p-6 border border-white/5">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-plasma-slate-hover" />
@@ -73,7 +68,7 @@ export default function Profile() {
   const { token, user } = useAuth();
   const [activeTab, setActiveTab] = useState("Activity");
   const [loading, setLoading] = useState(true);
-  
+
   const [profileData, setProfileData] = useState(null);
   const [prestigeData, setPrestigeData] = useState(null);
   const [activityPosts, setActivityPosts] = useState([]);
@@ -91,17 +86,16 @@ export default function Profile() {
         const [prestigeRes] = await Promise.all([
           fetch(`${API_BASE}/api/prestige/me`, { headers: { Authorization: `Bearer ${token}` } }),
         ]);
-        
+
         const prestigeJson = await prestigeRes.json();
-        
+
         // Use user from auth context as profile data
         setProfileData({
           username: user.name || user.username,
           avatar: user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name || user.username}`,
-          intent: user.intent || "CHILL",
           bio: user.bio || "",
         });
-        
+
         if (prestigeJson.success) {
           setPrestigeData(prestigeJson.data);
           setHofData(prestigeJson.data.hallOfFame.map((item, i) => ({
@@ -134,12 +128,12 @@ export default function Profile() {
       }
     };
     fetchProfile();
-  }, [token, user]);
+  }, [token, user?.id]);
 
   // Fetch tab data
   useEffect(() => {
     if (!token || !user) return;
-    
+
     const fetchTabData = async () => {
       setLoadingTab(true);
       try {
@@ -184,7 +178,7 @@ export default function Profile() {
               date: new Date(e.scheduledStartUTC).toLocaleDateString([], { month: 'short', day: 'numeric' }),
               time: new Date(e.scheduledStartUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               intent: e.requiredIntent,
-              intentColor: getIntentColor(e.requiredIntent),
+              intentColor: getIntentStyle(e.requiredIntent).badge,
               slotsFilled: parseInt(e.currentAttendees) || 0,
               slotsTotal: e.maxCapacity,
             })));
@@ -197,7 +191,7 @@ export default function Profile() {
       }
     };
     fetchTabData();
-  }, [token, user, activeTab]);
+  }, [token, user?.id, activeTab]);
 
   const userStats = profileData && prestigeData ? [
     { label: "Plasma XP", value: prestigeData.totalPlasmaXP.toLocaleString(), highlight: true },
@@ -208,7 +202,7 @@ export default function Profile() {
   return (
     <DashboardLayout showRightRail={false}>
       <div className="pb-20 animate-fade-in min-h-screen">
-        
+
         {/* PROFILE HEADER */}
         {loading ? <ProfileHeaderSkeleton /> : profileData && (
           <header className="relative min-h-[280px] w-full flex items-center px-8 md:px-20 overflow-hidden py-10 md:py-0">
@@ -216,24 +210,24 @@ export default function Profile() {
               <div className="absolute inset-0 bg-gradient-to-br from-plasma-primary/30 to-plasma-secondary/15 backdrop-blur-3xl"></div>
               <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-plasma-bg to-transparent"></div>
             </div>
-            
+
             <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center w-full justify-between gap-6 md:gap-0 mt-8 md:mt-0">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
                 <div className="relative shrink-0">
-                  <div className="w-[120px] h-[120px] rounded-full border-[3px] border-[#2ECC71] p-1 bg-plasma-slate overflow-hidden">
+                  <div className={`w-[120px] h-[120px] rounded-full border-[3px] ${getIntentStyle(user?.intent).border} p-1 bg-plasma-slate overflow-hidden`}>
                     <img src={profileData.avatar} alt="User Profile" className="w-full h-full object-cover rounded-full" />
                   </div>
-                  <div className="absolute bottom-2 right-2 w-5 h-5 bg-[#2ECC71] rounded-full border-[3px] border-plasma-bg"></div>
+                  <div className="absolute bottom-2 right-2 w-5 h-5 rounded-full border-[3px] border-plasma-bg" style={{ backgroundColor: getIntentStyle(user?.intent).border === 'border-plasma-secondary' ? '#FF2A7A' : getIntentStyle(user?.intent).border === 'border-slate-500' ? '#94a3b8' : '#2ECC71' }}></div>
                 </div>
-                
+
                 <div>
                   <div className="flex items-center gap-4 flex-wrap">
                     <h1 className="font-display font-bold text-[32px] text-plasma-text-primary leading-tight">{profileData.username}</h1>
-                    <span className="px-3 py-1 rounded-full bg-[#2ECC71]/10 border border-[#2ECC71]/30 text-[#2ECC71] text-[10px] font-bold font-sans flex items-center gap-1.5">
-                      <Gamepad2 className="w-3.5 h-3.5" /> {profileData.intent}
+                    <span className={`px-3 py-1 rounded-full ${getIntentStyle(user?.intent).badge} border ${getIntentStyle(user?.intent).border} text-[10px] font-bold font-sans flex items-center gap-1.5`}>
+                      <Gamepad2 className="w-3.5 h-3.5" /> {getIntentStyle(user?.intent).label}
                     </span>
                   </div>
-                  
+
                   <div className="flex gap-3 mt-4 flex-wrap">
                     {userStats.map((stat, idx) => (
                       <div key={idx} className="bg-plasma-slate/60 backdrop-blur-md rounded-lg px-4 py-3 min-w-[100px] border border-white/5">
@@ -244,9 +238,9 @@ export default function Profile() {
                   </div>
                 </div>
               </div>
-              
-              <Link 
-                href="/settings" 
+
+              <Link
+                href="/settings"
                 className="flex items-center gap-2 px-8 py-3 rounded-full bg-primary-gradient text-white font-bold text-sm transition-all hover:shadow-card-glow hover:scale-[1.02] shrink-0 cursor-pointer"
               >
                 <User className="w-4 h-4" /> Edit Profile
@@ -278,14 +272,13 @@ export default function Profile() {
           <section className="px-8 md:px-20 mt-2">
             <div className="flex gap-8 border-b border-white/5 overflow-x-auto hide-scrollbar">
               {["Activity", "Library", "Achievements", "Rallies"].map(tab => (
-                <button 
+                <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`pb-4 text-sm font-semibold font-sans whitespace-nowrap transition-colors cursor-pointer ${
-                    activeTab === tab 
-                      ? "border-b-2 border-plasma-primary text-plasma-text-primary" 
-                      : "border-b-2 border-transparent text-plasma-text-secondary hover:text-plasma-text-primary"
-                  }`}
+                  className={`pb-4 text-sm font-semibold font-sans whitespace-nowrap transition-colors cursor-pointer ${activeTab === tab
+                    ? "border-b-2 border-plasma-primary text-plasma-text-primary"
+                    : "border-b-2 border-transparent text-plasma-text-secondary hover:text-plasma-text-primary"
+                    }`}
                 >
                   {tab}
                 </button>
@@ -332,7 +325,7 @@ export default function Profile() {
               <div className="py-8 animate-fade-in">
                 {loadingTab ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
-                    {[1,2,3,4,5,6].map(i => (
+                    {[1, 2, 3, 4, 5, 6].map(i => (
                       <div key={i} className="aspect-[2/3] rounded-xl bg-plasma-slate-hover animate-pulse" />
                     ))}
                   </div>
@@ -398,7 +391,7 @@ export default function Profile() {
               <div className="py-8 animate-fade-in max-w-[680px]">
                 {loadingTab ? (
                   <div className="space-y-3">
-                    {[1,2,3].map(i => (
+                    {[1, 2, 3].map(i => (
                       <div key={i} className="flex items-center justify-between p-4 bg-plasma-slate/60 rounded-xl border border-white/5 animate-pulse">
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 rounded-xl bg-plasma-slate-hover" />

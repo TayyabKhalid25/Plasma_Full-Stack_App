@@ -21,31 +21,8 @@ import { ConfirmDeleteModal } from "@/components/modals/ConfirmDeleteModal";
 import { PostCommentsModal } from "@/components/modals/PostCommentsModal";
 import { UploadMediaModal } from "@/components/modals/UploadMediaModal";
 import { EditPostModal } from "@/components/modals/EditPostModal";
+import { getIntentStyle } from "@/lib/intentStyles";
 
-// --- HELPERS ---
-
-const getIntentStyle = (intent) => {
-  const normalized = intent?.toUpperCase();
-  if (normalized === "COMPETITIVE" || normalized === "COMP") {
-    return {
-      border: "border-plasma-secondary",
-      badge: "bg-plasma-secondary/10 text-plasma-secondary",
-      label: "⚔ COMP"
-    };
-  }
-  if (normalized === "OFFLINE") {
-    return {
-      border: "border-slate-500",
-      badge: "bg-slate-500/10 text-slate-400",
-      label: "OFFLINE"
-    };
-  }
-  return {
-    border: "border-plasma-success",
-    badge: "bg-plasma-success/10 text-plasma-success",
-    label: "CHILL"
-  };
-};
 
 // --- COMPONENTS ---
 
@@ -75,26 +52,22 @@ export const ActivityFeedSection = () => {
         });
         const data = await res.json();
         if (data.success) {
-          const mapped = data.data.map(p => {
-            const style = getIntentStyle(p.intent);
-            return {
+          const mapped = data.data.map(p => ({
               id: p.postID,
               type: "post",
-              user: { 
-                name: p.username, 
-                avatar: p.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.username}`, 
-                borderColor: style.border 
+              userID: p.plasmaUserID,
+              rawIntent: p.intent,
+              user: {
+                name: p.username,
+                avatar: p.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.username}`,
               },
-              intent: style.label,
-              intentColor: style.badge,
               text: p.content,
               image: p.mediaURL,
-              likes: 0,
-              comments: 0,
+              likes: parseInt(p.reactionCount) || 0,
+              comments: parseInt(p.commentCount) || 0,
               time: new Date(p.timestampUTC).toLocaleString(),
-              liked: false,
-            };
-          });
+              liked: p.hasReacted,
+            }));
           setPosts(mapped);
         }
       } catch (err) {
@@ -171,17 +144,15 @@ export const ActivityFeedSection = () => {
       });
       const data = await res.json();
       if (data.success) {
-        const style = getIntentStyle(user?.intent);
         const newPost = {
           id: data.data.postID,
           type: "post",
-          user: { 
-            name: user?.username || "You", 
-            avatar: user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || 'You'}`, 
-            borderColor: style.border 
+          userID: user?.id,
+          rawIntent: user?.intent,
+          user: {
+            name: user?.name || "You",
+            avatar: user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'You'}`,
           },
-          intent: style.label,
-          intentColor: style.badge,
           text: data.data.content,
           image: data.data.mediaURL,
           likes: 0,
@@ -207,9 +178,9 @@ export const ActivityFeedSection = () => {
         {/* Post Composer */}
         <div className="flex flex-col items-start gap-4 p-4 relative self-stretch w-full bg-plasma-slate rounded-xl border border-white/5">
           <div className="flex items-start gap-4 relative self-stretch w-full">
-            <div 
-              className={`relative shrink-0 w-10 h-10 rounded-full bg-cover bg-center border-2 ${getIntentStyle(user?.intent).border}`} 
-              style={{ backgroundImage: `url(${user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || 'Me'}`})` }} 
+            <div
+              className={`relative shrink-0 w-10 h-10 rounded-full bg-cover bg-center border-2 ${getIntentStyle(user?.intent).border}`}
+              style={{ backgroundImage: `url(${user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'Me'}`})` }}
             />
             <div className="flex flex-col flex-1 gap-3 w-full">
               <div className="flex items-center justify-center px-4 py-2 relative self-stretch bg-plasma-slate-hover rounded-full">
@@ -252,8 +223,8 @@ export const ActivityFeedSection = () => {
             <button
               onClick={handlePost}
               className={`flex justify-center px-6 py-1.5 rounded-full items-center transition-all cursor-pointer ${showPostFeedback
-                  ? "bg-plasma-success text-white"
-                  : "bg-primary-gradient text-white hover:opacity-90"
+                ? "bg-plasma-success text-white"
+                : "bg-primary-gradient text-white hover:opacity-90"
                 }`}
             >
               <span className="font-display font-bold text-sm tracking-[0.35px]">
@@ -310,49 +281,57 @@ export const ActivityFeedSection = () => {
           )}
 
           {/* Posts */}
-          {filteredPosts.map((post) => (
+          {filteredPosts.map((post) => {
+            // Derive intent dynamically: use live context for current user's posts
+            const liveIntent = String(post.userID) === String(user?.id) ? user?.intent : post.rawIntent;
+            const style = getIntentStyle(liveIntent);
+            return (
             <div key={post.id} className="flex flex-col items-start gap-4 p-5 relative self-stretch w-full bg-plasma-slate rounded-xl border border-white/5">
               <div className="flex items-start justify-between relative self-stretch w-full">
                 <div className="inline-flex items-start gap-3">
-                  <div 
-                    className={`w-10 h-10 shrink-0 rounded-full border-2 bg-cover bg-center ${post.user.borderColor}`} 
-                    style={{ backgroundImage: `url('${post.user.avatar}')` }} 
+                  <div
+                    className={`w-10 h-10 shrink-0 rounded-full border-2 bg-cover bg-center ${style.border}`}
+                    style={{ backgroundImage: `url('${post.user.avatar}')` }}
                   />
                   <div className="flex flex-col">
                     <span className="font-sans font-semibold text-plasma-text-primary text-base">{post.user.name}</span>
                     <span className="font-sans text-plasma-text-secondary text-[11px]">{post.time}</span>
                   </div>
                 </div>
-                <div className={`px-3 py-1 rounded-full ${post.intentColor} flex items-center gap-2`}>
-                  <span className="font-sans font-bold text-[10px]">{post.intent}</span>
-                </div>
-                <div className="relative">
-                  <button
-                    onClick={() => setOpenDropdownId(openDropdownId === post.id ? null : post.id)}
-                    className="p-1 ml-2 text-plasma-text-secondary hover:text-white transition-colors cursor-pointer"
-                  >
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
-                  {openDropdownId === post.id && (
-                    <div className="absolute right-0 mt-2 w-48 bg-plasma-slate border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden animate-fade-in">
-                      <button 
-                        onClick={() => {
-                          setOpenDropdownId(null);
-                          editModal.open(post);
-                        }}
-                        className="w-full flex items-center gap-3 p-3 hover:bg-white/5 transition-colors text-left text-plasma-text-primary text-sm font-semibold"
+                <div className="flex items-center gap-3">
+                  <div className={`px-3 py-1 rounded-full ${style.badge} flex items-center gap-2`}>
+                    <span className="font-sans font-bold text-[10px]">{style.label}</span>
+                  </div>
+                  {post.userID === user?.id && (
+                    <div className="relative">
+                      <button
+                        onClick={() => setOpenDropdownId(openDropdownId === post.id ? null : post.id)}
+                        className="p-1 text-plasma-text-secondary hover:text-white transition-colors cursor-pointer"
                       >
-                        <Edit2 className="w-4 h-4" /> Edit Post
+                        <MoreHorizontal className="w-4 h-4" />
                       </button>
-                      <button 
-                        onClick={() => {
-                          setOpenDropdownId(null);
-                          deleteModal.open(post);
-                        }}
-                        className="w-full flex items-center gap-3 p-3 hover:bg-plasma-error/10 transition-colors text-left text-plasma-error text-sm font-semibold"
-                      >
-                        <Trash2 className="w-4 h-4" /> Delete Post
-                      </button>
+                      {openDropdownId === post.id && (
+                        <div className="absolute right-0 mt-2 w-48 bg-plasma-slate border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden animate-fade-in">
+                          <button
+                            onClick={() => {
+                              setOpenDropdownId(null);
+                              editModal.open(post);
+                            }}
+                            className="w-full flex items-center gap-3 p-3 hover:bg-white/5 transition-colors text-left text-plasma-text-primary text-sm font-semibold"
+                          >
+                            <Edit2 className="w-4 h-4" /> Edit Post
+                          </button>
+                          <button
+                            onClick={() => {
+                              setOpenDropdownId(null);
+                              deleteModal.open(post);
+                            }}
+                            className="w-full flex items-center gap-3 p-3 hover:bg-plasma-error/10 transition-colors text-left text-plasma-error text-sm font-semibold"
+                          >
+                            <Trash2 className="w-4 h-4" /> Delete Post
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -363,9 +342,9 @@ export const ActivityFeedSection = () => {
               {post.image && (
                 <div className="relative w-full rounded-2xl overflow-hidden border border-white/10 mt-2 bg-black">
                   {post.image.match(/\.(mp4|webm|ogg|mov)$/i) ? (
-                    <video 
-                      src={post.image} 
-                      controls 
+                    <video
+                      src={post.image}
+                      controls
                       className="w-full max-h-[500px] object-contain"
                     />
                   ) : (
@@ -397,7 +376,7 @@ export const ActivityFeedSection = () => {
                 </button>
               </div>
             </div>
-          ))}
+          )})}
 
           {/* Empty state */}
           {!loadingFeed && filteredPosts.length === 0 && (

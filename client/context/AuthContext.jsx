@@ -117,6 +117,33 @@ export function AuthProvider({ children }) {
     return data;
   };
 
+  // Update intent mode globally
+  const updateIntent = async (newIntent) => {
+    const upper = newIntent.toUpperCase();
+    // Optimistically update user state so all consumers re-render
+    setUser(prev => prev ? { ...prev, intent: upper } : prev);
+    // Sync localStorage caches
+    localStorage.setItem("plasma_active_mode", newIntent.toLowerCase());
+    const cached = localStorage.getItem("plasma_cached_user");
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        parsed.intent = upper;
+        localStorage.setItem("plasma_cached_user", JSON.stringify(parsed));
+      } catch { /* ignore */ }
+    }
+    // Persist to backend
+    try {
+      await fetch(`${API_BASE}/api/users/me/intent`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ intent: upper })
+      });
+    } catch (err) {
+      console.error("Failed to update intent:", err);
+    }
+  };
+
   // Logout
   const logout = () => {
     localStorage.removeItem("plasma_token");
@@ -141,6 +168,7 @@ export function AuthProvider({ children }) {
         register,
         logout,
         fetchUser,
+        updateIntent,
       }}
     >
       {children}

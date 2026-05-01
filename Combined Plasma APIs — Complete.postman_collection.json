@@ -1,11 +1,11 @@
 {
   "info": {
-    "_postman_id": "d2eafd34-1bc0-4809-b64c-1406406fd40a",
+    "_postman_id": "a1d69219-0a59-431d-b4be-785228a0b8d1",
     "name": "Combined Plasma APIs — Complete",
     "description": "Unified API Documentation for the Plasma backend. Merges the robust SRS v1.0 IDEAL definitions with the traditional standard routes. Covers Authentication (Steam + Traditional), Social Feed, Games Library, Rallies, Prestige, Notifications, and Direct Messaging.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "54201032",
-    "_collection_link": "https://go.postman.co/collection/54201032-d2eafd34-1bc0-4809-b64c-1406406fd40a?source=collection_link"
+    "_collection_link": "https://go.postman.co/collection/54201032-a1d69219-0a59-431d-b4be-785228a0b8d1?source=collection_link"
   },
   "item": [
     {
@@ -330,7 +330,8 @@
                   "value": "Ahmed"
                 }
               ]
-            }
+            },
+            "description": "Searches for users by username. Returns results including 'isRequested' (follow request sent) and 'isMutual' (already friends) flags relative to the current user."
           },
           "response": []
         },
@@ -501,7 +502,7 @@
                 }
               ]
             },
-            "description": "Returns the unified activity feed. Merges live Steam status events with user-generated Moments. Optionally filters by a specific userId."
+            "description": "Returns the unified activity feed from /api/feed. Merges live Steam status events with user-generated Moments. Supporting filters: all, my-posts (current user), friends (mutual friends), comp (Competitive intent users), chill (Chill intent users)."
           },
           "response": []
         },
@@ -1010,6 +1011,40 @@
             "description": "Searches for users by username (case-insensitive) for the friend request system. Excludes the requesting user."
           },
           "response": []
+        },
+        {
+          "name": "Get User Pulse Timeline",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/pulse/user/:userId",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "pulse",
+                "user",
+                ":userId"
+              ],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "12345"
+                }
+              ]
+            },
+            "description": "Returns the activity feed (posts) for a specific user. Enforces mutual friendship privacy rules (BR-1) unless the requester is viewing their own timeline."
+          },
+          "response": []
         }
       ]
     },
@@ -1220,7 +1255,7 @@
               }
             ],
             "url": {
-              "raw": "http://localhost:5000/api/trending",
+              "raw": "http://localhost:5000/api/games/trending",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -1228,6 +1263,7 @@
               "port": "5000",
               "path": [
                 "api",
+                "games",
                 "trending"
               ]
             }
@@ -1371,6 +1407,40 @@
                 }
               ]
             }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Library",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/library/user/:userId",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "library",
+                "user",
+                ":userId"
+              ],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "12345"
+                }
+              ]
+            },
+            "description": "Returns the combined games library for a specific user. Visibility is subject to user privacy settings."
           },
           "response": []
         }
@@ -1584,7 +1654,7 @@
               }
             ],
             "url": {
-              "raw": "http://localhost:5000/api/leaderboard?scope=friends",
+              "raw": "http://localhost:5000/api/leaderboard?scope=global",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -1597,7 +1667,7 @@
               "query": [
                 {
                   "key": "scope",
-                  "value": "friends",
+                  "value": "global",
                   "description": "Options: friends, global"
                 }
               ]
@@ -1826,7 +1896,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"roleId\": \"role_dps_1\"\n}"
+              "raw": "{\n    \"declaredRole\": \"Entry Fragger\"\n}"
             },
             "url": {
               "raw": "http://localhost:5000/api/rallies/:eventId/rsvp",
@@ -1881,6 +1951,40 @@
                 }
               ]
             }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Rallies",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/rallies/user/:userId",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "rallies",
+                "user",
+                ":userId"
+              ],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "12345"
+                }
+              ]
+            },
+            "description": "Returns the list of upcoming rallies organized by a specific user. Visibility is restricted to mutual friends only (BR-1)."
           },
           "response": []
         }
@@ -2190,6 +2294,45 @@
         }
       ],
       "description": "REST endpoints for managing chat history and inbox state. Real-time message delivery is handled via WebSocket connection at ws://localhost:5000/ws/chat?token={{JWT_TOKEN}}."
+    },
+    {
+      "name": "10. Admin Dashboard",
+      "item": [
+        {
+          "name": "Delete User Account (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/admin/user/:userId",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "admin",
+                "user",
+                ":userId"
+              ],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "12345"
+                }
+              ]
+            },
+            "description": "Permanently deletes a user account. Restricted to users with 'admin' type in the database. Unlike the self-deletion route, this is an immediate administrative action."
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }
