@@ -2,9 +2,12 @@ const { WebSocketServer } = require('ws');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../config/dbConfig');
 const { setOnline, setOffline } = require('./presence');
+const { stopAllUserActivity } = require('../utils/activityUtils');
 
 // Map of userId -> Set of WebSocket connections
 const clients = new Map();
+// Map of userId -> Timeout ID for stale activity cleanup
+const cleanupTimeouts = new Map();
 
 function setupWebSocket(server) {
     const wss = new WebSocketServer({ server, path: '/ws/chat' });
@@ -41,6 +44,13 @@ function setupWebSocket(server) {
             return;
         }
 
+        // Cancel any pending cleanup timeout if the user reconnected
+        if (cleanupTimeouts.has(userId)) {
+            console.log(`WS: User ${userId} reconnected, cancelling cleanup timeout.`);
+            clearTimeout(cleanupTimeouts.get(userId));
+            cleanupTimeouts.delete(userId);
+        }
+
         // Register this connection
         if (!clients.has(userId)) {
             clients.set(userId, new Set());
@@ -53,6 +63,12 @@ function setupWebSocket(server) {
         ws.on('message', async (raw) => {
             try {
                 const msg = JSON.parse(raw);
+
+                // HEARTBEAT HANDLERS
+                if (msg.type === 'PING' || msg.type === 'PING_PLAYING') {
+                    // Stay connected to prevent cleanup
+                    return;
+                }
 
                 if (msg.type === 'SEND_MESSAGE') {
                     const { receiverId, content } = msg;
@@ -114,7 +130,16 @@ function setupWebSocket(server) {
                 if (remaining === 0) {
                     clients.delete(userId);
                     setOffline(userId); // Mark user as offline
-                    console.log(`WS: User ${userId} disconnected (0 connections left)`);
+                    console.log(`WS: User ${userId} disconnected (0 connections left). Starting 5-min grace period.`);
+                    
+                    // Start 5-minute grace period before cleaning up activity
+                    const timeoutId = setTimeout(async () => {
+                        console.log(`WS: Grace period expired for user ${userId}. Cleaning up...`);
+                        await stopAllUserActivity(userId);
+                        cleanupTimeouts.delete(userId);
+                    }, 5 * 60 * 1000); // 5 minutes
+                    
+                    cleanupTimeouts.set(userId, timeoutId);
                 } else {
                     console.log(`WS: User ${userId} closed one connection (${remaining} left)`);
                 }
@@ -138,4 +163,20 @@ function sendToUser(userId, payload) {
     }
 }
 
-module.exports = { setupWebSocket, sendToUser };
+async function startupCleanup() {
+    try {
+        console.log('WS: Running startup cleanup for stale activities...');
+        const result = await pool.query(`
+            SELECT DISTINCT "userID" FROM "library_entries" WHERE "isCurrentlyPlaying" = TRUE
+        `);
+        
+        for (const row of result.rows) {
+            await stopAllUserActivity(row.userID);
+        }
+        console.log(`WS: Cleanup complete. Stopped activities for ${result.rows.length} users.`);
+    } catch (err) {
+        console.error('WS: Startup cleanup failed:', err);
+    }
+}
+
+module.exports = { setupWebSocket, sendToUser, startupCleanup };

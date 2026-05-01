@@ -199,12 +199,12 @@ app.use((err, req, res, _next) => {
 });
 
 const http = require('http');
-const { setupWebSocket } = require('./ws/chatSocket');
+const { setupWebSocket, startupCleanup } = require('./ws/chatSocket');
 
 const server = http.createServer(app);
 setupWebSocket(server);
 
-server.listen(port, () => {
+server.listen(port, async () => {
   console.log(`Server is running on http://localhost:${port}`);
   console.log(`WebSocket available at ws://localhost:${port}/ws/chat`);
   console.log(`Health check available at http://localhost:${port}/health`);

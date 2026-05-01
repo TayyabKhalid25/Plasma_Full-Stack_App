@@ -21,9 +21,9 @@ router.get('/', authenticateToken, async (req, res) => {
                 p."mediaURL", 
                 p."timestampUTC", 
                 p."isVisible",
+                p."intent",
                 u."plasmaUserID", 
                 u."username", 
-                u."intent",
                 pr."avatarURL",
                 (SELECT COUNT(*) FROM "comments" WHERE "postID" = p."postID") AS "commentCount",
                 (SELECT COUNT(*) FROM "post_reactions" WHERE "postID" = p."postID") AS "reactionCount",
@@ -47,9 +47,9 @@ router.get('/', authenticateToken, async (req, res) => {
             queryParams.push(userId);
             paramIndex++;
         } else if (filter === 'comp') {
-            baseQuery += ` AND u."intent" = 'COMPETITIVE'`;
+            baseQuery += ` AND p."intent" = 'COMPETITIVE'`;
         } else if (filter === 'chill') {
-            baseQuery += ` AND u."intent" = 'CHILL'`;
+            baseQuery += ` AND p."intent" = 'CHILL'`;
         } else if (filter === 'friends') {
             baseQuery += ` AND p."userID" IN (SELECT "followedID" FROM "follow_relationships" WHERE "followerID" = $${paramIndex} AND "isMutual" = TRUE)`;
             queryParams.push(userId);
@@ -60,7 +60,7 @@ router.get('/', authenticateToken, async (req, res) => {
         if (intentFilter) {
             let dbIntent = intentFilter.toUpperCase();
             if (dbIntent === 'COMP') dbIntent = 'COMPETITIVE';
-            baseQuery += ` AND u."intent" = $${paramIndex}`;
+            baseQuery += ` AND p."intent" = $${paramIndex}`;
             queryParams.push(dbIntent);
             paramIndex++;
         }
@@ -94,11 +94,15 @@ router.post('/posts', authenticateToken, async (req, res) => {
     }
 
     try {
+        // Fetch user's current intent to capture it with the post
+        const userRes = await pool.query('SELECT "intent" FROM "users" WHERE "plasmaUserID" = $1', [userId]);
+        const currentIntent = userRes.rows[0]?.intent || 'CHILL';
+
         const result = await pool.query(`
-            INSERT INTO "posts" ("userID", "type", "content", "mediaURL")
-            VALUES ($1, $2, $3, $4)
-            RETURNING "postID", "type", "content", "mediaURL", "timestampUTC"
-        `, [userId, postType, content || null, mediaURL || null]);
+            INSERT INTO "posts" ("userID", "type", "content", "mediaURL", "intent")
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING "postID", "type", "content", "mediaURL", "timestampUTC", "intent"
+        `, [userId, postType, content || null, mediaURL || null, currentIntent]);
 
         res.status(201).json({ success: true, data: result.rows[0] });
 

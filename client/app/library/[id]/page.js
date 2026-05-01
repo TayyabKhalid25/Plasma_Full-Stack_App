@@ -6,6 +6,7 @@ import { ArrowLeft, Clock, Trophy, Users, Play, Calendar, Loader2, Cloud, Gamepa
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth, API_BASE } from "@/context/AuthContext";
+import { useSocket } from "@/context/SocketContext";
 import { useModal } from "@/hooks/useModal";
 import { AddMilestoneModal } from "@/components/modals/AddMilestoneModal";
 
@@ -15,8 +16,20 @@ export default function GameDetailPage({ params }) {
   const [loading, setLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const { token } = useAuth();
+  const { sendMessage } = useSocket();
   const router = useRouter();
   const milestoneModal = useModal();
+
+  // Heartbeat for 'Currently Playing' status
+  useEffect(() => {
+    if (isPlaying && id) {
+      const interval = setInterval(() => {
+        console.log(`WS: Heartbeat for game ${id}`);
+        sendMessage("PING_PLAYING", { gameId: id });
+      }, 30000); // 30 seconds
+      return () => clearInterval(interval);
+    }
+  }, [isPlaying, id, sendMessage]);
 
   const [achievements, setAchievements] = useState([]);
 

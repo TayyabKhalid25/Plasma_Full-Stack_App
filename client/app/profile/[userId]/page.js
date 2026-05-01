@@ -275,13 +275,17 @@ export default function UserProfile({ params }) {
 
         {/* HALL OF FAME ROW */}
         {!loading && (
-          <section className="px-8 md:px-20 py-8">
+          <section className="px-8 md:px-20 py-8 relative z-20">
             <h3 className="text-plasma-text-secondary font-sans font-bold text-[10px] tracking-[0.2em] uppercase mb-6">Hall of Fame</h3>
             <div className="flex gap-6 overflow-x-auto pb-4 hide-scrollbar">
               {hofData.length > 0 ? hofData.map((item) => (
-                <div key={item.id} className="w-[72px] h-[72px] shrink-0 group relative">
-                  <div className="w-full h-full rounded-2xl bg-plasma-slate/60 backdrop-blur-md border border-white/5 flex items-center justify-center group-hover:border-plasma-secondary/40 transition-all cursor-help overflow-hidden">
+                <div key={item.id} className="flex flex-col items-center gap-2 shrink-0">
+                  <div className="w-[72px] h-[72px] rounded-2xl bg-plasma-slate/60 backdrop-blur-md border border-white/5 flex items-center justify-center hover:border-plasma-secondary/40 transition-all overflow-hidden">
                     <Trophy className={`w-8 h-8 ${item.color} opacity-80`} />
+                  </div>
+                  <div className="text-center w-[72px]">
+                    <p className="text-[10px] font-bold text-plasma-text-primary truncate">{item.title}</p>
+                    <p className={`text-[10px] font-mono ${item.color}`}>{item.xp}</p>
                   </div>
                 </div>
               )) : (

@@ -259,14 +259,14 @@ router.put('/:gameId/status', authenticateToken, async (req, res) => {
         // 2. Logic for starting/stopping and calculating playtime
         if (isCurrentlyPlaying && !wasPlaying) {
             // STARTING TO PLAY
-            // Automatically stop any other game that might be running
-            const otherPlaying = await pool.query(
-                'SELECT "appID", "lastPlayedAt" FROM "library_entries" WHERE "userID" = $1 AND "isCurrentlyPlaying" = TRUE AND "appID" != $2',
-                [req.userId, gameId]
+            // Aggressively stop ALL other games that might be marked as playing for this user
+            const activeSessions = await pool.query(
+                'SELECT "appID", "lastPlayedAt" FROM "library_entries" WHERE "userID" = $1 AND "isCurrentlyPlaying" = TRUE',
+                [req.userId]
             );
 
-            for (const other of otherPlaying.rows) {
-                const start = new Date(other.lastPlayedAt);
+            for (const session of activeSessions.rows) {
+                const start = new Date(session.lastPlayedAt);
                 const durationHours = Math.max(0, (now - start) / (1000 * 60 * 60));
 
                 await pool.query(`
@@ -276,7 +276,7 @@ router.put('/:gameId/status', authenticateToken, async (req, res) => {
                         "hoursPlayed" = "hoursPlayed" + $1,
                         "lastPlayedAt" = $2
                     WHERE "userID" = $3 AND "appID" = $4
-                `, [durationHours, now, req.userId, other.appID]);
+                `, [durationHours, now, req.userId, session.appID]);
             }
 
             // Start this game
@@ -309,8 +309,8 @@ router.put('/:gameId/status', authenticateToken, async (req, res) => {
                 const content = `Started playing ${title}`;
 
                 await pool.query(`
-                    INSERT INTO "posts" ("userID", "type", "content")
-                    VALUES ($1, 'ACTIVITY_UPDATE', $2)
+                    INSERT INTO "posts" ("userID", "type", "content", "intent")
+                    VALUES ($1, 'ACTIVITY_UPDATE', $2, (SELECT "intent" FROM "users" WHERE "plasmaUserID" = $1))
                 `, [req.userId, content]);
             }
         }
