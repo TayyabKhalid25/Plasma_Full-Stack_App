@@ -443,6 +443,22 @@ export default function MessagesPage() {
         isOpen={newMessageModal.isOpen} 
         onClose={newMessageModal.close}
         onStartChat={(friend) => {
+          // Check if we already have this conversation in the list
+          const existing = conversations.find(c => c.id === friend.id);
+          if (!existing) {
+            // Add a temporary "new chat" entry so the UI can render it
+            setConversations(prev => [{
+              id: friend.id,
+              friend: {
+                name: friend.name,
+                avatar: friend.avatar,
+                online: friend.online
+              },
+              lastMessage: "Start a conversation...",
+              lastMessageTime: "Now",
+              unread: 0
+            }, ...prev]);
+          }
           setActiveConvId(friend.id);
         }}
       />
