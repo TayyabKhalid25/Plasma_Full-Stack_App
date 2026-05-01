@@ -70,12 +70,12 @@ export default function MessagesPage() {
             id: c.contactID,
             friend: {
               name: c.contactUsername,
-              avatar: c.contactAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.contactUsername}`,
-              online: false, // no presence system yet
+              avatar: c.contactAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.contactID}`,
+              online: false,
             },
             lastMessage: c.content,
-            lastMessageTime: new Date(c.timestampUTC).toLocaleString([], { hour: '2-digit', minute: '2-digit' }),
-            unread: 0,
+            lastMessageTime: new Date(c.timestampUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            unread: c.unreadCount || 0,
           })));
         }
       } catch (err) {
@@ -87,12 +87,13 @@ export default function MessagesPage() {
     fetchInbox();
   }, [token]);
 
-  // Fetch messages when conversation is selected
+  // Fetch messages and mark as read when conversation is selected
   useEffect(() => {
     if (!token || !activeConvId) return;
     const fetchMessages = async () => {
       setLoadingChat(true);
       try {
+        // Fetch the messages
         const res = await fetch(`${API_BASE}/api/messages/${activeConvId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -104,6 +105,17 @@ export default function MessagesPage() {
             text: m.content,
             time: new Date(m.timestampUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           })));
+
+          // Mark as read in the background
+          fetch(`${API_BASE}/api/messages/${activeConvId}/read`, {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${token}` }
+          }).then(() => {
+            // Update local state to clear unread count for this conversation
+            setConversations(prev => prev.map(c => 
+              c.id === activeConvId ? { ...c, unread: 0 } : c
+            ));
+          });
         }
       } catch (err) {
         console.error("Failed to fetch messages", err);
@@ -146,37 +158,44 @@ export default function MessagesPage() {
           
           if (isCurrentChat) {
             setMessages(prev => {
-              // 1. Check if this message (by real ID) already exists
+              // ... existing deduplication logic ...
               if (prev.find(m => m.id === msg.messageID)) return prev;
-
-              // 2. Check if we have an optimistic message with the same content from "Just now"
-              // This is a simple way to "replace" the temp bubble with the real one
               const tempIndex = prev.findIndex(m => m.id.startsWith("temp-") && m.text === msg.content);
-              
               const newMsg = {
                 id: msg.messageID,
                 sender: msg.senderID,
                 text: msg.content,
                 time: new Date(msg.timestampUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               };
-
               if (tempIndex !== -1) {
                 const updated = [...prev];
                 updated[tempIndex] = newMsg;
                 return updated;
               }
-
               return [...prev, newMsg];
             });
+
+            // If we are currently looking at this chat, mark it as read on the server too
+            if (msg.senderID !== user?.id) {
+              fetch(`${API_BASE}/api/messages/${currentConvId}/read`, {
+                method: 'PUT',
+                headers: { Authorization: `Bearer ${token}` }
+              });
+            }
           }
 
-          // Update conversation list preview
+          // Update conversation list preview and unread counts
           const contactId = msg.senderID === user?.id ? msg.receiverID : msg.senderID;
           setConversations(prev => {
             const exists = prev.find(c => c.id === contactId);
             if (exists) {
               return prev.map(c => c.id === contactId
-                ? { ...c, lastMessage: msg.content, lastMessageTime: "Just now" }
+                ? { 
+                    ...c, 
+                    lastMessage: msg.content, 
+                    lastMessageTime: "Just now",
+                    unread: isCurrentChat ? 0 : (c.unread + 1)
+                  }
                 : c
               );
             }
@@ -189,6 +208,8 @@ export default function MessagesPage() {
     };
 
     ws.onerror = (err) => {
+      // Ignore errors if the socket is already closing/closed (standard during HMR/navigation)
+      if (ws.readyState === WebSocket.CLOSING || ws.readyState === WebSocket.CLOSED) return;
       console.error("WS error:", err);
       setIsConnected(false);
     };

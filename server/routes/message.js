@@ -16,7 +16,7 @@ async function checkMutualFollow(userA, userB) {
 }
 
 // GET /api/messages
-// Retrieves inbox (latest message from all active conversations)
+// Retrieves inbox (latest message from all active conversations + unread counts)
 router.get('/', authenticateToken, async (req, res) => {
     const myId = req.userId;
     try {
@@ -32,6 +32,7 @@ router.get('/', authenticateToken, async (req, res) => {
                     "content",
                     "isLobbyInvite",
                     "timestampUTC",
+                    "isRead",
                     CASE
                         WHEN "senderID" = $1 THEN "receiverID"
                         ELSE "senderID"
@@ -42,17 +43,53 @@ router.get('/', authenticateToken, async (req, res) => {
                     LEAST("senderID", "receiverID"),
                     GREATEST("senderID", "receiverID"),
                     "timestampUTC" DESC
+            ),
+            unread_counts AS (
+                SELECT 
+                    CASE 
+                        WHEN "senderID" = $1 THEN "receiverID" 
+                        ELSE "senderID" 
+                    END as "contactID",
+                    COUNT(*) as "unreadCount"
+                FROM "direct_messages"
+                WHERE "receiverID" = $1 AND "isRead" = FALSE
+                GROUP BY 1
             )
-            SELECT lm.*, u."username" as "contactUsername", p."avatarURL" as "contactAvatar"
+            SELECT 
+                lm.*, 
+                u."username" as "contactUsername", 
+                p."avatarURL" as "contactAvatar",
+                COALESCE(uc."unreadCount", 0)::int as "unreadCount"
             FROM latest_messages lm
             JOIN "users" u ON u."plasmaUserID" = lm."contactID"
             LEFT JOIN "profiles" p ON u."plasmaUserID" = p."plasmaUserID"
+            LEFT JOIN unread_counts uc ON uc."contactID" = lm."contactID"
             ORDER BY lm."timestampUTC" DESC
         `, [myId]);
         
         res.json({ success: true, data: result.rows });
     } catch (error) {
         console.error('Error fetching inbox:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+// PUT /api/messages/:userId/read
+// Marks all messages from a specific user as read
+router.put('/:userId/read', authenticateToken, async (req, res) => {
+    const friendId = req.params.userId;
+    const myId = req.userId;
+    
+    try {
+        await pool.query(`
+            UPDATE "direct_messages"
+            SET "isRead" = TRUE
+            WHERE "senderID" = $1 AND "receiverID" = $2 AND "isRead" = FALSE
+        `, [friendId, myId]);
+        
+        res.json({ success: true, message: 'Messages marked as read' });
+    } catch (error) {
+        console.error('Error marking messages as read:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });

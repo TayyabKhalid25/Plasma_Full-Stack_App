@@ -17,30 +17,59 @@ export const FloatingMessages = () => {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`${API_BASE}/api/messages`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          const mapped = data.data.map(c => ({
-            id: c.contactID,
-            friend: {
-              name: c.contactUsername,
-              avatar: c.contactAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.contactUsername}`,
-              online: false,
-            },
-            lastMessage: c.content,
-            lastMessageTime: new Date(c.timestampUTC).toLocaleString([], { hour: '2-digit', minute: '2-digit' }),
-            unread: 0,
-          }));
-          setConversations(mapped.slice(0, 5));
-          const totalUnread = mapped.reduce((acc, conv) => acc + (conv.unread || 0), 0);
-          setUnreadCount(totalUnread);
-        }
+
+    const fetchInbox = () => {
+      fetch(`${API_BASE}/api/messages`, {
+        headers: { Authorization: `Bearer ${token}` }
       })
-      .catch(err => console.error("Failed to fetch floating messages", err));
-  }, [isOpen, token]); // Refetch when opened
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            const mapped = data.data.map(c => ({
+              id: c.contactID,
+              friend: {
+                name: c.contactUsername,
+                avatar: c.contactAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.contactID}`,
+                online: false,
+              },
+              lastMessage: c.content,
+              lastMessageTime: new Date(c.timestampUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              unread: c.unreadCount || 0,
+            }));
+            setConversations(mapped.slice(0, 5));
+            const totalUnread = mapped.reduce((acc, conv) => acc + (conv.unread || 0), 0);
+            setUnreadCount(totalUnread);
+          }
+        })
+        .catch(err => console.error("Failed to fetch floating messages", err));
+    };
+
+    fetchInbox();
+
+    // WebSocket listener for real-time unread updates
+    const WS_BASE = API_BASE.replace(/^http/, "ws");
+    const ws = new WebSocket(`${WS_BASE}/ws/chat?token=${token}`);
+
+    ws.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.type === "NEW_MESSAGE") {
+          // Re-fetch inbox to get updated unread counts and newest message
+          fetchInbox();
+        }
+      } catch (err) {
+        if (ws.readyState !== WebSocket.CLOSING && ws.readyState !== WebSocket.CLOSED) {
+          console.error("FloatingMessages WS error:", err);
+        }
+      }
+    };
+
+    ws.onerror = () => {
+      // Quietly handle connection drops in floating widget
+    };
+
+    return () => ws.close();
+  }, [token]);
 
   // Close on click outside
   useEffect(() => {
