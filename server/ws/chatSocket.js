@@ -154,13 +154,20 @@ function setupWebSocket(server) {
     return wss;
 }
 
-function sendToUser(userId, payload) {
-    const userSockets = clients.get(userId);
-    if (userSockets) {
-        userSockets.forEach(s => {
-            if (s.readyState === 1) s.send(JSON.stringify(payload));
-        });
+async function startupCleanup() {
+    try {
+        console.log('WS: Running startup cleanup for stale activities...');
+        const result = await pool.query(`
+            SELECT DISTINCT "userID" FROM "library_entries" WHERE "isCurrentlyPlaying" = TRUE
+        `);
+        
+        for (const row of result.rows) {
+            await stopAllUserActivity(row.userID);
+        }
+        console.log(`WS: Cleanup complete. Stopped activities for ${result.rows.length} users.`);
+    } catch (err) {
+        console.error('WS: Startup cleanup failed:', err);
     }
 }
 
-module.exports = { setupWebSocket, sendToUser };
+module.exports = { setupWebSocket, sendToUser, startupCleanup };
