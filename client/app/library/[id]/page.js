@@ -130,7 +130,30 @@ export default function GameDetailPage({ params }) {
 
   const friendsPlaying = []; // Placeholder for now
 
-  const achievements = []; // Placeholder for now
+  const [achievements, setAchievements] = useState([]);
+
+  useEffect(() => {
+    const fetchAchievements = async () => {
+      if (!token || !id) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/achievements/game/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setAchievements(data.data.map(ach => ({
+            id: ach.achievementID,
+            title: ach.title,
+            xp: `${ach.plasmaXP} XP`,
+            unlockedAt: new Date(ach.unlockedAt).toLocaleDateString()
+          })));
+        }
+      } catch (err) {
+        console.error("Failed to fetch achievements:", err);
+      }
+    };
+    fetchAchievements();
+  }, [id, token]);
 
   const formatPlaytime = (hours) => {
     if (!hours || hours === 0) return "0m";
@@ -203,7 +226,7 @@ export default function GameDetailPage({ params }) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
             { label: "Hours Played", value: formatPlaytime(game.hoursPlayed), icon: Clock },
-            { label: "Achievements", value: "0/0", icon: Trophy },
+            { label: "Achievements", value: `${achievements.length}`, icon: Trophy },
             { label: "Friends Playing", value: "0", icon: Users },
             { label: "Last Played", value: isPlaying ? "Now" : game.lastPlayed, icon: Calendar },
           ].map((stat) => {
@@ -221,16 +244,36 @@ export default function GameDetailPage({ params }) {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Achievements Placeholder */}
           <div className="lg:col-span-2">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display font-bold text-xl text-plasma-text-primary">Achievements</h2>
-              <span className="text-xs text-plasma-text-secondary font-medium">Coming Soon</span>
+              <span className="text-xs text-plasma-text-secondary font-medium">{achievements.length} Unlocked</span>
             </div>
-            <div className="bg-plasma-slate/30 border border-dashed border-white/10 rounded-2xl p-12 text-center">
-              <Trophy className="w-12 h-12 text-plasma-text-secondary/20 mx-auto mb-4" />
-              <p className="text-plasma-text-secondary text-sm">Achievement synchronization for {game.title} is being calibrated.</p>
-            </div>
+            
+            {achievements.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {achievements.map((ach) => (
+                  <div key={ach.id} className="flex items-center gap-4 p-4 rounded-2xl bg-plasma-slate/40 border border-white/5 hover:border-plasma-primary/30 transition-all group">
+                    <div className="w-12 h-12 rounded-full bg-plasma-primary/10 flex items-center justify-center shrink-0 border border-plasma-primary/20 group-hover:scale-110 transition-transform">
+                      <Trophy className="w-6 h-6 text-plasma-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-sans font-bold text-sm text-plasma-text-primary truncate">{ach.title}</p>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        <span className="text-[10px] font-mono text-plasma-secondary">{ach.xp}</span>
+                        <span className="w-1 h-1 rounded-full bg-white/10" />
+                        <span className="text-[10px] text-plasma-text-secondary">{ach.unlockedAt}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-plasma-slate/30 border border-dashed border-white/10 rounded-2xl p-12 text-center">
+                <Trophy className="w-12 h-12 text-plasma-text-secondary/20 mx-auto mb-4" />
+                <p className="text-plasma-text-secondary text-sm">No achievements unlocked for {game.title} yet.</p>
+              </div>
+            )}
           </div>
 
           {/* Friends Playing Placeholder */}

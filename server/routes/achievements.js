@@ -94,4 +94,30 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/achievements/game/:appID
+router.get('/game/:appID', authenticateToken, async (req, res) => {
+    const { appID } = req.params;
+    const userId = req.userId;
+
+    try {
+        const result = await pool.query(`
+            SELECT 
+                a."achievementID",
+                a."title",
+                a."rarityWeight",
+                a."plasmaXP",
+                ua."unlockedAt"
+            FROM "user_achievements" ua
+            JOIN "achievements" a ON ua."achievementID" = a."achievementID"
+            WHERE ua."userID" = $1 AND a."appID" = $2
+            ORDER BY ua."unlockedAt" DESC
+        `, [userId, appID]);
+
+        res.json({ success: true, data: result.rows });
+    } catch (error) {
+        console.error('Error fetching game achievements:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
 module.exports = router;
