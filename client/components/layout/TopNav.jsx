@@ -134,6 +134,39 @@ export const TopNav = () => {
     }
   };
 
+  // Mark all notifications as read
+  const markAllRead = async () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    try {
+      await fetch(`${API_BASE}/api/notifications/mark-all-read`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error("Failed to mark all notifications as read:", err);
+    }
+  };
+
+  // Listen for optimistic updates from the notification page
+  useEffect(() => {
+    const handleAllRead = () => {
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    };
+    const handleSingleRead = (e) => {
+      const id = e.detail?.id;
+      if (id) {
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+      }
+    };
+
+    window.addEventListener("plasma_notifications_read", handleAllRead);
+    window.addEventListener("plasma_notification_read_single", handleSingleRead);
+    return () => {
+      window.removeEventListener("plasma_notifications_read", handleAllRead);
+      window.removeEventListener("plasma_notification_read_single", handleSingleRead);
+    };
+  }, []);
+
   // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -232,11 +265,21 @@ export const TopNav = () => {
               <div className="absolute right-0 top-12 w-[360px] bg-plasma-slate border border-white/10 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] z-[100] overflow-hidden animate-fade-in">
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-                  <span className="font-display font-bold text-sm text-plasma-text-primary">Notifications</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-display font-bold text-sm text-plasma-text-primary">Notifications</span>
+                    {unreadCount > 0 && (
+                      <span className="text-[10px] font-bold text-plasma-secondary bg-plasma-secondary/10 px-2 py-0.5 rounded-full">
+                        {unreadCount} new
+                      </span>
+                    )}
+                  </div>
                   {unreadCount > 0 && (
-                    <span className="text-[10px] font-bold text-plasma-secondary bg-plasma-secondary/10 px-2 py-0.5 rounded-full">
-                      {unreadCount} new
-                    </span>
+                    <button 
+                      onClick={markAllRead}
+                      className="text-[10px] font-bold text-plasma-primary hover:text-plasma-secondary transition-colors cursor-pointer"
+                    >
+                      Mark all as read
+                    </button>
                   )}
                 </div>
 

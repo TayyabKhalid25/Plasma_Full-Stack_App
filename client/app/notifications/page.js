@@ -82,6 +82,9 @@ export default function NotificationsPage() {
   const markAllRead = async () => {
     // Optimistic UI update
     setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
+    // Sync with TopNav
+    window.dispatchEvent(new CustomEvent("plasma_notifications_read"));
+
     try {
       await fetch(`${API_BASE}/api/notifications/mark-all-read`, {
         method: "PUT",
@@ -97,6 +100,9 @@ export default function NotificationsPage() {
     if (!notif || notif.read) return;
 
     setNotifs((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    // Sync with TopNav (if this was the last unread, dot will go away)
+    window.dispatchEvent(new CustomEvent("plasma_notification_read_single", { detail: { id } }));
+
     try {
       await fetch(`${API_BASE}/api/notifications/${id}/read`, {
         method: "PUT",

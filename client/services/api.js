@@ -99,15 +99,30 @@ export async function getFriends() {
 
 // ─── RIGHT RAIL ──────────────────────────────────────────────
 export async function getTrending() {
-  // No API endpoint — always use dummy
-  await delay(100);
-  return dummy.trendingGames;
+  const data = await apiFetch("/api/pulse/trending");
+  if (data.success) {
+    return data.data.map(item => ({
+      appID: item.appID,
+      title: item.title,
+      count: `${item.playingCount} PLAYING`,
+      initials: item.title.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
+      bgColor: item.title.includes('Val') ? '#563895' : item.title.includes('CS') ? '#FF2A7A' : '#2ECC71'
+    }));
+  }
+  throw new Error("Failed");
 }
 
 export async function getUpcomingRallies() {
-  // No API endpoint — always use dummy
-  await delay(100);
-  return dummy.upcomingRallies;
+  const data = await apiFetch("/api/rallies/upcoming");
+  if (data.success) {
+    return data.data.map(item => ({
+      id: item.eventID,
+      title: item.title,
+      time: new Date(item.scheduledStartUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      intent: item.requiredIntent
+    }));
+  }
+  throw new Error("Failed");
 }
 
 // ─── NOTIFICATIONS ───────────────────────────────────────────
