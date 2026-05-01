@@ -2,7 +2,7 @@
 
 import { use, useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { ArrowLeft, Clock, Trophy, Users, Play, Calendar, Loader2 } from "lucide-react";
+import { ArrowLeft, Clock, Trophy, Users, Play, Calendar, Loader2, Cloud, Gamepad2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth, API_BASE } from "@/context/AuthContext";
@@ -155,8 +155,13 @@ export default function GameDetailPage({ params }) {
 
           <div className="absolute bottom-0 left-0 right-0 p-8 flex flex-col md:flex-row items-start md:items-end justify-between gap-6">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="px-2 py-0.5 bg-plasma-primary/20 text-plasma-primary text-[10px] font-bold rounded uppercase tracking-wider border border-plasma-primary/30">
+              <div className="flex items-center gap-2 mb-3">
+                <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest border transition-all shadow-lg ${
+                  game.platform === "Steam" 
+                    ? "bg-[#1b2838]/80 text-blue-400 border-blue-500/40 shadow-blue-500/10" 
+                    : "bg-plasma-primary/20 text-plasma-primary border-plasma-primary/40 shadow-plasma-primary/10"
+                }`}>
+                  {game.platform === "Steam" ? <Cloud className="w-3 h-3 fill-current" /> : <Gamepad2 className="w-3 h-3 fill-current" />}
                   {game.platform}
                 </span>
               </div>
