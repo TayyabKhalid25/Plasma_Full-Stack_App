@@ -1,11 +1,13 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { ArrowLeft, Clock, Trophy, Users, Play, Calendar, Loader2, Cloud, Gamepad2 } from "lucide-react";
+import { ArrowLeft, Clock, Trophy, Users, Play, Calendar, Loader2, Cloud, Gamepad2, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth, API_BASE } from "@/context/AuthContext";
+import { useModal } from "@/hooks/useModal";
+import { AddMilestoneModal } from "@/components/modals/AddMilestoneModal";
 
 export default function GameDetailPage({ params }) {
   const { id } = use(params);
@@ -14,31 +16,33 @@ export default function GameDetailPage({ params }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const { token } = useAuth();
   const router = useRouter();
+  const milestoneModal = useModal();
 
   const [achievements, setAchievements] = useState([]);
 
-  useEffect(() => {
-    const fetchAchievements = async () => {
-      if (!token || !id) return;
-      try {
-        const res = await fetch(`${API_BASE}/api/achievements/game/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (data.success) {
-          setAchievements(data.data.map(ach => ({
-            id: ach.achievementID,
-            title: ach.title,
-            xp: `${ach.plasmaXP} XP`,
-            unlockedAt: new Date(ach.unlockedAt).toLocaleDateString()
-          })));
-        }
-      } catch (err) {
-        console.error("Failed to fetch achievements:", err);
+  const fetchAchievements = useCallback(async () => {
+    if (!token || !id) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/achievements/game/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAchievements(data.data.map(ach => ({
+          id: ach.achievementID,
+          title: ach.title,
+          xp: `${ach.plasmaXP} XP`,
+          unlockedAt: new Date(ach.unlockedAt).toLocaleDateString()
+        })));
       }
-    };
-    fetchAchievements();
+    } catch (err) {
+      console.error("Failed to fetch achievements:", err);
+    }
   }, [id, token]);
+
+  useEffect(() => {
+    fetchAchievements();
+  }, [fetchAchievements]);
 
   const getHeroImage = (appID, fallbackURL, platform) => {
     if (platform === "STEAM" && appID && !appID.startsWith("custom_") && !appID.startsWith("igdb_")) {
@@ -244,7 +248,16 @@ export default function GameDetailPage({ params }) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display font-bold text-xl text-plasma-text-primary">Achievements</h2>
+              <div className="flex items-center gap-3">
+                <h2 className="font-display font-bold text-xl text-plasma-text-primary">Achievements</h2>
+                <button 
+                  onClick={milestoneModal.open}
+                  className="w-6 h-6 rounded-full bg-plasma-primary/10 border border-plasma-primary/30 flex items-center justify-center text-plasma-primary hover:bg-plasma-primary hover:text-white transition-all cursor-pointer"
+                  title="Add Custom Milestone"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
               <span className="text-xs text-plasma-text-secondary font-medium">{achievements.length} Unlocked</span>
             </div>
 
@@ -283,6 +296,12 @@ export default function GameDetailPage({ params }) {
           </div>
         </div>
       </div>
+      <AddMilestoneModal 
+        isOpen={milestoneModal.isOpen} 
+        onClose={milestoneModal.close} 
+        onAdded={fetchAchievements} 
+        gameId={id} 
+      />
     </DashboardLayout>
   );
 }
