@@ -71,7 +71,7 @@ export default function MessagesPage() {
             friend: {
               name: c.contactUsername,
               avatar: c.contactAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.contactID}`,
-              online: false,
+              online: c.online,
             },
             lastMessage: c.content,
             lastMessageTime: new Date(c.timestampUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),

@@ -1,6 +1,7 @@
 const express = require('express');
 const { pool } = require('../config/dbConfig');
 const { authenticateToken } = require('../middleware/authMiddleware');
+const { isOnline } = require('../ws/presence');
 
 const router = express.Router();
 
@@ -36,10 +37,10 @@ router.get('/', authenticateToken, async (req, res) => {
             if (!row.isMutual && row.followerID !== userId) {
                 friends.requests.push(userObj);
             } else if (row.isMutual) {
-                if (row.intent === 'OFFLINE') {
-                    friends.offline.push(userObj);
-                } else {
+                if (isOnline(row.plasmaUserID)) {
                     friends.online.push(userObj);
+                } else {
+                    friends.offline.push(userObj);
                 }
             }
         });
