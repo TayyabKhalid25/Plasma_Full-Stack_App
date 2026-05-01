@@ -15,6 +15,14 @@ export default function GameDetailPage({ params }) {
   const { token } = useAuth();
   const router = useRouter();
 
+  const getHeroImage = (appID, fallbackURL, platform) => {
+    if (platform === "STEAM" && appID && !appID.startsWith("custom_") && !appID.startsWith("igdb_")) {
+      // Use Steam's official 1920x620 hero banner for the detail page
+      return `https://steamcdn-a.akamaihd.net/steam/apps/${appID}/library_hero.jpg`;
+    }
+    return fallbackURL || null;
+  };
+
   useEffect(() => {
     const fetchGameDetails = async () => {
       if (!token || !id) return;
@@ -28,12 +36,12 @@ export default function GameDetailPage({ params }) {
           setGame({
             id: g.appID,
             title: g.title,
-            image: g.coverArtURL,
+            image: getHeroImage(g.appID, g.coverArtURL, g.platform),
             platform: g.platform === "STEAM" ? "Steam" : "Non-Steam",
             hoursPlayed: g.hoursPlayed || 0,
             lastPlayed: formatLastPlayed(g.lastPlayedAt),
             nowPlaying: g.isCurrentlyPlaying,
-            description: "No description available for this title." // Database doesn't store descriptions yet
+            description: "No description available for this title."
           });
           setIsPlaying(g.isCurrentlyPlaying);
         }
