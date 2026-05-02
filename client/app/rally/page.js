@@ -287,7 +287,7 @@ export default function Rally() {
           <div className="flex gap-10 items-start flex-col xl:flex-row">
             
             {/* Calendar Grid Container */}
-            <div className="flex-shrink-0 w-full xl:w-auto">
+            <div className="flex-shrink-0 w-full xl:w-[750px]">
               <div className="flex justify-between items-center mb-6 px-4">
                 <h2 className="font-display text-2xl font-bold tracking-wider text-plasma-text-primary">
                   {MONTHS[currentMonth].toUpperCase()} {currentYear}

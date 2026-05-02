@@ -248,32 +248,15 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated, initialData 
             </div>
           </div>
           {!initialData && (
-            <div className="flex gap-4 items-end pt-2">
-               {formData.autoRSVP && hasRoles && (
-                 <div className="flex-1">
-                   <label className="text-[10px] font-bold text-plasma-text-secondary uppercase tracking-wider mb-2 block text-right">My Role</label>
-                   <select 
-                    value={formData.creatorRole}
-                    onChange={e => setFormData({...formData, creatorRole: e.target.value})}
-                    className="w-full bg-plasma-bg border border-white/10 rounded-lg px-3 py-1.5 text-xs text-plasma-text-primary outline-none focus:border-plasma-primary appearance-none cursor-pointer"
-                   >
-                     <option value="">Open Slot</option>
-                     {formData.roles.filter(r => r.name).map(r => (
-                       <option key={r.id} value={r.name}>{r.name}</option>
-                     ))}
-                   </select>
-                 </div>
-               )}
-               <div className="flex flex-col items-end">
-                  <label className="text-[10px] font-bold text-plasma-text-secondary uppercase tracking-wider mb-2">Auto-Join</label>
-                  <button 
-                    type="button"
-                    onClick={() => setFormData({...formData, autoRSVP: !formData.autoRSVP})}
-                    className={`w-10 h-5 rounded-full transition-colors relative ${formData.autoRSVP ? 'bg-plasma-primary' : 'bg-plasma-slate'}`}
-                  >
-                    <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${formData.autoRSVP ? 'left-6' : 'left-1'}`} />
-                  </button>
-               </div>
+            <div className="flex flex-col items-end pt-2">
+               <label className="text-[10px] font-bold text-plasma-text-secondary uppercase tracking-wider mb-2">Auto-Join</label>
+               <button 
+                type="button"
+                onClick={() => setFormData({...formData, autoRSVP: !formData.autoRSVP})}
+                className={`w-10 h-5 rounded-full transition-colors relative ${formData.autoRSVP ? 'bg-plasma-primary' : 'bg-plasma-slate'}`}
+               >
+                 <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${formData.autoRSVP ? 'left-6' : 'left-1'}`} />
+               </button>
             </div>
           )}
         </div>
@@ -300,7 +283,21 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated, initialData 
           {hasRoles ? (
             <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-2">
               {formData.roles.map((role) => (
-                <div key={role.id} className="flex gap-2">
+                <div key={role.id} className="flex gap-2 items-center">
+                  {formData.autoRSVP && !initialData && (
+                    <div className="flex flex-col items-center px-1">
+                      {role.id === formData.roles[0].id && (
+                        <span className="text-[8px] font-bold text-plasma-text-secondary uppercase mb-0.5">Me</span>
+                      )}
+                      <input 
+                        type="radio" 
+                        name="creatorRole"
+                        checked={formData.creatorRole === role.name}
+                        onChange={() => setFormData({...formData, creatorRole: role.name})}
+                        className="w-3 h-3 accent-plasma-primary cursor-pointer"
+                      />
+                    </div>
+                  )}
                   <input 
                     type="text" 
                     placeholder="Role Name (e.g. Healer)"
