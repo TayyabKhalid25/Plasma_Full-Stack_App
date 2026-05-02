@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ModalWrapper } from "../ui/ModalWrapper";
 import { Loader2, Plus, X } from "lucide-react";
 import { apiService } from "@/services/apiService";
+import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 
 export function CreateRallyModal({ isOpen, onClose, onRallyCreated, initialData = null }) {
@@ -15,7 +16,8 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated, initialData 
     roles: [{ id: Date.now(), name: "", totalSlots: 1 }],
     maxCapacity: 5,
     description: "",
-    autoRSVP: true
+    autoRSVP: true,
+    creatorRole: ""
   });
   const [hasRoles, setHasRoles] = useState(true);
   const [errors, setErrors] = useState({});
@@ -123,16 +125,19 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated, initialData 
     }));
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm("Are you sure you want to delete this rally? This action cannot be undone.")) return;
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const confirmDelete = async () => {
     setLoading(true);
     try {
       await apiService.deleteRally(initialData.eventID || initialData.id);
       if (onRallyCreated) onRallyCreated(); // Trigger refetch
+      setShowDeleteConfirm(false);
       onClose();
     } catch (err) {
       if (err.errors) setErrors(err.errors);
       else setErrors({ main: "An unexpected error occurred while deleting." });
+      setShowDeleteConfirm(false);
     } finally {
       setLoading(false);
     }
@@ -142,7 +147,7 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated, initialData 
     <div className="flex justify-end items-center gap-3 w-full">
       {initialData && (
         <button 
-          onClick={handleDelete}
+          onClick={() => setShowDeleteConfirm(true)}
           disabled={loading}
           className="mr-auto px-4 py-2 rounded-xl text-sm font-bold text-plasma-error hover:bg-plasma-error/10 transition-colors cursor-pointer disabled:opacity-50"
         >
@@ -164,7 +169,8 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated, initialData 
   );
 
   return (
-    <ModalWrapper isOpen={isOpen} onClose={onClose} title={initialData ? "Edit Rally" : "Create Rally"} footer={footer} maxWidth="max-w-xl">
+    <>
+      <ModalWrapper isOpen={isOpen} onClose={onClose} title={initialData ? "Edit Rally" : "Create Rally"} footer={footer} maxWidth="max-w-xl">
       <div className="space-y-5">
         {errors.main && <div className="p-3 bg-plasma-error/10 border border-plasma-error/30 rounded-lg text-plasma-error text-sm">{errors.main}</div>}
         
@@ -242,15 +248,32 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated, initialData 
             </div>
           </div>
           {!initialData && (
-            <div className="flex flex-col items-end pt-2">
-               <label className="text-[10px] font-bold text-plasma-text-secondary uppercase tracking-wider mb-2">Auto-Join</label>
-               <button 
-                type="button"
-                onClick={() => setFormData({...formData, autoRSVP: !formData.autoRSVP})}
-                className={`w-10 h-5 rounded-full transition-colors relative ${formData.autoRSVP ? 'bg-plasma-primary' : 'bg-plasma-slate'}`}
-               >
-                 <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${formData.autoRSVP ? 'left-6' : 'left-1'}`} />
-               </button>
+            <div className="flex gap-4 items-end pt-2">
+               {formData.autoRSVP && hasRoles && (
+                 <div className="flex-1">
+                   <label className="text-[10px] font-bold text-plasma-text-secondary uppercase tracking-wider mb-2 block text-right">My Role</label>
+                   <select 
+                    value={formData.creatorRole}
+                    onChange={e => setFormData({...formData, creatorRole: e.target.value})}
+                    className="w-full bg-plasma-bg border border-white/10 rounded-lg px-3 py-1.5 text-xs text-plasma-text-primary outline-none focus:border-plasma-primary appearance-none cursor-pointer"
+                   >
+                     <option value="">Open Slot</option>
+                     {formData.roles.filter(r => r.name).map(r => (
+                       <option key={r.id} value={r.name}>{r.name}</option>
+                     ))}
+                   </select>
+                 </div>
+               )}
+               <div className="flex flex-col items-end">
+                  <label className="text-[10px] font-bold text-plasma-text-secondary uppercase tracking-wider mb-2">Auto-Join</label>
+                  <button 
+                    type="button"
+                    onClick={() => setFormData({...formData, autoRSVP: !formData.autoRSVP})}
+                    className={`w-10 h-5 rounded-full transition-colors relative ${formData.autoRSVP ? 'bg-plasma-primary' : 'bg-plasma-slate'}`}
+                  >
+                    <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${formData.autoRSVP ? 'left-6' : 'left-1'}`} />
+                  </button>
+               </div>
             </div>
           )}
         </div>

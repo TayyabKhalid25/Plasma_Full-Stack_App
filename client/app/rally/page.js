@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { PlusCircle, ChevronLeft, ChevronRight, ChevronDown, Calendar } from "lucide-react";
+import { PlusCircle, ChevronLeft, ChevronRight, ChevronDown, Calendar, Settings } from "lucide-react";
 import { useModal } from "@/hooks/useModal";
 import { CreateRallyModal } from "@/components/modals/CreateRallyModal";
 import { RsvpRoleModal } from "@/components/modals/RsvpRoleModal";
@@ -364,12 +364,26 @@ export default function Rally() {
                         <div className="absolute inset-0 bg-gradient-to-t from-plasma-bg/80 to-transparent"></div>
                       </div>
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-1">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${event.intentColor}`}>{event.intent}</span>
-                          <span className="text-xs font-medium text-plasma-text-secondary">{event.time}</span>
+                        <div className="flex items-center justify-between mb-1">
+                           <div className="flex items-center gap-3">
+                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${event.intentColor}`}>{event.intent}</span>
+                             <span className="text-xs font-medium text-plasma-text-secondary">{event.time}</span>
+                           </div>
+                           {(user?.plasmaUserID === event.organizerID || user?.id === event.organizerID) && (
+                              <button 
+                                onClick={() => createRallyModal.open(event)}
+                                className="p-2 -mr-2 -mt-2 text-plasma-text-secondary hover:text-plasma-primary transition-colors cursor-pointer group/edit"
+                                title="Edit Rally"
+                              >
+                                <Settings className="w-4 h-4 group-hover/edit:rotate-90 transition-transform duration-300" />
+                              </button>
+                            )}
                         </div>
                         <h4 className="text-xl font-display font-bold mb-1 text-plasma-text-primary">{event.title}</h4>
-                        {event.gameTitle && <p className="text-xs font-bold text-plasma-primary uppercase tracking-widest mb-3">{event.gameTitle}</p>}
+                        <div className="flex flex-col mb-3">
+                          {event.gameTitle && <p className="text-xs font-bold text-plasma-primary uppercase tracking-widest">{event.gameTitle}</p>}
+                          <p className="text-[10px] text-plasma-text-secondary">Host: <span className="text-plasma-text-primary font-bold">{event.organizerName}</span></p>
+                        </div>
                         
                         <div className="space-y-3 mb-6">
                           {event.roles.length > 0 ? (
@@ -415,14 +429,6 @@ export default function Rally() {
                         <div className="flex justify-between items-center">
                           <div className="flex items-center gap-4 text-xs text-plasma-text-secondary">
                             <span>{event.slotsFilled}/{event.slotsTotal} slots filled</span>
-                            {user?.plasmaUserID === event.organizerID && (
-                              <button 
-                                onClick={() => createRallyModal.open(event)}
-                                className="text-plasma-primary hover:underline font-bold cursor-pointer"
-                              >
-                                Edit
-                              </button>
-                            )}
                           </div>
                           <button 
                             onClick={() => event.rsvpd ? toggleRSVP(event.id) : rsvpModal.open(event)}
@@ -483,9 +489,23 @@ export default function Rally() {
                               <Calendar className="w-6 h-6 text-plasma-primary" />
                             )}
                           </div>
-                          <div>
-                            <h3 className="font-display font-bold text-xl text-plasma-text-primary">{item.title}</h3>
-                            {item.gameTitle && <p className="text-[10px] font-bold text-plasma-primary uppercase tracking-widest">{item.gameTitle}</p>}
+                           <div>
+                             <div className="flex items-center justify-between">
+                                <h3 className="font-display font-bold text-xl text-plasma-text-primary">{item.title}</h3>
+                                {(user?.plasmaUserID === item.organizerID || user?.id === item.organizerID) && (
+                                  <button 
+                                    onClick={() => createRallyModal.open(item)}
+                                    className="p-1.5 text-plasma-text-secondary hover:text-plasma-primary transition-colors cursor-pointer group/edit"
+                                    title="Edit Rally"
+                                  >
+                                    <Settings className="w-3.5 h-3.5 group-hover/edit:rotate-90 transition-transform duration-300" />
+                                  </button>
+                                )}
+                             </div>
+                             <div className="flex flex-col">
+                               {item.gameTitle && <p className="text-[10px] font-bold text-plasma-primary uppercase tracking-widest">{item.gameTitle}</p>}
+                               <p className="text-[10px] text-plasma-text-secondary">Host: <span className="text-plasma-text-primary font-bold">{item.organizerName}</span></p>
+                             </div>
                             <div className="flex items-center gap-3 text-sm text-plasma-text-secondary font-medium mt-1">
                               <span>{item.dateLabel}</span>
                               <span className="w-1 h-1 rounded-full bg-plasma-text-secondary/30"></span>
@@ -508,14 +528,6 @@ export default function Rally() {
                                 <span className="text-lg font-display font-bold text-plasma-text-primary">{item.slotsFilled}</span>
                                 <span className="text-sm text-plasma-text-secondary font-bold">/ {item.slotsTotal}</span>
                               </div>
-                              {user?.plasmaUserID === item.organizerID && (
-                                <button 
-                                  onClick={() => createRallyModal.open(item)}
-                                  className="text-[10px] text-plasma-primary hover:underline font-bold mt-1 cursor-pointer"
-                                >
-                                  Edit
-                                </button>
-                              )}
                             </div>
                             <button 
                               onClick={() => item.rsvpd ? toggleRSVP(item.id) : rsvpModal.open(item)}

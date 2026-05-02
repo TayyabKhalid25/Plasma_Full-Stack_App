@@ -292,7 +292,9 @@ router.get('/me', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT 
+                u."plasmaUserID", 
                 u."plasmaUserID" AS id, 
+                u."username" AS username,
                 u."username" AS name, 
                 u."intent",
                 u."steamID64",
