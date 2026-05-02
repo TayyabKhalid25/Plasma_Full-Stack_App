@@ -145,6 +145,7 @@ export default function Rally() {
           body: JSON.stringify({})
         });
       }
+      fetchRallies(); // Refetch to get accurate role counts
     } catch (err) {
       console.error("RSVP failed", err);
       // Revert on error
