@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ModalWrapper } from "../ui/ModalWrapper";
 import { Loader2, Check, CheckCircle2 } from "lucide-react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
