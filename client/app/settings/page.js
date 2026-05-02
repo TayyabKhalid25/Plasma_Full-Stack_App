@@ -13,6 +13,7 @@ import { UploadAvatarModal } from "@/components/modals/UploadAvatarModal";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { useEffect } from "react";
+import { getAvatarUrl } from "@/lib/utils";
 
 const sectionNav = [
   { id: "account", label: "Account", icon: User },
@@ -69,14 +70,13 @@ export default function SettingsPage() {
   const avatarModal = useModal();
   const dangerModal = useModal();
 
-  const defaultAvatar = (name) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${name || 'User'}`;
 
   // Populate account from auth context user
   useEffect(() => {
     if (!user) return;
     setUsername(user.name || user.username || "");
     setEmail(user.email || "");
-    setAvatar(user.avatar || defaultAvatar(user.name || user.username));
+    setAvatar(user.avatar || null);
     setSteamID64(user.steamID64 || "");
   }, [user]);
 
@@ -219,7 +219,7 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-6 mb-8">
                   <div className="relative">
                     <img
-                      src={avatar || defaultAvatar(username)}
+                      src={getAvatarUrl(avatar, username)}
                       alt="Avatar"
                       className="w-20 h-20 rounded-full border-2 border-plasma-primary bg-plasma-slate"
                     />

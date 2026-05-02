@@ -5,6 +5,7 @@ import { Search, Bell, Trophy, UserPlus, Calendar, AlertCircle, Loader2 } from "
 import Link from "next/link";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { LogOut } from "lucide-react";
+import { getAvatarUrl } from "@/lib/utils";
 
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
@@ -229,7 +230,7 @@ export const TopNav = () => {
   }, [showSearchDropdown]);
 
   // Resolve display values: prefer live user data, fall back to cached
-  const displayAvatar = user?.avatar || cachedAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || user?.username || cachedName || 'User'}`;
+  const displayAvatar = getAvatarUrl(user?.avatar || cachedAvatar, user?.name || user?.username || cachedName);
   const displayName = user?.name || cachedName;
 
   return (
@@ -294,7 +295,7 @@ export const TopNav = () => {
                             className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/5 transition-colors group"
                           >
                             <img 
-                              src={u.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} 
+                              src={getAvatarUrl(u.avatarURL, u.username)} 
                               alt="" 
                               className="w-8 h-8 rounded-full bg-plasma-bg border border-white/10"
                             />
@@ -425,16 +426,30 @@ export const TopNav = () => {
                             !notif.read ? "bg-plasma-primary/5" : ""
                           }`}
                         >
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${colorClass}`}>
-                            {notif.avatar ? (
-                              <img src={notif.avatar} alt="" className="w-full h-full rounded-lg object-cover" />
-                            ) : (
-                              <Icon className="w-4 h-4" />
-                            )}
-                          </div>
+                          <Link 
+                            href={`/profile/${notif.senderID}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity"
+                          >
+                            <div className={`w-full h-full rounded-lg flex items-center justify-center ${colorClass}`}>
+                              {notif.avatar ? (
+                                <img src={getAvatarUrl(notif.avatar, notif.senderName)} alt="" className="w-full h-full rounded-lg object-cover" />
+                              ) : (
+                                <Icon className="w-4 h-4" />
+                              )}
+                            </div>
+                          </Link>
                           <div className="flex-1 min-w-0">
                             <p className={`text-xs leading-relaxed ${notif.read ? "text-plasma-text-secondary" : "text-plasma-text-primary"}`}>
-                              {notif.senderName && <span className="font-bold">{notif.senderName} </span>}
+                              {notif.senderName && (
+                                <Link 
+                                  href={`/profile/${notif.senderID}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="font-bold hover:text-plasma-primary transition-colors"
+                                >
+                                  {notif.senderName}{" "}
+                                </Link>
+                              )}
                               {notif.title}
                             </p>
                             <p className="text-[10px] text-plasma-text-secondary mt-0.5">{notif.time}</p>

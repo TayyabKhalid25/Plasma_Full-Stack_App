@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ModalWrapper } from "../ui/ModalWrapper";
 import { Copy, Link2, Check, Send, Loader2 } from "lucide-react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
+import { getAvatarUrl } from "@/lib/utils";
 
 export function ShareModal({ isOpen, onClose, shareType = "post", shareId }) {
   const { token } = useAuth();
@@ -26,7 +27,7 @@ export function ShareModal({ isOpen, onClose, shareType = "post", shareId }) {
           setFriends(all.map(f => ({
             id: f.id,
             name: f.name,
-            avatar: f.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${f.name}`,
+            avatar: getAvatarUrl(f.avatar, f.name),
           })));
         }
       } catch (err) {

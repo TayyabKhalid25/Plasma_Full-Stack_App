@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { useSocket } from "@/context/SocketContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { getAvatarUrl } from "@/lib/utils";
 import { Send, MessageSquare, Search, ArrowLeft, PlusCircle } from "lucide-react";
 import { useModal } from "@/hooks/useModal";
 import { NewMessageModal } from "@/components/modals/NewMessageModal";
@@ -70,7 +71,7 @@ export default function MessagesPage() {
             id: c.contactID,
             friend: {
               name: c.contactUsername,
-              avatar: c.contactAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.contactID}`,
+              avatar: getAvatarUrl(c.contactAvatar, c.contactUsername),
               online: c.online,
             },
             lastMessage: c.content,

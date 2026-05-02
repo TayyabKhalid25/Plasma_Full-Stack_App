@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ModalWrapper } from "../ui/ModalWrapper";
 import { Loader2, Search, MessageSquare } from "lucide-react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
+import { getAvatarUrl } from "@/lib/utils";
 
 export function NewMessageModal({ isOpen, onClose, onStartChat }) {
   const { token, user } = useAuth();
@@ -27,7 +28,7 @@ export function NewMessageModal({ isOpen, onClose, onStartChat }) {
             .map(f => ({
               id: f.plasmaUserID,
               name: f.username,
-              avatar: f.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${f.username}`,
+              avatar: getAvatarUrl(f.avatarURL, f.username),
               online: f.online,
             }))
           );

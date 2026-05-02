@@ -5,6 +5,7 @@ import { MessageSquare, X, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth, API_BASE } from "@/context/AuthContext";
+import { getAvatarUrl } from "@/lib/utils";
 
 export const FloatingMessages = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -29,7 +30,7 @@ export const FloatingMessages = () => {
               id: c.contactID,
               friend: {
                 name: c.contactUsername,
-                avatar: c.contactAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.contactID}`,
+                avatar: getAvatarUrl(c.contactAvatar, c.contactUsername),
                 online: c.online,
               },
               lastMessage: c.content,

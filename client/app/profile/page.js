@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { getIntentStyle } from "@/lib/intentStyles";
+import { getAvatarUrl } from "@/lib/utils";
 
 import { useModal } from "@/hooks/useModal";
 import { SyncSuccessModal } from "@/components/modals/SyncSuccessModal";
@@ -100,7 +101,7 @@ export default function Profile() {
         // Use user from auth context as profile data
         setProfileData({
           username: user.name || user.username,
-          avatar: user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name || user.username || 'User'}`,
+          avatar: user.avatar || null,
           bio: user.bio || "",
         });
 
@@ -162,7 +163,7 @@ export default function Profile() {
               mediaURL: p.mediaURL,
               time: new Date(p.timestampUTC).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
               username: p.username,
-              avatar: p.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.username}`,
+              avatar: p.avatarURL || null,
             })));
           }
         } else if (activeTab === "Library" && libraryGames.length === 0) {
@@ -228,7 +229,7 @@ export default function Profile() {
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
                 <div className="relative shrink-0">
                   <div className={`w-[120px] h-[120px] rounded-full border-[3px] ${getIntentStyle(user?.intent).border} p-1 bg-plasma-slate overflow-hidden`}>
-                    <img src={profileData.avatar} alt="User Profile" className="w-full h-full object-cover rounded-full" />
+                    <img src={getAvatarUrl(profileData.avatar, profileData.username)} alt="User Profile" className="w-full h-full object-cover rounded-full" />
                   </div>
                   <div className="absolute bottom-2 right-2 w-5 h-5 rounded-full border-[3px] border-plasma-bg" style={{ backgroundColor: getIntentStyle(user?.intent).border === 'border-plasma-secondary' ? '#FF2A7A' : getIntentStyle(user?.intent).border === 'border-slate-500' ? '#94a3b8' : '#2ECC71' }}></div>
                 </div>
@@ -342,7 +343,7 @@ export default function Profile() {
                   activityPosts.map(post => (
                     <div key={post.id} className="bg-plasma-slate/60 backdrop-blur-md border border-white/5 rounded-2xl p-6">
                       <div className="flex items-center gap-3 mb-4">
-                        <img src={post.avatar} alt="" className="w-10 h-10 rounded-full border border-plasma-primary/20 bg-plasma-slate" />
+                        <img src={getAvatarUrl(post.avatar, post.username)} alt="" className="w-10 h-10 rounded-full border border-plasma-primary/20 bg-plasma-slate" />
                         <div>
                           <p className="text-sm font-bold text-plasma-text-primary">{post.username}</p>
                           <p className="text-[11px] text-plasma-text-secondary">{post.time}</p>
@@ -451,7 +452,7 @@ export default function Profile() {
                     >
                       <div className="relative shrink-0">
                         <img 
-                          src={member.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.username}`} 
+                          src={getAvatarUrl(member.avatarURL, member.username)} 
                           alt="" 
                           className="w-12 h-12 rounded-full border border-white/10"
                         />

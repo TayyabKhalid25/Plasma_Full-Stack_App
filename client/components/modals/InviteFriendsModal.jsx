@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ModalWrapper } from "../ui/ModalWrapper";
 import { Loader2, Search, Link2, UserPlus, Check } from "lucide-react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
+import { getAvatarUrl } from "@/lib/utils";
 
 export function InviteFriendsModal({ isOpen, onClose }) {
   const { token, user } = useAuth();
@@ -37,7 +38,7 @@ export function InviteFriendsModal({ isOpen, onClose }) {
           setSearchResults(data.data.map(u => ({
             id: u.plasmaUserID,
             name: u.username,
-            avatar: u.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`,
+            avatar: getAvatarUrl(u.avatarURL, u.username),
             isRequested: u.isRequested,
             isMutual: u.isMutual
           })));

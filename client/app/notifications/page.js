@@ -6,6 +6,8 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
   Bell, UserPlus, Trophy, Calendar, AlertCircle, CheckCheck
 } from "lucide-react";
+import Link from "next/link";
+import { getAvatarUrl } from "@/lib/utils";
 
 const filterTabs = [
   { id: "all", label: "All", icon: Bell },
@@ -187,20 +189,30 @@ export default function NotificationsPage() {
                       : "bg-plasma-slate border-plasma-primary/20 hover:border-plasma-primary/40"
                   }`}
                 >
-                  {/* Icon */}
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${colorClass}`}>
-                    {notif.avatar ? (
-                      <img src={notif.avatar} alt="" className="w-full h-full rounded-xl object-cover" />
+                  {/* Icon / Avatar */}
+                  <Link 
+                    href={`/profile/${notif.senderID}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity ${colorClass}`}
+                  >
+                    {notif.avatar || notif.senderName ? (
+                      <img src={getAvatarUrl(notif.avatar, notif.senderName)} alt="" className="w-full h-full rounded-xl object-cover" />
                     ) : (
                       <Icon className="w-5 h-5" />
                     )}
-                  </div>
+                  </Link>
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm leading-relaxed ${notif.read ? "text-plasma-text-secondary" : "text-plasma-text-primary"}`}>
                       {notif.senderName ? (
-                        <span className="font-bold">{notif.senderName} </span>
+                        <Link 
+                          href={`/profile/${notif.senderID}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="font-bold hover:text-plasma-primary transition-colors"
+                        >
+                          {notif.senderName}{" "}
+                        </Link>
                       ) : null}
                       {notif.title}
                     </p>

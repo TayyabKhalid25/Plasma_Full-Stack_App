@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ModalWrapper } from "../ui/ModalWrapper";
 import { Heart, Send, MoreHorizontal } from "lucide-react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
+import { getAvatarUrl } from "@/lib/utils";
 import Link from "next/link";
 
 export function PostCommentsModal({ isOpen, onClose, post, onAddComment, onToggleLike }) {
@@ -27,7 +28,7 @@ export function PostCommentsModal({ isOpen, onClose, post, onAddComment, onToggl
               user: { 
                 name: c.username, 
                 id: c.plasmaUserID,
-                avatar: c.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.username}` 
+                avatar: getAvatarUrl(c.avatarURL, c.username) 
               },
               text: c.text,
               time: new Date(c.timestampUTC).toLocaleString(),
@@ -63,7 +64,7 @@ export function PostCommentsModal({ isOpen, onClose, post, onAddComment, onToggl
           id: data.data.commentID,
           user: { 
             name: user?.name || "You", 
-            avatar: user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'You'}` 
+            avatar: getAvatarUrl(user?.avatar, user?.name || user?.username || 'You') 
           },
           text: data.data.text,
           time: "Just now",
@@ -187,7 +188,7 @@ export function PostCommentsModal({ isOpen, onClose, post, onAddComment, onToggl
 
         {/* Comment Input */}
         <div className="pt-4 border-t border-white/5 shrink-0 flex items-center gap-3">
-          <img src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'You'}`} className="w-8 h-8 rounded-full bg-plasma-slate shrink-0" />
+          <img src={getAvatarUrl(user?.avatar, user?.name || user?.username || 'You')} className="w-8 h-8 rounded-full bg-plasma-slate shrink-0" />
           <input
             type="text"
             value={commentText}

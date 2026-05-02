@@ -22,6 +22,7 @@ import { PostCommentsModal } from "@/components/modals/PostCommentsModal";
 import { UploadMediaModal } from "@/components/modals/UploadMediaModal";
 import { EditPostModal } from "@/components/modals/EditPostModal";
 import { getIntentStyle } from "@/lib/intentStyles";
+import { getAvatarUrl } from "@/lib/utils";
 
 const feedFilters = [
   { id: "all", label: "All" },
@@ -69,7 +70,7 @@ export const ActivityFeedSection = () => {
               intentColor: getIntentStyle(p.intent).badge,
               user: {
                 name: p.username,
-                avatar: p.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.username}`,
+                avatar: getAvatarUrl(p.avatarURL, p.username),
               },
               text: p.content,
               image: p.mediaURL,
@@ -172,7 +173,7 @@ export const ActivityFeedSection = () => {
           intentColor: getIntentStyle(data.data.intent).badge,
           user: {
             name: user?.username || user?.name || "User",
-            avatar: user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.plasmaUserID || user?.username || 'User'}`,
+            avatar: getAvatarUrl(user?.avatar, user?.username || user?.name),
           },
           text: data.data.content,
           image: data.data.mediaURL,
@@ -201,7 +202,7 @@ export const ActivityFeedSection = () => {
           <div className="flex items-start gap-4 relative self-stretch w-full">
             <div
               className={`relative shrink-0 w-10 h-10 rounded-full bg-cover bg-center border-2 ${getIntentStyle(user?.intent).border}`}
-              style={{ backgroundImage: `url(${user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id || user?.name || 'User'}`})` }}
+              style={{ backgroundImage: `url(${getAvatarUrl(user?.avatar, user?.username || user?.name)})` }}
             />
             <div className="flex flex-col flex-1 gap-3 w-full">
               <div className="flex items-center justify-center px-4 py-2 relative self-stretch bg-plasma-slate-hover rounded-full">

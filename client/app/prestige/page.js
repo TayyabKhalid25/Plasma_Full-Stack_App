@@ -11,6 +11,8 @@ import { EditHallOfFameModal } from "@/components/modals/EditHallOfFameModal";
 import { InviteFriendsModal } from "@/components/modals/InviteFriendsModal";
 import { AddMilestoneModal } from "@/components/modals/AddMilestoneModal";
 import { getIntentStyle } from "@/lib/intentStyles";
+import { getAvatarUrl } from "@/lib/utils";
+import Link from "next/link";
 
 const iconMap = { Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Diamond, Zap, Activity };
 
@@ -161,7 +163,7 @@ export default function Prestige() {
             name: u.username,
             xp: `${(u.totalPlasmaXP || 0).toLocaleString()} XP`,
             rank: idx < 3 ? ["🥇", "🥈", "🥉"][idx] : String(idx + 1),
-            avatar: u.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`,
+            avatar: getAvatarUrl(u.avatarURL, u.username),
             rawIntent: u.intent,
             plasmaUserID: u.plasmaUserID,
             isCurrentUser: String(u.plasmaUserID) === String(user?.id),
@@ -435,9 +437,10 @@ export default function Prestige() {
                   const liveIntent = lb.isCurrentUser ? user?.intent : lb.rawIntent;
                   const style = getIntentStyle(liveIntent);
                   return (
-                    <div 
+                    <Link 
+                      href={`/profile/${lb.plasmaUserID}`}
                       key={lb.id} 
-                      className={`flex items-center gap-3 p-2.5 border-b border-white/5 transition-colors ${
+                      className={`flex items-center gap-3 p-2.5 border-b border-white/5 transition-colors cursor-pointer ${
                         lb.isCurrentUser ? 'bg-white/10 rounded-lg' : 'hover:bg-white/5'
                       }`}
                     >
@@ -457,7 +460,7 @@ export default function Prestige() {
                       <span className={`font-mono text-sm ${lb.isCurrentUser ? 'text-plasma-secondary' : lb.id === 1 ? 'text-plasma-secondary' : lb.id === 2 ? 'text-plasma-text-primary' : 'text-plasma-text-secondary'}`}>
                         {lb.xp}
                       </span>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>

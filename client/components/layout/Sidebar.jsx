@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { getIntentStyle } from "@/lib/intentStyles";
+import { getAvatarUrl } from "@/lib/utils";
 
 const navItems = [
   { id: "/pulse", label: "PULSE", icon: Activity },
@@ -115,7 +116,7 @@ export const Sidebar = ({ onOpenDrawer }) => {
                 <div className="relative flex-[0_0_auto]">
                   <div
                     className={`relative w-8 h-8 rounded-full bg-cover bg-center border-2 ${getIntentStyle(member.intent).border}`}
-                    style={{ backgroundImage: `url(${member.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.name}`})` }}
+                    style={{ backgroundImage: `url(${getAvatarUrl(member.avatar, member.name)})` }}
                   />
                   <div className="absolute right-0 bottom-0 w-2.5 h-2.5 bg-plasma-success rounded-full border-2 border-solid border-plasma-slate" />
                 </div>

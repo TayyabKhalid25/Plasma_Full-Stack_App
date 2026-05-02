@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { getIntentStyle } from "@/lib/intentStyles";
+import { getAvatarUrl } from "@/lib/utils";
 
 
 function ProfileHeaderSkeleton() {
@@ -75,7 +76,7 @@ export default function UserProfile({ params }) {
           const p = userData.data.profile;
           setProfileData({
             username: p.username,
-            avatar: p.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.username}`,
+            avatar: getAvatarUrl(p.avatarURL, p.username),
             intent: p.intent || "CHILL",
             bio: p.bio || "",
             totalPlasmaXP: p.totalPlasmaXP || 0,
@@ -125,7 +126,7 @@ export default function UserProfile({ params }) {
               mediaURL: p.mediaURL,
               time: new Date(p.timestampUTC).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
               username: p.username,
-              avatar: p.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.username}`,
+              avatar: getAvatarUrl(p.avatarURL, p.username),
             })));
           }
         } else if (activeTab === "Library") {
@@ -219,7 +220,7 @@ export default function UserProfile({ params }) {
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
                 <div className="relative shrink-0">
                   <div className={`w-[120px] h-[120px] rounded-full border-[3px] ${getIntentStyle(profileData.intent).border} p-1 bg-plasma-slate overflow-hidden`}>
-                    <img src={profileData.avatar} alt="User Profile" className="w-full h-full object-cover rounded-full" />
+                    <img src={getAvatarUrl(profileData.avatar, profileData.username)} alt="User Profile" className="w-full h-full object-cover rounded-full" />
                   </div>
                   {profileData.online && (
                     <div className="absolute bottom-2 right-2 w-5 h-5 rounded-full border-[3px] border-plasma-bg bg-plasma-success"></div>
@@ -432,7 +433,7 @@ export default function UserProfile({ params }) {
                     >
                       <div className="relative shrink-0">
                         <img 
-                          src={member.avatarURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.username}`} 
+                          src={getAvatarUrl(member.avatarURL, member.username)} 
                           alt="" 
                           className="w-12 h-12 rounded-full border border-white/10"
                         />
