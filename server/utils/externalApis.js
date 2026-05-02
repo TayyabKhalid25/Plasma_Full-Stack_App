@@ -204,8 +204,15 @@ async function steamApiRequest(url, retries = 3, backoff = 1000) {
         const response = await axios.get(url, { timeout: 10000 });
         return response;
     } catch (error) {
-        if (retries > 0) {
-            console.log(`Steam API request failed, retrying in ${backoff}ms... (${retries} retries left)`);
+        // Only retry on transient errors:
+        // - Network/Timeout issues (no response)
+        // - Server errors (5xx)
+        // - Rate limiting (429)
+        const status = error.response?.status;
+        const isTransient = !status || (status >= 500 && status <= 599) || status === 429;
+        
+        if (isTransient && retries > 0) {
+            console.log(`Steam API request failed (${status || 'Network Error'}), retrying in ${backoff}ms... (${retries} retries left)`);
             await new Promise(resolve => setTimeout(resolve, backoff));
             return steamApiRequest(url, retries - 1, backoff * 2);
         }
@@ -257,6 +264,20 @@ async function getSteamPlayerAchievements(steamId, appId) {
     }
 }
 
+/**
+ * Fetch global achievement percentages for a specific game
+ */
+async function getSteamGlobalAchievementPercentages(appId) {
+    if (!STEAM_API_KEY) throw new Error('Steam API Key missing');
+    try {
+        const response = await steamApiRequest(`https://api.steampowered.com/ISteamUserStats/GetGlobalAchievementPercentagesForApp/v0002/?gameid=${appId}&format=json`);
+        return response.data.achievementpercentages.achievements || [];
+    } catch (error) {
+        console.error(`Steam Global Achievement Percentages Error for app ${appId}:`, error.message);
+        return []; // Return empty array on failure to allow sync to continue
+    }
+}
+
 async function getIgdbGameById(gameId) {
     try {
         const response = await igdbApiRequest({
@@ -288,5 +309,6 @@ module.exports = {
     fetchHighResCover,
     getSteamPlayerSummaries,
     getSteamOwnedGames,
-    getSteamPlayerAchievements
+    getSteamPlayerAchievements,
+    getSteamGlobalAchievementPercentages
 };
