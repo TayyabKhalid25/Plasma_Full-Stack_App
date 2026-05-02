@@ -10,9 +10,9 @@ import { getAvatarUrl } from "@/lib/utils";
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 const statusModes = [
-  { id: "competitive", label: "COMP", bg: "bg-plasma-secondary", shadow: "shadow-[0px_0px_15px_rgba(232,65,24,0.3)]" },
-  { id: "chill", label: "CHILL", bg: "bg-plasma-success", shadow: "shadow-[0px_0px_15px_rgba(46,204,113,0.3)]" },
-  { id: "offline", label: "OFFLINE", bg: "bg-plasma-text-secondary", shadow: "shadow-[0px_0px_15px_rgba(148,163,184,0.2)]" },
+  { id: "competitive", label: "COMP", bg: "bg-plasma-secondary", shadow: "" },
+  { id: "chill", label: "CHILL", bg: "bg-plasma-success", shadow: "" },
+  { id: "offline", label: "OFFLINE", bg: "bg-plasma-text-secondary", shadow: "" },
 ];
 
 const notifIconMap = {
@@ -234,8 +234,8 @@ export const TopNav = () => {
   const displayName = user?.name || cachedName;
 
   return (
-    <div className="flex w-full h-16 items-center justify-between px-6 py-0 fixed top-0 left-0 bg-plasma-bg/80 border-b border-white/5 shadow-[0px_0px_40px_#5638951a] backdrop-blur-md z-50">
-      <div className="inline-flex h-[85px] items-center gap-8 relative flex-[0_0_auto]">
+    <div className="flex w-full h-16 items-center justify-between px-6 py-0 fixed top-0 left-0 bg-plasma-bg z-50">
+      <div className="inline-flex h-full items-center gap-8 relative flex-[0_0_auto]">
         <div className="inline-flex flex-col items-start relative flex-[0_0_auto]">
           <Link href="/pulse" className="hover:opacity-80 transition-opacity flex items-center">
             <svg
