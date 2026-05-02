@@ -10,7 +10,7 @@ app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
+
     const allowedOrigins = [process.env.FRONTEND_URL, 'http://localhost:3000', 'http://127.0.0.1:3000'];
     if (allowedOrigins.indexOf(origin) !== -1 || origin.startsWith('http://localhost:')) {
       callback(null, true);
@@ -35,10 +35,10 @@ const session = require('express-session');
 const passport = require('passport');
 
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'fallback_session_secret',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { maxAge: 1000 * 60 * 60 } // 1 hour
+  secret: process.env.SESSION_SECRET || 'fallback_session_secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { maxAge: 1000 * 60 * 60 } // 1 hour
 }));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -123,7 +123,7 @@ app.use('/api/pulse', pulseRoutes);
 // Steam and Library sync routes get a strict sync limiter to prevent
 // hammering external APIs (Steam, IGDB) and risking API key bans.
 app.use('/api/steam', syncLimiter, steamRoutes);
-app.use('/api/library', syncLimiter, libraryRoutes);
+app.use('/api/library', libraryRoutes);
 app.use('/api/prestige', prestigeRoutes);
 app.use('/api/search', searchRoutes);
 
@@ -138,8 +138,8 @@ app.use((err, req, res, _next) => {
 
   // ── Categorise the error for the client ──────────────────────────────────
   let statusCode = err.statusCode || err.status || 500;
-  let errorType  = 'InternalServerError';
-  let message    = 'An unexpected error occurred. Please try again later.';
+  let errorType = 'InternalServerError';
+  let message = 'An unexpected error occurred. Please try again later.';
 
   // Database errors (Postgres error codes start with two-character class)
   if (err.code && typeof err.code === 'string' && /^[0-9]{2}/.test(err.code)) {
@@ -171,22 +171,22 @@ app.use((err, req, res, _next) => {
   // JSON parse errors (malformed request body)
   if (err.type === 'entity.parse.failed') {
     statusCode = 400;
-    errorType  = 'MalformedRequest';
-    message    = 'The request body contains invalid JSON.';
+    errorType = 'MalformedRequest';
+    message = 'The request body contains invalid JSON.';
   }
 
   // CORS errors
   if (err.message && err.message.includes('Not allowed by CORS')) {
     statusCode = 403;
-    errorType  = 'CORSError';
-    message    = 'Cross-Origin request blocked. Your domain is not allowed.';
+    errorType = 'CORSError';
+    message = 'Cross-Origin request blocked. Your domain is not allowed.';
   }
 
   // PayloadTooLargeError
   if (err.type === 'entity.too.large') {
     statusCode = 413;
-    errorType  = 'PayloadTooLarge';
-    message    = 'The request body exceeds the maximum allowed size.';
+    errorType = 'PayloadTooLarge';
+    message = 'The request body exceeds the maximum allowed size.';
   }
 
   res.status(statusCode).json({

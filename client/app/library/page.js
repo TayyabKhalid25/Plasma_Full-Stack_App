@@ -155,7 +155,7 @@ export default function Library() {
   const syncSteam = async () => {
     setSyncing(true);
     try {
-      const res = await fetch(`${API_BASE}/api/library/sync/steam`, {
+      const res = await fetch(`${API_BASE}/api/steam/sync/library`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` }
       });

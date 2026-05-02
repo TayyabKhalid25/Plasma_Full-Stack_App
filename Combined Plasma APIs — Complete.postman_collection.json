@@ -1104,7 +1104,7 @@
               }
             ],
             "url": {
-              "raw": "http://localhost:5000/api/library/sync/steam",
+              "raw": "http://localhost:5000/api/steam/sync/library",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -1112,9 +1112,9 @@
               "port": "5000",
               "path": [
                 "api",
-                "library",
+                "steam",
                 "sync",
-                "steam"
+                "library"
               ]
             },
             "description": "Triggers an optimized manual sync of the Steam Web API to fetch the user's owned games (including played free games) and playtime. Also syncs the user's Steam profile picture (avatarfull) to the Plasma profile. Uses high-performance batch processing with UNNEST and directly links high-resolution Steam CDN cover art (library_600x900.jpg), bypassing IGDB for significantly faster execution.\n\n**Error Responses:**\n- `403 Forbidden` — Returned when the target Steam user's Game Details privacy setting is not set to Public. Response body: `{ \"success\": false, \"message\": \"User's profile is private\" }`"
@@ -1131,7 +1131,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "http://localhost:5000/api/library/sync/steam",
+                  "raw": "http://localhost:5000/api/steam/sync/library",
                   "protocol": "http",
                   "host": [
                     "localhost"
@@ -1139,9 +1139,9 @@
                   "port": "5000",
                   "path": [
                     "api",
-                    "library",
+                    "steam",
                     "sync",
-                    "steam"
+                    "library"
                   ]
                 }
               },

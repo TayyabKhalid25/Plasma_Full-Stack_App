@@ -2,16 +2,22 @@
 
 import { use, useState, useEffect, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { ArrowLeft, Clock, Trophy, Users, Play, Calendar, Loader2, Cloud, Gamepad2, Plus, ExternalLink } from "lucide-react";
+import { ArrowLeft, Clock, Trophy, Users, Play, Calendar, Loader2, Cloud, Gamepad2, Plus, ExternalLink, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Lock, Sparkles, Leaf, Flag, Diamond, Zap, Activity } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { useSocket } from "@/context/SocketContext";
 import { useModal } from "@/hooks/useModal";
 import { AddMilestoneModal } from "@/components/modals/AddMilestoneModal";
+import { getRarityProps } from "@/lib/utils";
+
+const iconMap = { Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Diamond, Zap, Activity };
 
 export default function GameDetailPage({ params }) {
-  const { id } = use(params);
+  const resolvedParams = params instanceof Promise ? use(params) : params;
+  const id = resolvedParams?.id;
+  console.log("[GameDetail] Resolved ID:", id, "Params:", resolvedParams);
+
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -41,14 +47,19 @@ export default function GameDetailPage({ params }) {
       });
       const data = await res.json();
       if (data.success) {
-        setAchievements(data.data.map(ach => ({
-          id: ach.achievementID,
-          title: ach.title,
-          description: ach.description,
-          proofUrl: ach.proofUrl,
-          xp: `${ach.plasmaXP} XP`,
-          unlockedAt: new Date(ach.unlockedAt).toLocaleDateString()
-        })));
+        setAchievements(data.data.map(ach => {
+          const rarityProps = getRarityProps(ach.rarityWeight);
+          return {
+            id: ach.achievementID,
+            title: ach.title,
+            description: ach.description,
+            proofUrl: ach.proofUrl,
+            xp: `${ach.plasmaXP} XP`,
+            unlockedAt: ach.unlockedAt ? new Date(ach.unlockedAt).toLocaleDateString() : null,
+            unlocked: !!ach.unlockedAt,
+            ...rarityProps
+          };
+        }));
       }
     } catch (err) {
       console.error("Failed to fetch achievements:", err);
@@ -70,16 +81,27 @@ export default function GameDetailPage({ params }) {
   };
 
   useEffect(() => {
+    let ignore = false;
     const fetchGameDetails = async () => {
-      if (!token || !id) return;
+      if (!token || !id) {
+        console.log("[GameDetail] Skipping fetch - missing token or ID");
+        return;
+      }
+
+      setLoading(true);
+      console.log("[GameDetail] Starting fetch sequence for:", id);
+
       try {
         // 1. Try local library first
         const res = await fetch(`${API_BASE}/api/library/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
-        
+
+        if (ignore) return;
+
         if (data.success) {
+          console.log("[GameDetail] Found in library:", id);
           const g = data.data;
           setGame({
             id: g.appID,
@@ -94,20 +116,24 @@ export default function GameDetailPage({ params }) {
           });
           setIsPlaying(g.isCurrentlyPlaying);
           setIsOwned(true);
-        } else if (id.startsWith("igdb_")) {
+        } else if (String(id).startsWith("igdb_")) {
           // 2. If not in library but it's an IGDB ID, fetch global info
-          const igdbId = id.replace("igdb_", "");
+          console.log("[GameDetail] Not in library, attempting IGDB fetch:", id);
+          const igdbId = String(id).replace("igdb_", "");
           const igdbRes = await fetch(`${API_BASE}/api/library/igdb/${igdbId}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           const igdbData = await igdbRes.json();
-          
+
+          if (ignore) return;
+          console.log("[GameDetail] IGDB API Response:", igdbData);
+
           if (igdbData.success) {
             const g = igdbData.data;
-            setGame({
+            const newGame = {
               id: `igdb_${g.id}`,
               title: g.name,
-              image: g.screenshots?.[0] || g.cover?.url,
+              image: g.screenshots?.[0] || (g.cover?.url ? g.cover.url.replace("t_thumb", "t_1080p").replace("//", "https://") : null),
               platform: "Global DB",
               hoursPlayed: 0,
               lastPlayed: "Never",
@@ -116,18 +142,30 @@ export default function GameDetailPage({ params }) {
               coverArtURL: g.cover?.url,
               genres: g.genres?.map(gn => gn.name).join(", "),
               releaseDate: g.first_release_date ? new Date(g.first_release_date * 1000).getFullYear() : null
-            });
+            };
+            console.log("[GameDetail] Setting IGDB game state:", newGame.title);
+            setGame(newGame);
             setIsOwned(false);
+          } else {
+            console.error("[GameDetail] IGDB fetch failed:", igdbData.message);
+            setGame(null);
           }
+        } else {
+          console.warn("[GameDetail] Game not found anywhere:", id);
+          setGame(null);
         }
       } catch (err) {
-        console.error("Failed to fetch game details:", err);
+        if (!ignore) {
+          console.error("[GameDetail] Fetch error:", err);
+          setGame(null);
+        }
       } finally {
-        setLoading(false);
+        if (!ignore) setLoading(false);
       }
     };
 
     fetchGameDetails();
+    return () => { ignore = true; };
   }, [id, token]);
 
   const formatLastPlayed = (dateString) => {
@@ -238,8 +276,8 @@ export default function GameDetailPage({ params }) {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-3">
                 <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest border-2 transition-all shadow-2xl ${game.platform === "Steam"
-                    ? "bg-[#171a21] text-[#66c0f4] border-[#66c0f4]/30 shadow-blue-500/20"
-                    : "bg-[#1a1122] text-plasma-primary border-plasma-primary/40 shadow-plasma-primary/20"
+                  ? "bg-[#171a21] text-[#66c0f4] border-[#66c0f4]/30 shadow-blue-500/20"
+                  : "bg-[#1a1122] text-plasma-primary border-plasma-primary/40 shadow-plasma-primary/20"
                   }`}>
                   {game.platform === "Steam" ? <Cloud className="w-3 h-3 fill-current" /> : <Gamepad2 className="w-3 h-3 fill-current" />}
                   {game.platform}
@@ -292,8 +330,8 @@ export default function GameDetailPage({ params }) {
                   <button
                     onClick={togglePlaying}
                     className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer ${isPlaying
-                        ? "bg-plasma-secondary text-white shadow-[0_0_25px_rgba(255,42,122,0.4)]"
-                        : "bg-primary-gradient text-white hover:shadow-card-glow hover:scale-[1.02]"
+                      ? "bg-plasma-secondary text-white shadow-[0_0_25px_rgba(255,42,122,0.4)]"
+                      : "bg-primary-gradient text-white hover:shadow-card-glow hover:scale-[1.02]"
                       }`}
                   >
                     <Play className={`w-4 h-4 ${isPlaying ? "fill-white" : ""}`} />
@@ -331,7 +369,7 @@ export default function GameDetailPage({ params }) {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <h2 className="font-display font-bold text-xl text-plasma-text-primary">Achievements</h2>
-                <button 
+                <button
                   onClick={milestoneModal.open}
                   className="w-6 h-6 rounded-full bg-plasma-primary/10 border border-plasma-primary/30 flex items-center justify-center text-plasma-primary hover:bg-plasma-primary hover:text-white transition-all cursor-pointer"
                   title="Add Custom Milestone"
@@ -343,40 +381,38 @@ export default function GameDetailPage({ params }) {
             </div>
 
             {achievements.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {achievements.map((ach) => (
-                  <div key={ach.id} className="flex flex-col p-4 rounded-2xl bg-plasma-slate/40 border border-white/5 hover:border-plasma-primary/30 transition-all group">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-plasma-primary/10 flex items-center justify-center shrink-0 border border-plasma-primary/20 group-hover:scale-110 transition-transform">
-                        <Trophy className="w-6 h-6 text-plasma-primary" />
+              <div className="flex flex-wrap gap-8">
+                {achievements.map((ach) => {
+                  const Icon = iconMap[ach.iconName] || Trophy;
+                  return (
+                    <div key={ach.id} className={`flex flex-col items-center gap-3 w-[84px] text-center transition-all group ${!ach.unlocked ? 'opacity-40 grayscale' : ''}`}>
+                      <div className={`relative w-[72px] h-[72px] rounded-full border-2 ${ach.border} bg-white/5 flex items-center justify-center transition-all ${ach.unlocked ? ach.shadow + " group-hover:" + ach.glow : ""}`}>
+                        <Icon className={`w-8 h-8 ${ach.color} transition-all group-hover:scale-110`} />
+                        {!ach.unlocked && <Lock className="absolute bottom-0 right-0 w-4 h-4 text-plasma-text-secondary bg-plasma-bg rounded-full p-0.5" />}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-sans font-bold text-sm text-plasma-text-primary truncate">{ach.title}</p>
-                        <div className="flex items-center gap-3 mt-0.5">
-                          <span className="text-[10px] font-mono text-plasma-secondary">{ach.xp}</span>
-                          <span className="w-1 h-1 rounded-full bg-white/10" />
-                          <span className="text-[10px] text-plasma-text-secondary">{ach.unlockedAt}</span>
+                      <div className="min-w-0 w-full">
+                        <p className={`text-[10px] font-bold truncate leading-tight ${ach.unlocked ? 'text-plasma-text-primary' : 'text-plasma-text-secondary'}`}>
+                          {ach.title}
+                        </p>
+                        <p className={`text-[9px] font-mono mt-0.5 ${ach.color}`}>{ach.xp}</p>
+                      </div>
+
+                      {/* Tooltip-like hover state for info */}
+                      {ach.unlocked && (
+                        <div className="absolute z-10 hidden group-hover:block pointer-events-none">
+                          <div className="mt-24 p-3 rounded-xl bg-plasma-slate border border-white/10 shadow-2xl min-w-[200px] -translate-x-1/2 left-1/2 text-left">
+                            <p className="text-xs font-bold text-plasma-text-primary mb-1">{ach.title}</p>
+                            {ach.description && <p className="text-[10px] text-plasma-text-secondary leading-relaxed mb-2 italic">"{ach.description}"</p>}
+                            <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
+                              <span className="text-[9px] font-bold text-plasma-primary uppercase tracking-tighter">Unlocked {ach.unlockedAt}</span>
+                              <span className={`text-[9px] font-mono ${ach.color}`}>{ach.xp}</span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
-                    {ach.description && (
-                      <p className="mt-3 text-xs text-plasma-text-secondary leading-relaxed line-clamp-2 italic">
-                        "{ach.description}"
-                      </p>
-                    )}
-                    {ach.proofUrl && (
-                      <a 
-                        href={ach.proofUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="mt-3 flex items-center gap-1.5 text-[10px] font-bold text-plasma-primary hover:text-plasma-secondary transition-colors group/link"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                        VIEW PROOF
-                      </a>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="bg-plasma-slate/30 border border-dashed border-white/10 rounded-2xl p-12 text-center">
@@ -395,11 +431,11 @@ export default function GameDetailPage({ params }) {
           </div>
         </div>
       </div>
-      <AddMilestoneModal 
-        isOpen={milestoneModal.isOpen} 
-        onClose={milestoneModal.close} 
-        onAdded={fetchAchievements} 
-        gameId={id} 
+      <AddMilestoneModal
+        isOpen={milestoneModal.isOpen}
+        onClose={milestoneModal.close}
+        onAdded={fetchAchievements}
+        gameId={id}
       />
     </DashboardLayout>
   );
