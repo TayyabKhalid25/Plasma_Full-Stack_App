@@ -21,9 +21,13 @@ router.get('/', authenticateToken, async (req, res) => {
                 e."gameID",
                 e."roles",
                 g."title" AS "gameTitle",
+                g."coverArtURL",
                 u."username" AS "organizerName",
                 u."plasmaUserID" AS "organizerID",
                 (SELECT COUNT(*) FROM "rsvps" r WHERE r."eventID" = e."eventID" AND r."status" = 'CONFIRMED') AS "currentAttendees",
+                (SELECT JSONB_OBJECT_AGG(COALESCE(r."declaredRole", 'Open Slots'), count_role) 
+                 FROM (SELECT "declaredRole", COUNT(*) as count_role FROM "rsvps" WHERE "eventID" = e."eventID" AND "status" = 'CONFIRMED' GROUP BY "declaredRole") r
+                ) AS "roleCounts",
                 (SELECT COUNT(*) > 0 FROM "rsvps" r WHERE r."eventID" = e."eventID" AND r."userID" = $1) AS "hasRsvpd"
             FROM "rally_events" e
             JOIN "users" u ON e."organizerID" = u."plasmaUserID"
@@ -83,7 +87,18 @@ router.post('/', authenticateToken, async (req, res) => {
             RETURNING *
         `, [userId, title, description || null, scheduledStartUTC, maxCapacity, requiredIntent || 'CHILL', gameId || null, JSON.stringify(roles || [])]);
 
-        res.status(201).json({ success: true, data: result.rows[0] });
+        const newRally = result.rows[0];
+
+        // Auto-RSVP the creator if requested
+        if (req.body.autoRSVP) {
+            await pool.query(`
+                INSERT INTO "rsvps" ("eventID", "userID", "status")
+                VALUES ($1, $2, 'CONFIRMED')
+                ON CONFLICT ("eventID", "userID") DO UPDATE SET "status" = 'CONFIRMED'
+            `, [newRally.eventID, userId]);
+        }
+
+        res.status(201).json({ success: true, data: newRally });
 
     } catch (error) {
         console.error('Error creating rally:', error);
@@ -98,9 +113,12 @@ router.get('/:eventId', authenticateToken, async (req, res) => {
         const result = await pool.query(`
             SELECT 
                 e."eventID", e."title", e."description", e."scheduledStartUTC", e."maxCapacity", e."requiredIntent", e."gameID", e."roles",
-                g."title" AS "gameTitle",
+                g."title" AS "gameTitle", g."coverArtURL",
                 u."username" AS "organizerName", u."plasmaUserID" AS "organizerID",
-                (SELECT COUNT(*) FROM "rsvps" r WHERE r."eventID" = e."eventID" AND r."status" = 'CONFIRMED') AS "currentAttendees"
+                (SELECT COUNT(*) FROM "rsvps" r WHERE r."eventID" = e."eventID" AND r."status" = 'CONFIRMED') AS "currentAttendees",
+                (SELECT JSONB_OBJECT_AGG(COALESCE(r."declaredRole", 'Open Slots'), count_role) 
+                 FROM (SELECT "declaredRole", COUNT(*) as count_role FROM "rsvps" WHERE "eventID" = e."eventID" AND "status" = 'CONFIRMED' GROUP BY "declaredRole") r
+                ) AS "roleCounts"
             FROM "rally_events" e
             JOIN "users" u ON e."organizerID" = u."plasmaUserID"
             LEFT JOIN "games" g ON e."gameID" = g."appID"
@@ -117,7 +135,7 @@ router.get('/:eventId', authenticateToken, async (req, res) => {
 // PUT /api/rallies/:eventId
 router.put('/:eventId', authenticateToken, async (req, res) => {
     const { eventId } = req.params;
-    const { title, description, scheduledStartUTC, maxCapacity, requiredIntent } = req.body;
+    const { title, description, scheduledStartUTC, maxCapacity, requiredIntent, gameId, roles } = req.body;
     try {
         const result = await pool.query(`
             UPDATE "rally_events"
@@ -125,14 +143,17 @@ router.put('/:eventId', authenticateToken, async (req, res) => {
                 "description" = COALESCE($2, "description"),
                 "scheduledStartUTC" = COALESCE($3, "scheduledStartUTC"),
                 "maxCapacity" = COALESCE($4, "maxCapacity"),
-                "requiredIntent" = COALESCE($5, "requiredIntent")
-            WHERE "eventID" = $6 AND "organizerID" = $7
+                "requiredIntent" = COALESCE($5, "requiredIntent"),
+                "gameID" = COALESCE($6, "gameID"),
+                "roles" = COALESCE($7, "roles")
+            WHERE "eventID" = $8 AND "organizerID" = $9
             RETURNING *
-        `, [title, description, scheduledStartUTC, maxCapacity, requiredIntent, eventId, req.userId]);
+        `, [title, description, scheduledStartUTC, maxCapacity, requiredIntent, gameId, roles ? JSON.stringify(roles) : null, eventId, req.userId]);
         
         if (result.rows.length === 0) return res.status(403).json({ success: false, message: 'Not authorized or rally not found' });
         res.json({ success: true, message: 'Rally updated successfully', data: result.rows[0] });
     } catch (error) {
+        console.error('Error updating rally:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
@@ -239,9 +260,14 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
 
         const result = await pool.query(`
             SELECT 
-                e."eventID", e."title", e."description", e."scheduledStartUTC", e."maxCapacity", e."requiredIntent",
-                (SELECT COUNT(*) FROM "rsvps" r WHERE r."eventID" = e."eventID" AND r."status" = 'CONFIRMED') AS "currentAttendees"
+                e."eventID", e."title", e."description", e."scheduledStartUTC", e."maxCapacity", e."requiredIntent", e."roles", e."gameID",
+                g."title" AS "gameTitle", g."coverArtURL",
+                (SELECT COUNT(*) FROM "rsvps" r WHERE r."eventID" = e."eventID" AND r."status" = 'CONFIRMED') AS "currentAttendees",
+                (SELECT JSONB_OBJECT_AGG(COALESCE(r."declaredRole", 'Open Slots'), count_role) 
+                 FROM (SELECT "declaredRole", COUNT(*) as count_role FROM "rsvps" WHERE "eventID" = e."eventID" AND "status" = 'CONFIRMED' GROUP BY "declaredRole") r
+                ) AS "roleCounts"
             FROM "rally_events" e
+            LEFT JOIN "games" g ON e."gameID" = g."appID"
             WHERE e."organizerID" = $1 AND e."scheduledStartUTC" > CURRENT_TIMESTAMP
             ORDER BY e."scheduledStartUTC" ASC
         `, [userId]);

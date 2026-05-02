@@ -51,7 +51,7 @@ function RallySkeleton() {
 }
 
 export default function Rally() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [view, setView] = useState("calendar");
   const now = new Date();
   const [currentMonth, setCurrentMonth] = useState(now.getMonth());
@@ -78,6 +78,8 @@ export default function Rally() {
         setEvents(data.data.map(e => {
           const filled = parseInt(e.currentAttendees) || 0;
           const total = e.maxCapacity;
+          const roleCounts = e.roleCounts || {};
+          
           return {
             id: e.eventID,
             title: e.title,
@@ -90,13 +92,24 @@ export default function Rally() {
             slotsFilled: filled,
             slotsTotal: total,
             organizerName: e.organizerName,
+            organizerID: e.organizerID,
             rsvpd: e.hasRsvpd === true || e.hasRsvpd === 't',
-            image: "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop",
+            image: e.coverArtURL || "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop",
             roles: e.roles && e.roles.length > 0 
-              ? e.roles.map(r => ({ ...r, percent: r.totalSlots > 0 ? Math.round((0 / r.totalSlots) * 100) : 0 })) // 0 filled for now as rsvps are not split by role yet in this simple view
-              : [{ name: "Open Slots", filled, total, percent: total > 0 ? Math.round((filled / total) * 100) : 0 }],
+              ? e.roles.map(r => {
+                  const roleFilled = roleCounts[r.name] || 0;
+                  return { 
+                    ...r, 
+                    filled: roleFilled, 
+                    total: r.totalSlots, 
+                    percent: r.totalSlots > 0 ? Math.min(100, Math.round((roleFilled / r.totalSlots) * 100)) : 0 
+                  };
+                })
+              : [],
             gameTitle: e.gameTitle,
             players: [],
+            gameID: e.gameID,
+            openSlotsFilled: roleCounts['Open Slots'] || 0
           };
         }));
       }
@@ -358,21 +371,57 @@ export default function Rally() {
                         {event.gameTitle && <p className="text-xs font-bold text-plasma-primary uppercase tracking-widest mb-3">{event.gameTitle}</p>}
                         
                         <div className="space-y-3 mb-6">
-                          {event.roles.map((role, idx) => (
-                            <div key={idx}>
-                              <div className="flex justify-between text-[10px] font-bold mb-1">
-                                <span className="text-plasma-text-secondary uppercase">{role.name} ({role.totalSlots || role.total} Slots)</span>
-                              </div>
-                              <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                                <div className="h-full bg-plasma-primary" style={{ width: `${role.percent}%` }}></div>
-                              </div>
-                            </div>
-                          ))}
+                          {event.roles.length > 0 ? (
+                            event.roles.map((role, idx) => (
+                              <button 
+                                key={idx} 
+                                onClick={() => !event.rsvpd && rsvpModal.open({ ...event, preselectedRoleIdx: idx })}
+                                disabled={event.rsvpd || role.filled >= role.total}
+                                className="w-full text-left group/role cursor-pointer disabled:cursor-default"
+                              >
+                                <div className="flex justify-between text-[10px] font-bold mb-1">
+                                  <span className="text-plasma-text-secondary uppercase group-hover/role:text-plasma-primary transition-colors">{role.name} ({role.filled} / {role.total} Slots)</span>
+                                  {role.filled >= role.total && <span className="text-plasma-error uppercase">Full</span>}
+                                </div>
+                                <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                                  <div 
+                                    className={`h-full transition-all duration-500 ${role.filled >= role.total ? 'bg-plasma-error/50' : 'bg-plasma-primary'}`} 
+                                    style={{ width: `${role.percent}%` }}
+                                  ></div>
+                                </div>
+                              </button>
+                            ))
+                          ) : (
+                            <button 
+                              onClick={() => !event.rsvpd && rsvpModal.open({ ...event, preselectedRoleIdx: -1 })}
+                              disabled={event.rsvpd || event.slotsFilled >= event.slotsTotal}
+                              className="w-full text-left group/role cursor-pointer disabled:cursor-default"
+                            >
+                               <div className="flex justify-between text-[10px] font-bold mb-1">
+                                 <span className="text-plasma-text-secondary uppercase group-hover/role:text-plasma-primary transition-colors">Open Slots ({event.slotsFilled} / {event.slotsTotal} Slots)</span>
+                                 {event.slotsFilled >= event.slotsTotal && <span className="text-plasma-error uppercase">Full</span>}
+                               </div>
+                               <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                                 <div 
+                                  className={`h-full transition-all duration-500 ${event.slotsFilled >= event.slotsTotal ? 'bg-plasma-error/50' : 'bg-plasma-primary'}`}
+                                  style={{ width: `${(event.slotsFilled / event.slotsTotal) * 100}%` }}
+                                 ></div>
+                               </div>
+                            </button>
+                          )}
                         </div>
                         
                         <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-2 text-xs text-plasma-text-secondary">
+                          <div className="flex items-center gap-4 text-xs text-plasma-text-secondary">
                             <span>{event.slotsFilled}/{event.slotsTotal} slots filled</span>
+                            {user?.plasmaUserID === event.organizerID && (
+                              <button 
+                                onClick={() => createRallyModal.open(event)}
+                                className="text-plasma-primary hover:underline font-bold cursor-pointer"
+                              >
+                                Edit
+                              </button>
+                            )}
                           </div>
                           <button 
                             onClick={() => event.rsvpd ? toggleRSVP(event.id) : rsvpModal.open(event)}
@@ -426,8 +475,12 @@ export default function Rally() {
                     {section.items.map(item => (
                       <div key={item.id} className="bg-plasma-slate rounded-xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between group hover:bg-plasma-slate-hover transition-all border border-transparent hover:border-white/5 gap-6 md:gap-0">
                         <div className="flex items-center gap-6 relative w-full md:w-auto">
-                          <div className="w-14 h-14 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 bg-plasma-primary/10">
-                            <Calendar className="w-6 h-6 text-plasma-primary" />
+                          <div className="w-14 h-14 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 bg-plasma-slate-hover border border-white/5 relative">
+                            {item.image ? (
+                              <img src={item.image} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <Calendar className="w-6 h-6 text-plasma-primary" />
+                            )}
                           </div>
                           <div>
                             <h3 className="font-display font-bold text-xl text-plasma-text-primary">{item.title}</h3>
@@ -448,12 +501,20 @@ export default function Rally() {
                             <span className={`text-[10px] font-black px-3 py-1 rounded-full tracking-widest border uppercase ${item.intentColor}`}>{item.intent}</span>
                           </div>
                           <div className="flex items-center gap-6 md:gap-10">
-                            <div className="text-center">
+                            <div className="text-center flex flex-col items-center">
                               <p className="text-[10px] text-plasma-text-secondary font-black tracking-widest uppercase mb-1">Slots</p>
                               <div className="flex items-center gap-1">
                                 <span className="text-lg font-display font-bold text-plasma-text-primary">{item.slotsFilled}</span>
                                 <span className="text-sm text-plasma-text-secondary font-bold">/ {item.slotsTotal}</span>
                               </div>
+                              {user?.plasmaUserID === item.organizerID && (
+                                <button 
+                                  onClick={() => createRallyModal.open(item)}
+                                  className="text-[10px] text-plasma-primary hover:underline font-bold mt-1 cursor-pointer"
+                                >
+                                  Edit
+                                </button>
+                              )}
                             </div>
                             <button 
                               onClick={() => item.rsvpd ? toggleRSVP(item.id) : rsvpModal.open(item)}
@@ -486,6 +547,7 @@ export default function Rally() {
         isOpen={createRallyModal.isOpen} 
         onClose={createRallyModal.close}
         onRallyCreated={() => { fetchRallies(); }}
+        initialData={createRallyModal.modalData}
       />
       <RsvpRoleModal 
         isOpen={rsvpModal.isOpen} 

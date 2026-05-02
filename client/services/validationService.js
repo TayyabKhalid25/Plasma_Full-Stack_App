@@ -35,10 +35,9 @@ export const validationService = {
     if (!data.intent) errors.intent = "Intent is required.";
 
     if (!data.roles || data.roles.length === 0) {
-      errors.roles = "At least one role must be defined.";
+      sanitized.roles = [];
     } else {
       const validRoles = data.roles.filter(r => validationService.sanitizeText(r.name) !== "" && r.totalSlots > 0);
-      if (validRoles.length === 0) errors.roles = "Roles must have a name and at least 1 slot.";
       sanitized.roles = validRoles.map(r => ({ ...r, name: validationService.sanitizeText(r.name) }));
     }
 

@@ -9,6 +9,12 @@ export function RsvpRoleModal({ isOpen, onClose, event, onRsvp }) {
   const [confirmed, setConfirmed] = useState(false);
   const { token } = useAuth();
 
+  useEffect(() => {
+    if (isOpen && event && event.preselectedRoleIdx !== undefined) {
+      setSelectedRole(event.preselectedRoleIdx);
+    }
+  }, [isOpen, event]);
+
   const handleConfirm = async () => {
     if (selectedRole === null) return;
     setLoading(true);

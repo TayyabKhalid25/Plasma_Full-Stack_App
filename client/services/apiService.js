@@ -20,20 +20,20 @@ function authHeaders() {
 export const apiService = {
   createRally: async (payload) => {
     const { isValid, errors, sanitized } = validationService.validateRallyData(payload);
+    if (!isValid) throw { status: 400, errors };
     
-    if (!isValid) {
-      throw { status: 400, errors };
-    }
+    const roleSum = sanitized.roles.reduce((sum, r) => sum + r.totalSlots, 0);
+    const maxCapacity = roleSum > 0 ? roleSum : (parseInt(payload.maxCapacity) || 5);
 
-    // Build the server-expected body
     const body = {
       title: sanitized.title,
-      description: "",
+      description: payload.description || "",
       scheduledStartUTC: `${sanitized.date}T${sanitized.time}:00Z`,
-      maxCapacity: sanitized.roles.reduce((sum, r) => sum + r.totalSlots, 0),
+      maxCapacity,
       requiredIntent: sanitized.intent === "COMP" ? "COMPETITIVE" : sanitized.intent,
       gameId: sanitized.gameId,
       roles: sanitized.roles,
+      autoRSVP: payload.autoRSVP || false,
     };
 
     const res = await fetch(`${API_BASE}/api/rallies`, {
@@ -45,6 +45,36 @@ export const apiService = {
     const data = await res.json();
     if (!res.ok || !data.success) {
       throw { status: res.status, errors: { main: data.message || "Failed to create rally" } };
+    }
+    return data;
+  },
+
+  updateRally: async (eventId, payload) => {
+    const { isValid, errors, sanitized } = validationService.validateRallyData(payload);
+    if (!isValid) throw { status: 400, errors };
+
+    const roleSum = sanitized.roles.reduce((sum, r) => sum + r.totalSlots, 0);
+    const maxCapacity = roleSum > 0 ? roleSum : (parseInt(payload.maxCapacity) || 5);
+
+    const body = {
+      title: sanitized.title,
+      description: payload.description || "",
+      scheduledStartUTC: `${sanitized.date}T${sanitized.time}:00Z`,
+      maxCapacity,
+      requiredIntent: sanitized.intent === "COMP" ? "COMPETITIVE" : sanitized.intent,
+      gameId: sanitized.gameId,
+      roles: sanitized.roles,
+    };
+
+    const res = await fetch(`${API_BASE}/api/rallies/${eventId}`, {
+      method: "PUT",
+      headers: authHeaders(),
+      body: JSON.stringify(body),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw { status: res.status, errors: { main: data.message || "Failed to update rally" } };
     }
     return data;
   },
