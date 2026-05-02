@@ -103,14 +103,6 @@ router.post('/', authenticateToken, async (req, res) => {
             VALUES ($1, 'RALLY_BROADCAST', $2, $3, $4)
         `, [userId, postContent, `plasma://rally/${newRally.eventID}`, requiredIntent || 'CHILL']);
 
-        // Auto-RSVP the creator if requested
-        if (req.body.autoRSVP) {
-            await pool.query(`
-                INSERT INTO "rsvps" ("eventID", "userID", "status", "declaredRole")
-                VALUES ($1, $2, 'CONFIRMED', $3)
-                ON CONFLICT ("eventID", "userID") DO UPDATE SET "status" = 'CONFIRMED', "declaredRole" = $3
-            `, [newRally.eventID, userId, req.body.creatorRole || null]);
-        }
 
         // Fetch the enriched rally object to return (consistent with GET /api/rallies)
         const enrichedResult = await pool.query(`

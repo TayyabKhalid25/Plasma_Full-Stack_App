@@ -16,8 +16,7 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated, initialData 
     roles: [{ id: Date.now(), name: "", totalSlots: 1 }],
     maxCapacity: 5,
     description: "",
-    autoRSVP: true,
-    creatorRole: ""
+    description: ""
   });
   const [hasRoles, setHasRoles] = useState(true);
   const [errors, setErrors] = useState({});
@@ -247,18 +246,6 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated, initialData 
               ))}
             </div>
           </div>
-          {!initialData && (
-            <div className="flex flex-col items-end pt-2">
-               <label className="text-[10px] font-bold text-plasma-text-secondary uppercase tracking-wider mb-2">Auto-Join</label>
-               <button 
-                type="button"
-                onClick={() => setFormData({...formData, autoRSVP: !formData.autoRSVP})}
-                className={`w-10 h-5 rounded-full transition-colors relative ${formData.autoRSVP ? 'bg-plasma-primary' : 'bg-plasma-slate'}`}
-               >
-                 <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${formData.autoRSVP ? 'left-6' : 'left-1'}`} />
-               </button>
-            </div>
-          )}
         </div>
 
         <div className="pt-2 border-t border-white/5">
@@ -283,21 +270,7 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated, initialData 
           {hasRoles ? (
             <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-2">
               {formData.roles.map((role) => (
-                <div key={role.id} className="flex gap-2 items-center">
-                  {formData.autoRSVP && !initialData && (
-                    <div className="flex flex-col items-center px-1">
-                      {role.id === formData.roles[0].id && (
-                        <span className="text-[8px] font-bold text-plasma-text-secondary uppercase mb-0.5">Me</span>
-                      )}
-                      <input 
-                        type="radio" 
-                        name="creatorRole"
-                        checked={formData.creatorRole === role.name}
-                        onChange={() => setFormData({...formData, creatorRole: role.name})}
-                        className="w-3 h-3 accent-plasma-primary cursor-pointer"
-                      />
-                    </div>
-                  )}
+                <div key={role.id} className="flex gap-2">
                   <input 
                     type="text" 
                     placeholder="Role Name (e.g. Healer)"

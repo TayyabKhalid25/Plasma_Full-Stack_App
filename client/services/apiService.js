@@ -33,8 +33,6 @@ export const apiService = {
       requiredIntent: sanitized.intent === "COMP" ? "COMPETITIVE" : sanitized.intent,
       gameId: sanitized.gameId,
       roles: sanitized.roles,
-      autoRSVP: payload.autoRSVP || false,
-      creatorRole: payload.creatorRole || null,
     };
 
     const res = await fetch(`${API_BASE}/api/rallies`, {
