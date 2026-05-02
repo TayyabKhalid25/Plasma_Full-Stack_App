@@ -9,7 +9,7 @@ import { LogOut } from "lucide-react";
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 const statusModes = [
-  { id: "comp", label: "COMP", bg: "bg-plasma-secondary", shadow: "shadow-[0px_0px_15px_rgba(232,65,24,0.3)]" },
+  { id: "competitive", label: "COMP", bg: "bg-plasma-secondary", shadow: "shadow-[0px_0px_15px_rgba(232,65,24,0.3)]" },
   { id: "chill", label: "CHILL", bg: "bg-plasma-success", shadow: "shadow-[0px_0px_15px_rgba(46,204,113,0.3)]" },
   { id: "offline", label: "OFFLINE", bg: "bg-plasma-text-secondary", shadow: "shadow-[0px_0px_15px_rgba(148,163,184,0.2)]" },
 ];
