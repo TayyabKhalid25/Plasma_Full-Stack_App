@@ -2415,7 +2415,6 @@
                 }
             ],
             "description": "REST endpoints for managing chat history and inbox state. Real-time message delivery is handled via WebSocket connection at ws://localhost:5000/ws/chat?token={{JWT_TOKEN}}."
-        },
         }
     ]
 }
