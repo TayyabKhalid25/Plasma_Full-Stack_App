@@ -256,7 +256,7 @@ async function getSteamOwnedGames(steamId) {
 async function getSteamPlayerAchievements(steamId, appId) {
     if (!STEAM_API_KEY) throw new Error('Steam API Key missing');
     try {
-        const response = await steamApiRequest(`https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v0001/?appid=${appId}&key=${STEAM_API_KEY}&steamid=${steamId}`);
+        const response = await steamApiRequest(`https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v0001/?appid=${appId}&key=${STEAM_API_KEY}&steamid=${steamId}&l=english`);
         return response.data.playerstats;
     } catch (error) {
         console.error(`Steam Achievements Error for app ${appId}:`, error.message);

@@ -24,8 +24,7 @@
 const { pool } = require('../config/dbConfig');
 const {
     syncSteamLibrary,
-    syncSteamAchievements,
-    syncSteamAchievementsForGames
+    syncSteamAchievements
 } = require('./steamSyncService');
 
 // ── Global API Cooldown ──────────────────────────────────────────────────────
@@ -113,42 +112,14 @@ const JOB_HANDLERS = {
      */
     STEAM_ACHIEVEMENT_SYNC: async (payload) => {
         const result = await syncSteamAchievements(payload.userId);
-        // If some games still failed, enqueue a targeted retry for just those games
+        
+        // Log any games that failed during sync
         if (result.failedGames.length > 0) {
-            const retryableGames = result.failedGames
-                .filter(g => g.httpStatus !== 403) // Don't retry private profile errors
-                .map(g => g.appId);
-
-            if (retryableGames.length > 0) {
-                await enqueueJob('STEAM_ACHIEVEMENT_RETRY', {
-                    userId: payload.userId,
-                    appIds: retryableGames
-                }, 5 * 60 * 1000); // Retry in 5 minutes
-            }
-
-            // Log permanently failed games (403 = private profile)
-            const permanentFailures = result.failedGames.filter(g => g.httpStatus === 403);
-            if (permanentFailures.length > 0) {
-                console.warn(`[JobQueue] ${permanentFailures.length} games skipped (private profile/forbidden):`,
-                    permanentFailures.map(g => g.appId).join(', '));
-            }
-        }
-    },
-
-    /**
-     * Targeted achievement retry for specific failed games only.
-     * Payload: { userId: string, appIds: string[] }
-     */
-    STEAM_ACHIEVEMENT_RETRY: async (payload) => {
-        const result = await syncSteamAchievementsForGames(payload.userId, payload.appIds);
-        // If STILL failing, the job's own retry mechanism (exponential backoff) handles it.
-        if (result.failedGames.length > 0) {
-            const stillFailing = result.failedGames.filter(g => g.httpStatus !== 403);
-            if (stillFailing.length > 0) {
-                // Throw so the job framework retries with exponential backoff
-                throw new Error(
-                    `${stillFailing.length} games still failing: ${stillFailing.map(g => `${g.appId}(${g.reason})`).join(', ')}`
-                );
+            console.warn(`[JobQueue] Achievement sync for user ${payload.userId} completed with ${result.failedGames.length} game failures. No retries will be scheduled.`);
+            
+            const http403s = result.failedGames.filter(g => g.httpStatus === 403);
+            if (http403s.length > 0) {
+                console.warn(`[JobQueue] Private profile/forbidden errors (403) for:`, http403s.map(g => g.appId).join(', '));
             }
         }
     }

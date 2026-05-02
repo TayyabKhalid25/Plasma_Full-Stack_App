@@ -246,8 +246,10 @@ async function syncSteamAchievements(userId) {
             SELECT id, app, title, descr, rarity, xp
             FROM unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::numeric[], $6::integer[]) AS t(id, app, title, descr, rarity, xp)
             ON CONFLICT ("achievementID") DO UPDATE SET
-                "rarityWeight" = EXCLUDED."rarityWeight",
-                "plasmaXP"     = EXCLUDED."plasmaXP"
+                "title"          = EXCLUDED."title",
+                "description"    = EXCLUDED."description",
+                "rarityWeight"   = EXCLUDED."rarityWeight",
+                "plasmaXP"       = EXCLUDED."plasmaXP"
         `, [achIds, appIds, titles, descriptions, rarities, xps]);
 
         const userIds = newUserAchievements.map(a => a.userID);
@@ -277,130 +279,7 @@ async function syncSteamAchievements(userId) {
     return { totalSynced, gamesProcessed, failedGames };
 }
 
-/**
- * Syncs Steam achievements for a SPECIFIC list of games (used by the job queue
- * to retry only the games that previously failed).
- *
- * @param {string} userId - The plasmaUserID (UUID).
- * @param {string[]} appIds - List of Steam appIDs to retry.
- * @returns {{ totalSynced: number, gamesProcessed: number, failedGames: Array }}
- * @throws If the user has no Steam account linked.
- */
-async function syncSteamAchievementsForGames(userId, appIds) {
-    const user = await pool.query(
-        'SELECT "steamID64" FROM "users" WHERE "plasmaUserID" = $1',
-        [userId]
-    );
-    if (user.rows.length === 0 || !user.rows[0].steamID64) {
-        throw new Error('Steam account not linked');
-    }
-    const steamId = user.rows[0].steamID64;
-
-    let totalSynced = 0;
-    let gamesProcessed = 0;
-    let newAchievements = [];
-    let newUserAchievements = [];
-    let failedGames = [];
-
-    for (const appId of appIds) {
-        try {
-            // 1. Fetch player's unlocked achievements
-            const achievementData = await getSteamPlayerAchievements(steamId, appId);
-            if (!achievementData || !achievementData.achievements) continue;
-
-            // 2. Fetch global achievement percentages for this app
-            const globalPercentages = await getSteamGlobalAchievementPercentages(appId);
-            const percentageMap = {};
-            globalPercentages.forEach(gp => {
-                percentageMap[gp.name] = gp.percent;
-            });
-
-            gamesProcessed++;
-
-            for (const ach of achievementData.achievements) {
-                if (ach.achieved !== 1) continue;
-
-                const achievementID = `steam_${appId}_${ach.apiname}`;
-                const unlockedAt = ach.unlocktime || Math.floor(Date.now() / 1000);
-                const title = ach.name || ach.apiname;
-                const description = ach.description || null;
-
-                // Calculate rarity and XP based on global percentage
-                const p = percentageMap[ach.apiname] || 100;
-                let rarity = 4;
-                let xp = 1000;
-
-                if (p > 75) { rarity = 1; xp = 100; }
-                else if (p > 50) { rarity = 2; xp = 250; }
-                else if (p > 25) { rarity = 3; xp = 550; }
-
-                newAchievements.push({
-                    achievementID,
-                    appId,
-                    title,
-                    description,
-                    rarityWeight: rarity,
-                    plasmaXP: xp
-                });
-                newUserAchievements.push({ userID: userId, achievementID, unlockedAt });
-                totalSynced++;
-            }
-        } catch (gameErr) {
-            if (gameErr.response && gameErr.response.status === 400) continue;
-            failedGames.push({
-                appId,
-                reason: gameErr.message || 'Unknown error',
-                httpStatus: gameErr.response?.status || null
-            });
-        }
-    }
-
-    if (newAchievements.length > 0) {
-        const achIdArr = newAchievements.map(a => a.achievementID);
-        const appIdArr = newAchievements.map(a => a.appId);
-        const titleArr = newAchievements.map(a => a.title);
-        const descArr = newAchievements.map(a => a.description);
-        const rarityArr = newAchievements.map(a => a.rarityWeight);
-        const xpArr = newAchievements.map(a => a.plasmaXP);
-
-        await pool.query(`
-            INSERT INTO "achievements" ("achievementID", "appID", "title", "description", "rarityWeight", "plasmaXP")
-            SELECT id, app, title, descr, rarity, xp
-            FROM unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::numeric[], $6::integer[]) AS t(id, app, title, descr, rarity, xp)
-            ON CONFLICT ("achievementID") DO UPDATE SET
-                "rarityWeight" = EXCLUDED."rarityWeight",
-                "plasmaXP"     = EXCLUDED."plasmaXP"
-        `, [achIdArr, appIdArr, titleArr, descArr, rarityArr, xpArr]);
-
-        const userIdArr = newUserAchievements.map(a => a.userID);
-        const uAchIdArr = newUserAchievements.map(a => a.achievementID);
-        const unlockedArr = newUserAchievements.map(a => a.unlockedAt);
-
-        await pool.query(`
-            INSERT INTO "user_achievements" ("userID", "achievementID", "unlockedAt")
-            SELECT uid, aid, to_timestamp(ts)
-            FROM unnest($1::uuid[], $2::text[], $3::bigint[]) AS t(uid, aid, ts)
-            ON CONFLICT ("userID", "achievementID") DO NOTHING
-        `, [userIdArr, uAchIdArr, unlockedArr]);
-    }
-
-    // Update profile XP after partial sync
-    const xpResult = await pool.query(`
-        SELECT COALESCE(SUM(a."plasmaXP"), 0) as "totalXP"
-        FROM "user_achievements" ua
-        JOIN "achievements" a ON ua."achievementID" = a."achievementID"
-        WHERE ua."userID" = $1
-    `, [userId]);
-
-    await pool.query(`
-        UPDATE "profiles" SET "totalPlasmaXP" = $1 WHERE "plasmaUserID" = $2
-    `, [parseInt(xpResult.rows[0].totalXP) || 0, userId]);
-
-    return { totalSynced, gamesProcessed, failedGames };
-}
-
 module.exports = {
     syncSteamLibrary,
-    syncSteamAchievements,
-    syncSteamAchievementsForGames
+    syncSteamAchievements
 };
