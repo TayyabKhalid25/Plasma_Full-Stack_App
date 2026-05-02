@@ -28,7 +28,7 @@ export const apiService = {
     const body = {
       title: sanitized.title,
       description: payload.description || "",
-      scheduledStartUTC: `${sanitized.date}T${sanitized.time}:00Z`,
+      scheduledStartUTC: new Date(`${sanitized.date}T${sanitized.time}:00`).toISOString(),
       maxCapacity,
       requiredIntent: sanitized.intent === "COMP" ? "COMPETITIVE" : sanitized.intent,
       gameId: sanitized.gameId,
@@ -58,7 +58,7 @@ export const apiService = {
     const body = {
       title: sanitized.title,
       description: payload.description || "",
-      scheduledStartUTC: `${sanitized.date}T${sanitized.time}:00Z`,
+      scheduledStartUTC: new Date(`${sanitized.date}T${sanitized.time}:00`).toISOString(),
       maxCapacity,
       requiredIntent: sanitized.intent === "COMP" ? "COMPETITIVE" : sanitized.intent,
       gameId: sanitized.gameId,
