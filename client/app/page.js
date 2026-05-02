@@ -50,7 +50,7 @@ const intentModes = [
   },
   {
     title: "Offline",
-    description: "Currently unavailable to play.",
+    description: "Going dark. AFK, handling real-world side quests, or deep in a solo campaign. Catch you on the next respawn.",
     icon: "/images/intent-3.png",
     barBg: "bg-[#0e0e0eff]",
     barFill: "bg-neutral-600 shadow-[0px_0px_10px_#f59e0b]",
