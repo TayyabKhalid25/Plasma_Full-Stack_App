@@ -128,6 +128,7 @@ export default function Prestige() {
 
         if (achievementsJson.success) {
           setGamesProgress(achievementsJson.data.gamesProgress.map(game => ({
+            appID: game.appID,
             title: game.gameTitle?.toUpperCase() || "UNKNOWN GAME",
             achievements: game.achievements.map(ach => {
               const rarityProps = getRarityProps(ach.rarityWeight);
@@ -231,6 +232,7 @@ export default function Prestige() {
         if (prestigeJson.success) setPrestigeData(prestigeJson.data);
         if (achievementsJson.success) {
           setGamesProgress(achievementsJson.data.gamesProgress.map(game => ({
+            appID: game.appID,
             title: game.gameTitle?.toUpperCase() || "UNKNOWN GAME",
             achievements: game.achievements.map(ach => {
               const rarityProps = getRarityProps(ach.rarityWeight);
@@ -383,7 +385,12 @@ export default function Prestige() {
                   return (
                     <div key={index} className="animate-fade-in">
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-[11px] font-bold text-plasma-text-secondary tracking-[0.2em] uppercase">{game.title}</h3>
+                        <Link href={`/prestige/${game.appID}`} className="group/title">
+                          <h3 className="text-[11px] font-bold text-plasma-text-secondary tracking-[0.2em] uppercase group-hover/title:text-plasma-primary transition-colors flex items-center gap-2">
+                            {game.title}
+                            <ChevronDown className="w-3 h-3 -rotate-90 opacity-0 group-hover/title:opacity-100 transition-all translate-x-[-4px] group-hover/title:translate-x-0" />
+                          </h3>
+                        </Link>
                         {hasMore && (
                           <button
                             onClick={() => toggleExpand(index)}

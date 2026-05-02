@@ -233,15 +233,15 @@ router.post('/:userId/follow', authenticateToken, async (req, res) => {
 
             // Notify: Friend Accepted
             await pool.query(`
-                INSERT INTO "notifications" ("receiverID", "senderID", "notificationType", "message")
-                VALUES ($1, $2, 'FRIEND_ACCEPTED', 'accepted your friend request!')
-            `, [userId, followerId]);
+                INSERT INTO "notifications" ("receiverID", "senderID", "notificationType", "message", "linkURI")
+                VALUES ($1, $2, 'FRIEND_ACCEPTED', 'accepted your friend request!', $3)
+            `, [userId, followerId, `/profile/${followerId}`]);
         } else {
             // Notify: Friend Request
             await pool.query(`
-                INSERT INTO "notifications" ("receiverID", "senderID", "notificationType", "message")
-                VALUES ($1, $2, 'FRIEND_REQUEST', 'sent you a friend request!')
-            `, [userId, followerId]);
+                INSERT INTO "notifications" ("receiverID", "senderID", "notificationType", "message", "linkURI")
+                VALUES ($1, $2, 'FRIEND_REQUEST', 'sent you a friend request!', $3)
+            `, [userId, followerId, `/profile/${followerId}`]);
         }
 
         res.json({ success: true, message: isMutual ? 'Friend request accepted!' : 'Friend request sent!', isMutual });

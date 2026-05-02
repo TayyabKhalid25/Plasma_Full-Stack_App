@@ -28,8 +28,6 @@ const gameFilters = [
   { id: "playing", label: "Currently Playing" },
   { id: "steam", label: "Steam" },
   { id: "non-steam", label: "Non-Steam" },
-  { id: "playstation", label: "PlayStation" },
-  { id: "xbox", label: "Xbox" },
 ];
 
 const iconMap = { Gamepad2, Diamond, Cloud, Zap, Shield, Sparkles, Dog, Star, Castle, Cpu };

@@ -102,9 +102,9 @@ router.post('/posts/:postId/react', authenticateToken, async (req, res) => {
                     const ownerId = postOwnerRes.rows[0].userID;
                     if (ownerId !== req.userId) {
                         await pool.query(`
-                            INSERT INTO "notifications" ("receiverID", "senderID", "notificationType", "message")
-                            VALUES ($1, $2, 'SYSTEM', $3)
-                        `, [ownerId, req.userId, `liked your post`]);
+                            INSERT INTO "notifications" ("receiverID", "senderID", "notificationType", "message", "linkURI")
+                            VALUES ($1, $2, 'SYSTEM', $3, $4)
+                        `, [ownerId, req.userId, `liked your post`, `/pulse`]);
                     }
                 }
             } catch (notifErr) {}
@@ -133,6 +133,34 @@ router.get('/posts/:postId/comments', authenticateToken, async (req, res) => {
 
         res.json({ success: true, data: result.rows });
     } catch (error) {
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+// GET /api/pulse/posts/:postId
+router.get('/posts/:postId', authenticateToken, async (req, res) => {
+    const { postId } = req.params;
+
+    try {
+        const result = await pool.query(`
+            SELECT p."postID", p."type", p."content", p."mediaURL", p."timestampUTC", p."intent",
+                   u."username", u."plasmaUserID", pr."avatarURL",
+                   (SELECT COUNT(*) FROM "comments" WHERE "postID" = p."postID") AS "commentCount",
+                   (SELECT COUNT(*) FROM "post_reactions" WHERE "postID" = p."postID") AS "reactionCount",
+                   (SELECT EXISTS (SELECT 1 FROM "post_reactions" WHERE "postID" = p."postID" AND "userID" = $2)) AS "hasReacted"
+            FROM "posts" p
+            JOIN "users" u ON p."userID" = u."plasmaUserID"
+            LEFT JOIN "profiles" pr ON u."plasmaUserID" = pr."plasmaUserID"
+            WHERE p."postID" = $1 AND p."isVisible" = TRUE
+        `, [postId, req.userId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Post not found' });
+        }
+
+        res.json({ success: true, data: result.rows[0] });
+    } catch (error) {
+        console.error('Error fetching single post:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
@@ -167,9 +195,9 @@ router.post('/posts/:postId/comments', authenticateToken, async (req, res) => {
                 // Don't notify if commenting on own post
                 if (ownerId !== req.userId) {
                     await pool.query(`
-                        INSERT INTO "notifications" ("receiverID", "senderID", "notificationType", "message")
-                        VALUES ($1, $2, 'SYSTEM', $3)
-                    `, [ownerId, req.userId, `commented on your post: "${content.substring(0, 30)}${content.length > 30 ? '...' : ''}"`]);
+                        INSERT INTO "notifications" ("receiverID", "senderID", "notificationType", "message", "linkURI")
+                        VALUES ($1, $2, 'SYSTEM', $3, $4)
+                    `, [ownerId, req.userId, `commented on your post: "${content.substring(0, 30)}${content.length > 30 ? '...' : ''}"`, `/pulse`]);
                 }
             }
         } catch (notifErr) {

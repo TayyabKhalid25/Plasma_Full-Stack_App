@@ -5,11 +5,66 @@ import { useAuth, API_BASE } from "@/context/AuthContext";
 import { useSocket } from "@/context/SocketContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { getAvatarUrl } from "@/lib/utils";
-import { Send, MessageSquare, Search, ArrowLeft, PlusCircle, Trophy, Calendar, Clock } from "lucide-react";
+import { 
+  Search, Send, MoreVertical, Phone, Video, Info, User, 
+  ChevronRight, ArrowLeft, Trophy, Settings, MessageSquare,
+  Share2, Calendar, Clock, PlusCircle
+} from "lucide-react";
 import { useModal } from "@/hooks/useModal";
 import { NewMessageModal } from "@/components/modals/NewMessageModal";
 import { getIntentStyle } from "@/lib/intentStyles";
 import Link from "next/link";
+
+const formatMessage = (text) => {
+  if (!text) return null;
+
+  // URL detection regex
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const steamRegex = /(steam:\/\/run\/\d+)/g;
+  const plasmaPostRegex = /(plasma:post:([^\s]+))/g;
+  
+  const parts = text.split(/((?:https?:\/\/[^\s]+)|(?:steam:\/\/run\/\d+)|(?:plasma:post:[^\s]+))/g);
+  
+  return parts.map((part, i) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-white underline decoration-white/30 hover:decoration-white transition-all font-bold">
+          {part}
+        </a>
+      );
+    }
+    if (part.match(steamRegex)) {
+      return (
+        <a key={i} href={part} className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 hover:bg-white/20 rounded-lg text-[10px] font-black uppercase tracking-widest text-white transition-all border border-white/10 mt-1 mb-1">
+          <Trophy className="w-3 h-3 text-plasma-primary" />
+          Launch Steam Game
+        </a>
+      );
+    }
+    if (part.match(plasmaPostRegex)) {
+      const postId = part.split(':').pop();
+      return (
+        <Link 
+          key={i} 
+          href={`/pulse/${postId}`} 
+          className="block mt-2 p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-plasma-secondary/10 flex items-center justify-center">
+              <Share2 className="w-4 h-4 text-plasma-secondary" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-plasma-secondary uppercase tracking-widest">Shared Post</p>
+              <p className="text-xs text-white font-medium group-hover:text-plasma-secondary transition-colors">View Post in Activity Feed</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-plasma-text-secondary ml-auto" />
+          </div>
+        </Link>
+      );
+    }
+    return part;
+  });
+};
 
 
 
@@ -428,7 +483,7 @@ export default function MessagesPage() {
                             ? "bg-plasma-primary text-white rounded-br-md"
                             : "bg-plasma-slate border border-white/5 text-plasma-text-primary rounded-bl-md"
                           }`}>
-                          <p className="text-sm leading-relaxed">{msg.text}</p>
+                          <div className="text-sm leading-relaxed whitespace-pre-wrap">{formatMessage(msg.text)}</div>
 
                           {msg.isLobbyInvite && (
                             <RallyInviteCard lobbyLink={msg.lobbyLink} isMe={isMe} />

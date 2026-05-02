@@ -107,7 +107,7 @@ router.post('/', authenticateToken, async (req, res) => {
         await pool.query(`
             INSERT INTO "posts" ("userID", "type", "content", "deepLinkURI", "intent")
             VALUES ($1, 'RALLY_BROADCAST', $2, $3, $4)
-        `, [userId, postContent, `plasma://rally/${newRally.eventID}`, requiredIntent || 'CHILL']);
+        `, [userId, postContent, `/rallies`, requiredIntent || 'CHILL']);
 
 
         // Fetch the enriched rally object to return (consistent with GET /api/rallies)
@@ -311,9 +311,9 @@ router.put('/:eventId', authenticateToken, async (req, res) => {
             // Notify them
             const notifyPromises = kickedArray.map(uid => {
                 return pool.query(`
-                    INSERT INTO "notifications" ("receiverID", "senderID", "notificationType", "message")
-                    VALUES ($1, $2, 'RALLY_CHANGED', $3)
-                `, [uid, req.userId, `You've been unceremoniously kicked from "${updatedRally.title}" because the organizer has no tact and changed the plan mid-way. Honestly, you're better off.`]);
+                    INSERT INTO "notifications" ("receiverID", "senderID", "notificationType", "message", "linkURI")
+                    VALUES ($1, $2, 'RALLY_CHANGED', $3, $4)
+                `, [uid, req.userId, `You've been unceremoniously kicked from "${updatedRally.title}" because the organizer has no tact and changed the plan mid-way. Honestly, you're better off.`, `/rallies`]);
             });
             await Promise.all(notifyPromises);
         }
@@ -333,7 +333,7 @@ router.put('/:eventId', authenticateToken, async (req, res) => {
             UPDATE "posts" 
             SET "content" = $1, "intent" = $2
             WHERE "deepLinkURI" = $3 AND "userID" = $4
-        `, [postContent, updatedRally.requiredIntent, `plasma://rally/${eventId}`, req.userId]);
+        `, [postContent, updatedRally.requiredIntent, `/rallies`, req.userId]);
 
         // 6. Fetch the enriched rally object to return (with profiles join for avatars)
         const enrichedResult = await pool.query(`
@@ -390,15 +390,15 @@ router.delete('/:eventId', authenticateToken, async (req, res) => {
         // 3. Delete the associated post
         await pool.query(`
             DELETE FROM "posts" WHERE "deepLinkURI" = $1 AND "userID" = $2
-        `, [`plasma://rally/${eventId}`, req.userId]);
+        `, [`/rallies`, req.userId]);
 
         // 4. Notify everyone who RSVP'd
         if (rsvps.rows.length > 0) {
             const notificationQueries = rsvps.rows.map(row => {
                 return pool.query(`
-                    INSERT INTO "notifications" ("receiverID", "senderID", "notificationType", "message")
-                    VALUES ($1, $2, 'RALLY_CANCELLED', $3)
-                `, [row.userID, req.userId, `The rally "${rallyTitle}" has been cancelled by the organizer.`]);
+                    INSERT INTO "notifications" ("receiverID", "senderID", "notificationType", "message", "linkURI")
+                    VALUES ($1, $2, 'RALLY_CANCELLED', $3, $4)
+                `, [row.userID, req.userId, `The rally "${rallyTitle}" has been cancelled by the organizer.`, `/rallies`]);
             });
             await Promise.all(notificationQueries);
         }
@@ -484,9 +484,9 @@ router.post('/:eventId/kick/:targetUserId', authenticateToken, async (req, res) 
 
         // 3. Notify the kicked user
         await pool.query(`
-            INSERT INTO "notifications" ("receiverID", "senderID", "notificationType", "message")
-            VALUES ($1, $2, 'RALLY_REMOVED', $3)
-        `, [targetUserId, organizerId, `You've been unceremoniously evicted from "${rally.title}". The organizer probably couldn't handle your raw power. Honestly, they did you a favor.`]);
+            INSERT INTO "notifications" ("receiverID", "senderID", "notificationType", "message", "linkURI")
+            VALUES ($1, $2, 'RALLY_REMOVED', $3, $4)
+        `, [targetUserId, organizerId, `You've been unceremoniously evicted from "${rally.title}". The organizer probably couldn't handle your raw power. Honestly, they did you a favor.`, `/rallies`]);
 
         res.json({ success: true, message: 'Attendee kicked successfully' });
     } catch (error) {

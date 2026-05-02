@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { X, Search, UserPlus, Check, XCircle, MoreVertical, Loader2, Users } from "lucide-react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { getAvatarUrl } from "@/lib/utils";
+import Link from "next/link";
 
 export function FriendManagementDrawer({ isOpen, onClose }) {
   const { token } = useAuth();
@@ -161,10 +162,14 @@ export function FriendManagementDrawer({ isOpen, onClose }) {
               ) : searchResults.length > 0 ? (
                 searchResults.map(user => (
                   <div key={user.plasmaUserID} className="flex items-center justify-between p-3 border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
-                    <div className="flex items-center gap-3">
+                    <Link 
+                      href={`/profile/${user.plasmaUserID}`}
+                      onClick={onClose}
+                      className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                    >
                       <img src={getAvatarUrl(user.avatarURL, user.username)} alt="" className="w-8 h-8 rounded-full" />
                       <span className="text-sm font-bold text-white">{user.username}</span>
-                    </div>
+                    </Link>
                     {user.isMutual ? (
                       <span className="text-[10px] font-bold text-plasma-success bg-plasma-success/10 px-3 py-1.5 rounded-lg">Friends</span>
                     ) : (
@@ -231,13 +236,17 @@ export function FriendManagementDrawer({ isOpen, onClose }) {
                     <div className="space-y-3">
                       {friends.requests.map((req) => (
                         <div key={req.id} className="flex items-center justify-between bg-plasma-slate/50 p-3 rounded-lg border border-white/5">
-                          <div className="flex items-center gap-3">
+                          <Link 
+                            href={`/profile/${req.id}`}
+                            onClick={onClose}
+                            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                          >
                             <img src={getAvatarUrl(req.avatar, req.name)} alt="" className="w-10 h-10 rounded-full border border-white/10" />
                             <div>
                               <p className="text-sm font-bold text-white">{req.name}</p>
                               <p className="text-[11px] text-plasma-text-secondary">{req.intent || "Unknown"}</p>
                             </div>
-                          </div>
+                          </Link>
                           <div className="flex gap-2">
                             <button 
                               onClick={() => acceptRequest(req.id)}
@@ -277,14 +286,18 @@ export function FriendManagementDrawer({ isOpen, onClose }) {
                           <div className="space-y-1">
                             {friends.online.map((friend) => (
                               <div key={friend.id} className="flex items-center justify-between p-2 hover:bg-plasma-slate rounded-lg group transition-colors cursor-pointer">
-                                <div className="flex items-center gap-3 relative">
+                                <Link 
+                                  href={`/profile/${friend.id}`}
+                                  onClick={onClose}
+                                  className="flex items-center gap-3 relative hover:opacity-80 transition-opacity"
+                                >
                                   <img src={getAvatarUrl(friend.avatar, friend.name)} alt="" className="w-8 h-8 rounded-full bg-plasma-slate" />
                                   <div className="absolute left-5 bottom-0 w-2.5 h-2.5 bg-plasma-success rounded-full border-2 border-plasma-bg" />
                                   <div>
                                     <p className="text-sm font-medium text-white">{friend.name}</p>
                                     <p className="text-[10px] text-plasma-primary">{friend.intent === "COMPETITIVE" ? "Competitive" : "Chill"}</p>
                                   </div>
-                                </div>
+                                </Link>
                                 <div className="relative">
                                   <button 
                                     onClick={() => setActiveDropdown(activeDropdown === friend.id ? null : friend.id)}
@@ -324,14 +337,18 @@ export function FriendManagementDrawer({ isOpen, onClose }) {
                           <div className="space-y-1 opacity-60">
                             {friends.offline.map((friend) => (
                               <div key={friend.id} className="flex items-center justify-between p-2 hover:bg-plasma-slate rounded-lg group transition-colors cursor-pointer">
-                                <div className="flex items-center gap-3 relative">
+                                <Link 
+                                  href={`/profile/${friend.id}`}
+                                  onClick={onClose}
+                                  className="flex items-center gap-3 relative hover:opacity-80 transition-opacity"
+                                >
                                   <img src={getAvatarUrl(friend.avatar, friend.name)} alt="" className="w-8 h-8 rounded-full bg-plasma-slate grayscale" />
                                   <div className="absolute left-5 bottom-0 w-2.5 h-2.5 bg-plasma-text-secondary rounded-full border-2 border-plasma-bg" />
                                   <div>
                                     <p className="text-sm font-medium text-white">{friend.name}</p>
                                     <p className="text-[10px] text-plasma-text-secondary">Offline</p>
                                   </div>
-                                </div>
+                                </Link>
                                 <div className="relative">
                                   <button 
                                     onClick={() => setActiveDropdown(activeDropdown === friend.id ? null : friend.id)}

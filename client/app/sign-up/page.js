@@ -3,15 +3,14 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, Suspense } from "react";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Steam, ArrowRight, ShieldCheck, Zap } from "lucide-react";
+import Image from "next/image";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import AuthRightPanel from "../../components/ui/AuthRightPanel";
 import LegalModal from "../../components/ui/LegalModal";
-import { useAuth } from "@/context/AuthContext";
-
-// Removed hardcoded grid fields since we need controlled inputs
+import { useAuth, API_BASE } from "@/context/AuthContext";
 
 const SectionLeftSideSubsection = () => {
   const [formData, setFormData] = useState({
@@ -27,12 +26,12 @@ const SectionLeftSideSubsection = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const steamToken = searchParams.get("steamToken");
-  const [steamLinked, setSteamLinked] = useState(false);
+  const [step, setStep] = useState(1);
 
-  // If steamToken is present, we arrived here from a Steam OAuth callback (new user)
+  // If steamToken is present, move to step 2 automatically
   useEffect(() => {
     if (steamToken) {
-      setSteamLinked(true);
+      setStep(2);
     }
   }, [steamToken]);
 
@@ -45,6 +44,10 @@ const SectionLeftSideSubsection = () => {
   const handleInputChange = (e) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const handleSteamConnect = () => {
+    window.location.href = `${API_BASE}/api/auth/steam`;
   };
 
   const handleSignUp = async (e) => {
@@ -60,7 +63,8 @@ const SectionLeftSideSubsection = () => {
     }
 
     if (!steamToken) {
-      setError("You must link your Steam account first. Click 'Sign in through Steam' on the login page.");
+      setStep(1);
+      setError("Steam session expired. Please reconnect.");
       return;
     }
 
@@ -79,7 +83,7 @@ const SectionLeftSideSubsection = () => {
   return (
     <div className="flex flex-col items-center justify-center px-6 py-12 flex-1 self-stretch z-[1] bg-plasma-bg">
       <div className="flex flex-col max-w-[460px] w-full items-start gap-[18px]">
-        {/* Logo + heading */}
+        {/* Logo */}
         <div className="pt-8 pb-0 px-0 inline-flex flex-col items-start flex-[0_0_auto]">
           <Link href="/">
             <svg
@@ -98,163 +102,201 @@ const SectionLeftSideSubsection = () => {
               <path d="M1912.21.34h-84.36l-101.23,241.02h78.5l13.43-37.53h98.82l13.43,37.53h82.29L1912.21.34ZM1837.15,152.53l30.99-85.39,30.64,85.39h-61.63Z" />
             </svg>
           </Link>
-
-          <div className="gap-[7px] inline-flex flex-col items-start flex-[0_0_auto]">
-            <div className="flex flex-col items-start self-stretch w-full flex-[0_0_auto]">
-              <h1 className="font-display font-bold text-plasma-text-primary text-[32px] tracking-[-0.70px] leading-[42px] whitespace-nowrap">
-                Create Your Account
-              </h1>
-            </div>
-            <div className="flex flex-col max-w-[380px] items-start w-full flex-[0_0_auto]">
-              <p className="font-sans font-normal text-plasma-text-secondary text-[15px] tracking-[0] leading-[24px]">
-                Join the squad and sync your Steam library
-                <br />
-                in seconds.
-              </p>
-            </div>
-          </div>
         </div>
 
-        <form onSubmit={handleSignUp} className="flex flex-col gap-[18px] w-full max-w-[380px]">
-          {error && (
-            <div className="flex items-center gap-2 p-3 bg-plasma-error/10 border border-plasma-error/30 rounded-xl text-plasma-error text-sm">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <p>{error}</p>
+        {/* Step 1: Connect Steam */}
+        {step === 1 && (
+          <div className="flex flex-col gap-[18px] w-full max-w-[380px] animate-fade-in">
+            <div className="flex flex-col gap-[7px]">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 bg-plasma-primary/20 text-plasma-primary text-[10px] font-black rounded-full uppercase tracking-widest">Step 01</span>
+                <span className="h-px flex-1 bg-white/5" />
+              </div>
+              <h1 className="font-display font-bold text-plasma-text-primary text-[32px] tracking-[-0.70px] leading-[42px]">
+                Link Your Steam
+              </h1>
+              <p className="font-sans font-normal text-plasma-text-secondary text-[15px] leading-[24px]">
+                To provide the best social gaming experience, Plasma requires a linked Steam account to sync your library and achievements.
+              </p>
             </div>
-          )}
 
-          {steamLinked && (
-            <div className="flex items-center gap-2 p-3 bg-plasma-success/10 border border-plasma-success/30 rounded-xl text-plasma-success text-sm">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <p>Steam account linked! Complete the form below to finish registration.</p>
+            <div className="space-y-4 my-4">
+              <div className="flex items-start gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
+                <div className="w-10 h-10 rounded-xl bg-plasma-primary/10 flex items-center justify-center shrink-0">
+                  <Zap className="w-5 h-5 text-plasma-primary" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-plasma-text-primary">Instant Sync</h4>
+                  <p className="text-xs text-plasma-text-secondary mt-1">Import your entire game library and hours played in one click.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
+                <div className="w-10 h-10 rounded-xl bg-plasma-secondary/10 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-5 h-5 text-plasma-secondary" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-plasma-text-primary">Verified Profile</h4>
+                  <p className="text-xs text-plasma-text-secondary mt-1">Connect your existing identity to build trust within the squad.</p>
+                </div>
+              </div>
             </div>
-          )}
 
-          {!steamLinked && (
-            <div className="flex items-center gap-2 p-3 bg-plasma-warning/10 border border-plasma-warning/30 rounded-xl text-yellow-500 text-sm">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <p>Link your Steam account via the <Link href="/login" className="underline font-bold">login page</Link> to register.</p>
+            {error && (
+              <div className="flex items-center gap-2 p-3 bg-plasma-error/10 border border-plasma-error/30 rounded-xl text-plasma-error text-sm">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <p>{error}</p>
+              </div>
+            )}
+
+            <button
+              onClick={handleSteamConnect}
+              className="w-full flex items-center justify-center cursor-pointer hover:opacity-90 transition-all hover:scale-[1.02] active:scale-95 group"
+            >
+              <div className="relative">
+                <Image
+                  src="/images/sits_01.png"
+                  alt="Sign in through Steam"
+                  width={240}
+                  height={45}
+                  className="object-contain"
+                />
+                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg" />
+              </div>
+            </button>
+
+            <p className="text-[11px] text-plasma-text-secondary text-center mt-2">
+              Redirecting to Steam for secure authentication.
+            </p>
+          </div>
+        )}
+
+        {/* Step 2: Account Details */}
+        {step === 2 && (
+          <div className="flex flex-col gap-[18px] w-full max-w-[380px] animate-slide-up">
+            <div className="flex flex-col gap-[7px]">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 bg-plasma-success/20 text-plasma-success text-[10px] font-black rounded-full uppercase tracking-widest">Step 02</span>
+                <span className="h-px flex-1 bg-white/5" />
+                <CheckCircle2 className="w-4 h-4 text-plasma-success" />
+              </div>
+              <h1 className="font-display font-bold text-plasma-text-primary text-[32px] tracking-[-0.70px] leading-[42px]">
+                Complete Profile
+              </h1>
+              <p className="font-sans font-normal text-plasma-text-secondary text-[15px] leading-[24px]">
+                Steam linked successfully! Now, choose your Plasma handle and secure your account.
+              </p>
             </div>
-          )}
 
-          {/* Username field */}
-          <div className="flex flex-col gap-1.5 self-stretch w-full">
-            <Label
-              htmlFor="username"
-              className="font-sans font-medium text-plasma-text-muted text-[13px] tracking-[0] leading-[19.5px]"
-            >
-              Username
-            </Label>
-            <Input
-              id="username"
-              value={formData.username}
-              onChange={handleInputChange}
-              placeholder="pro_gamer"
-              className="w-full bg-plasma-slate/50 text-white rounded-xl border border-solid border-plasma-text-muted/25 font-sans font-normal text-plasma-text-muted text-sm py-[11px] px-4 h-[44px] transition-all focus-visible:border-plasma-primary"
-            />
+            <form onSubmit={handleSignUp} className="flex flex-col gap-[18px] w-full">
+              {error && (
+                <div className="flex items-center gap-2 p-3 bg-plasma-error/10 border border-plasma-error/30 rounded-xl text-plasma-error text-sm">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <p>{error}</p>
+                </div>
+              )}
+
+              {/* Username field */}
+              <div className="flex flex-col gap-1.5 self-stretch w-full">
+                <Label htmlFor="username" className="font-sans font-medium text-plasma-text-muted text-[13px]">
+                  Plasma Username
+                </Label>
+                <Input
+                  id="username"
+                  value={formData.username}
+                  onChange={handleInputChange}
+                  placeholder="pro_gamer"
+                  className="w-full bg-plasma-slate/50 text-white rounded-xl border-plasma-text-muted/25 focus-visible:border-plasma-primary"
+                />
+              </div>
+
+              {/* Email field */}
+              <div className="flex flex-col gap-1.5 self-stretch w-full">
+                <Label htmlFor="email" className="font-sans font-medium text-plasma-text-muted text-[13px]">
+                  Email Address
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  placeholder="name@example.com"
+                  className="w-full bg-plasma-slate/50 text-white rounded-xl border-plasma-text-muted/25 focus-visible:border-plasma-primary"
+                />
+              </div>
+
+              {/* Password field */}
+              <div className="flex flex-col gap-1.5 self-stretch w-full">
+                <Label htmlFor="password" className="font-sans font-medium text-plasma-text-muted text-[13px]">
+                  Account Password
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  placeholder="Minimum 6 characters"
+                  className="w-full bg-plasma-slate/50 text-white rounded-xl border-plasma-text-muted/25 focus-visible:border-plasma-primary"
+                />
+              </div>
+
+              {/* Date of Birth field */}
+              <div className="flex flex-col gap-1.5 self-stretch w-full">
+                <Label htmlFor="dateOfBirth" className="font-sans font-medium text-plasma-text-muted text-[13px]">
+                  Date of Birth
+                </Label>
+                <Input
+                  id="dateOfBirth"
+                  type="date"
+                  value={formData.dateOfBirth}
+                  onChange={handleInputChange}
+                  className="w-full bg-plasma-slate/50 text-white rounded-xl border-plasma-text-muted/25 [color-scheme:dark]"
+                />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={loading}
+                className="self-stretch w-full h-[52px] bg-primary-gradient rounded-[32px] shadow-card-glow font-sans font-bold text-white text-base hover:scale-[1.02] transition-all disabled:opacity-70 mt-2"
+              >
+                {loading ? "Joining Plasma..." : "Finalize Registration"}
+              </Button>
+            </form>
           </div>
-
-          {/* Email field */}
-          <div className="flex flex-col gap-1.5 self-stretch w-full">
-            <Label
-              htmlFor="email"
-              className="font-sans font-medium text-plasma-text-muted text-[13px] tracking-[0] leading-[19.5px]"
-            >
-              Email Address
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              placeholder="name@example.com"
-              className="w-full bg-plasma-slate/50 text-white rounded-xl border border-solid border-plasma-text-muted/25 font-sans font-normal text-plasma-text-muted text-sm py-[11px] px-4 h-[44px] transition-all focus-visible:border-plasma-primary"
-            />
-          </div>
-
-          {/* Password field */}
-          <div className="flex flex-col gap-1.5 self-stretch w-full">
-            <Label
-              htmlFor="password"
-              className="font-sans font-medium text-plasma-text-muted text-[13px] tracking-[0] leading-[19.5px]"
-            >
-              Password
-            </Label>
-            <Input
-              id="password"
-              type="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              placeholder="Enter your password"
-              className="w-full bg-plasma-slate/50 text-white rounded-xl border border-solid border-plasma-text-muted/25 font-sans font-normal text-plasma-text-muted text-sm py-[11px] px-4 h-[44px] transition-all focus-visible:border-plasma-primary"
-            />
-          </div>
-
-          {/* Date of Birth field */}
-          <div className="flex flex-col gap-1.5 self-stretch w-full">
-            <Label
-              htmlFor="dateOfBirth"
-              className="font-sans font-medium text-plasma-text-muted text-[13px] tracking-[0] leading-[19.5px]"
-            >
-              Date of Birth
-            </Label>
-            <Input
-              id="dateOfBirth"
-              type="date"
-              value={formData.dateOfBirth}
-              onChange={handleInputChange}
-              className="w-full bg-plasma-slate/50 text-white rounded-xl border border-solid border-plasma-text-muted/25 font-sans font-normal text-plasma-text-muted text-sm py-[11px] px-4 h-[44px] transition-all focus-visible:border-plasma-primary [color-scheme:dark]"
-            />
-          </div>
-
-          {/* Create Account button */}
-          <Button
-            type="submit"
-            disabled={loading}
-            className="self-stretch w-full h-[52px] bg-primary-gradient rounded-[32px] shadow-card-glow font-sans font-bold text-white text-base text-center tracking-[0] leading-6 border-0 hover:opacity-90 transition-all hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {loading ? "Creating Account..." : "Create Account"}
-          </Button>
-        </form>
+        )}
 
         {/* Sign In link */}
-        <div className="w-full pt-4 pb-0 px-0 flex flex-col max-w-[380px] items-start flex-[0_0_auto]">
-          <div className="gap-[24px] w-full flex flex-col max-w-[380px] items-start flex-[0_0_auto]">
-            <div className="flex flex-col w-full items-center flex-[0_0_auto]">
-              <Link
-                href="/login"
-                className="font-sans font-medium text-plasma-primary text-[13px] text-center tracking-[0] leading-[19.5px] whitespace-nowrap hover:underline hover:text-plasma-secondary transition-colors"
-              >
-                Already have an Account? Sign In
-              </Link>
-            </div>
-          </div>
+        <div className="w-full pt-4 pb-0 px-0 flex flex-col max-w-[380px] items-center">
+          <Link
+            href="/login"
+            className="font-sans font-medium text-plasma-primary text-[13px] hover:underline transition-colors"
+          >
+            Already have an Account? Sign In
+          </Link>
         </div>
 
         {/* Terms and Privacy */}
         <div className="flex flex-wrap items-center justify-center text-center max-w-[380px] w-full mt-4">
-          <span className="font-sans font-normal text-plasma-text-secondary text-xs leading-[19.5px]">
+          <span className="font-sans font-normal text-plasma-text-secondary text-xs">
             By joining, you agree to our{" "}
           </span>
           <span
             onClick={() => setLegalModal({ isOpen: true, type: 'terms' })}
-            className="font-sans font-medium text-plasma-primary text-xs leading-[19.5px] mx-1 cursor-pointer hover:underline"
+            className="font-sans font-medium text-plasma-primary text-xs mx-1 cursor-pointer hover:underline"
           >
             Terms of Service
           </span>
-          <span className="font-sans font-normal text-plasma-text-secondary text-xs leading-[19.5px]">
+          <span className="font-sans font-normal text-plasma-text-secondary text-xs">
             and{" "}
           </span>
           <span
             onClick={() => setLegalModal({ isOpen: true, type: 'privacy' })}
-            className="font-sans font-medium text-plasma-primary text-xs leading-[19.5px] mx-1 cursor-pointer hover:underline"
+            className="font-sans font-medium text-plasma-primary text-xs mx-1 cursor-pointer hover:underline"
           >
             Privacy Policy
           </span>
         </div>
       </div>
 
-      {/* Legal Modal */}
       <LegalModal
         isOpen={legalModal.isOpen}
         type={legalModal.type}
@@ -264,13 +306,10 @@ const SectionLeftSideSubsection = () => {
   );
 };
 
-
-
-// Sign Up screen — /sign-up route
 export default function SignUpPage() {
   return (
     <Suspense>
-      <main className="flex min-h-screen w-full flex-col lg:flex-row bg-plasma-bg overflow-hidden selection:bg-plasma-primary selection:text-white">
+      <main className="flex min-h-screen w-full flex-col lg:flex-row bg-plasma-bg overflow-hidden">
         <SectionLeftSideSubsection />
         <AuthRightPanel />
       </main>

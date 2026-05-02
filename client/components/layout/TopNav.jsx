@@ -107,6 +107,7 @@ export const TopNav = () => {
             read: n.isRead,
             avatar: n.senderAvatar || null,
             senderID: n.senderID,
+            linkURI: n.linkURI,
           })));
         }
       } catch (err) {
@@ -421,14 +422,22 @@ export const TopNav = () => {
                       return (
                         <div
                           key={notif.id}
-                          onClick={() => markNotifRead(notif.id)}
+                          onClick={() => {
+                            markNotifRead(notif.id);
+                            if (notif.linkURI) {
+                              window.location.href = notif.linkURI;
+                            }
+                          }}
                           className={`flex items-start gap-3 px-4 py-3 transition-colors hover:bg-white/5 cursor-pointer ${
                             !notif.read ? "bg-plasma-primary/5" : ""
                           }`}
                         >
                           <Link 
                             href={`/profile/${notif.senderID}`}
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              markNotifRead(notif.id);
+                            }}
                             className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity"
                           >
                             <div className={`w-full h-full rounded-lg flex items-center justify-center ${colorClass}`}>

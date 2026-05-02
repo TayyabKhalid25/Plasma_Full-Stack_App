@@ -51,8 +51,8 @@ export const validationService = {
     
     if (!data.newPassword) {
       errors.newPassword = "New password is required.";
-    } else if (data.newPassword.length < 8) {
-      errors.newPassword = "New password must be at least 8 characters.";
+    } else if (data.newPassword.length < 6) {
+      errors.newPassword = "New password must be at least 6 characters.";
     }
 
     if (data.newPassword !== data.confirmPassword) {

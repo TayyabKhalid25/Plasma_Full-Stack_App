@@ -266,15 +266,16 @@ router.put('/:gameId/status', authenticateToken, async (req, res) => {
 
         // 3. Broadcast to Pulse if started playing
         if (isCurrentlyPlaying && !wasPlaying) {
-            const gameCheck = await pool.query('SELECT "title" FROM "games" WHERE "appID" = $1', [gameId]);
+            const gameCheck = await pool.query('SELECT "title", "platform" FROM "games" WHERE "appID" = $1', [gameId]);
             if (gameCheck.rows.length > 0) {
-                const title = gameCheck.rows[0].title;
+                const platform = gameCheck.rows[0].platform;
                 const content = `Started playing ${title}`;
+                const deepLinkURI = platform === 'STEAM' ? `steam://run/${gameId}` : null;
 
                 await pool.query(`
-                    INSERT INTO "posts" ("userID", "type", "content", "intent")
-                    VALUES ($1, 'ACTIVITY_UPDATE', $2, (SELECT "intent" FROM "users" WHERE "plasmaUserID" = $1))
-                `, [req.userId, content]);
+                    INSERT INTO "posts" ("userID", "type", "content", "intent", "deepLinkURI")
+                    VALUES ($1, 'ACTIVITY_UPDATE', $2, (SELECT "intent" FROM "users" WHERE "plasmaUserID" = $1), $3)
+                `, [req.userId, content, deepLinkURI]);
             }
         }
 

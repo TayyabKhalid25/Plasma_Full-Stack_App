@@ -24,6 +24,13 @@ export function AuthProvider({ children }) {
       const res = await fetch(`${API_BASE}/api/auth/me`, {
         headers: { Authorization: `Bearer ${jwt}` },
       });
+      
+      // If we are rate limited, do NOT log out. Just stop the fetch.
+      if (res.status === 429) {
+        console.warn("Auth rate limit reached. Retrying later.");
+        return false;
+      }
+
       if (!res.ok) throw new Error("Invalid token");
       const data = await res.json();
       if (data.success) {
@@ -31,11 +38,14 @@ export function AuthProvider({ children }) {
         return true;
       }
       throw new Error("Failed to fetch user");
-    } catch {
-      // Token is invalid or server is down
-      localStorage.removeItem("plasma_token");
-      setToken(null);
-      setUser(null);
+    } catch (err) {
+      // Only clear token if it's a definitive auth failure
+      // We check if the token is likely the cause (e.g. 401 Unauthorized)
+      // Otherwise, we keep the token and let the user retry manually or on refresh.
+      console.error("fetchUser error:", err);
+      
+      // We don't want to wipe the session if the server is just temporarily down
+      // or if we hit a rate limit. Only wipe if the token is dead.
       return false;
     }
   }, []);

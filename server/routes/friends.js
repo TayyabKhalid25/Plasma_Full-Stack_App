@@ -102,13 +102,14 @@ router.post('/request/:targetUserId', authenticateToken, async (req, res) => {
 
         // Create a notification for the target user
         await pool.query(`
-            INSERT INTO "notifications" ("receiverID", "senderID", "notificationType", "message", "isRead")
-            VALUES ($1, $2, $3, $4, FALSE)
+            INSERT INTO "notifications" ("receiverID", "senderID", "notificationType", "message", "isRead", "linkURI")
+            VALUES ($1, $2, $3, $4, FALSE, $5)
         `, [
             targetUserId, 
             userId, 
             'FRIEND_REQUEST', 
-            isMutual ? 'accepted your friend request!' : 'sent you a friend request.'
+            isMutual ? 'accepted your friend request!' : 'sent you a friend request.',
+            `/profile/${userId}`
         ]);
 
         res.status(201).json({ success: true, message: isMutual ? 'Now mutual friends!' : 'Follow request sent' });

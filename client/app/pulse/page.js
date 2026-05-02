@@ -360,22 +360,23 @@ export const ActivityFeedSection = () => {
                   )}
                 </div>
               </div>
-              <p className="font-sans text-plasma-text-primary text-[15px]">
-                {post.text}
-              </p>
-              {post.image && (
-                <div className="relative w-full rounded-2xl overflow-hidden border border-white/10 mt-2 bg-black">
-                  {post.image.match(/\.(mp4|webm|ogg|mov)$/i) ? (
-                    <video
-                      src={post.image}
-                      controls
-                      className="w-full max-h-[500px] object-contain"
-                    />
-                  ) : (
-                    <img src={post.image} alt="Post media" className="w-full max-h-[500px] object-contain" />
-                  )}
-                </div>
-              )}
+              <Link href={`/pulse/${post.id}`} className="block w-full group/content">
+                <p className="font-sans text-plasma-text-primary text-[15px] group-hover/content:text-white transition-colors">
+                  {post.text}
+                </p>
+                {post.image && (
+                  <div className="relative w-full rounded-2xl overflow-hidden border border-white/10 mt-3 bg-black">
+                    {post.image.match(/\.(mp4|webm|ogg|mov)$/i) ? (
+                      <video
+                        src={post.image}
+                        className="w-full max-h-[500px] object-contain"
+                      />
+                    ) : (
+                      <img src={post.image} alt="Post media" className="w-full max-h-[500px] object-contain group-hover/content:scale-[1.02] transition-transform duration-500" />
+                    )}
+                  </div>
+                )}
+              </Link>
               <div className="flex items-center gap-8 pt-2">
                 <button
                   onClick={() => toggleLike(post.id)}
@@ -385,13 +386,13 @@ export const ActivityFeedSection = () => {
                   <Heart className={`w-4 h-4 ${post.liked ? "fill-plasma-secondary" : ""}`} />
                   <span className="text-xs">{post.likes}</span>
                 </button>
-                <button
-                  onClick={() => commentsModal.open(post)}
+                <Link
+                  href={`/pulse/${post.id}`}
                   className="flex items-center gap-2 text-plasma-text-secondary hover:text-plasma-text-primary transition-colors cursor-pointer"
                 >
                   <MessageSquare className="w-4 h-4" />
                   <span className="text-xs">{post.comments}</span>
-                </button>
+                </Link>
                 <button
                   onClick={() => shareModal.open({ type: 'post', id: post.id })}
                   className="text-plasma-text-secondary hover:text-plasma-text-primary transition-colors cursor-pointer"

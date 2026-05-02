@@ -151,22 +151,24 @@ router.get('/:userId', authenticateToken, async (req, res) => {
 });
 
 // GET /api/achievements/game/:appID
+// Returns all achievements for a game, indicating which ones the current user has unlocked
 router.get('/game/:appID', authenticateToken, async (req, res) => {
     const { appID } = req.params;
     const userId = req.userId;
-    const { orderBy, direction } = req.query;
 
     try {
-        const validSortFields = {
-            'unlockedAt': 'ua."unlockedAt"',
-            'rarityWeight': 'a."rarityWeight"',
-            'plasmaXP': 'a."plasmaXP"',
-            'title': 'a."title"'
-        };
-        const sortField = validSortFields[orderBy] || 'ua."unlockedAt"';
-        const sortDir = (direction && direction.toUpperCase() === 'ASC') ? 'ASC' : 'DESC';
+        // 1. Get Game Metadata
+        const gameResult = await pool.query(`
+            SELECT "appID", "title", "platform", "coverArtURL", "isManualEntry"
+            FROM "games" WHERE "appID" = $1
+        `, [appID]);
 
-        const result = await pool.query(`
+        if (gameResult.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Game not found' });
+        }
+
+        // 2. Get All Achievements for this game with user unlock status
+        const achievementsResult = await pool.query(`
             SELECT 
                 a."achievementID",
                 a."title",
@@ -174,16 +176,76 @@ router.get('/game/:appID', authenticateToken, async (req, res) => {
                 a."proofUrl",
                 a."rarityWeight",
                 a."plasmaXP",
-                ua."unlockedAt"
-            FROM "user_achievements" ua
-            JOIN "achievements" a ON ua."achievementID" = a."achievementID"
-            WHERE ua."userID" = $1 AND a."appID" = $2
-            ORDER BY ${sortField} ${sortDir}
+                ua."unlockedAt",
+                CASE WHEN ua."achievementID" IS NOT NULL THEN TRUE ELSE FALSE END AS "isUnlocked"
+            FROM "achievements" a
+            LEFT JOIN "user_achievements" ua ON a."achievementID" = ua."achievementID" AND ua."userID" = $1
+            WHERE a."appID" = $2
+            ORDER BY a."plasmaXP" DESC, a."title" ASC
         `, [userId, appID]);
 
-        res.json({ success: true, data: result.rows });
+        res.json({ 
+            success: true, 
+            data: {
+                game: gameResult.rows[0],
+                achievements: achievementsResult.rows
+            }
+        });
     } catch (error) {
         console.error('Error fetching game achievements:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+// GET /api/achievements/game/:appID/friends
+// Returns friends who have unlocked achievements in this game
+router.get('/game/:appID/friends', authenticateToken, async (req, res) => {
+    const { appID } = req.params;
+    const userId = req.userId;
+
+    try {
+        // Fetch mutual friends' achievements for this game
+        const result = await pool.query(`
+            SELECT 
+                u."plasmaUserID" AS "friendID",
+                u."username",
+                p."avatarURL",
+                a."achievementID",
+                a."title" AS "achievementTitle",
+                ua."unlockedAt"
+            FROM "follow_relationships" fr
+            JOIN "users" u ON (fr."followedID" = u."plasmaUserID" AND fr."followerID" = $1)
+                           OR (fr."followerID" = u."plasmaUserID" AND fr."followedID" = $1)
+            JOIN "profiles" p ON u."plasmaUserID" = p."plasmaUserID"
+            JOIN "user_achievements" ua ON u."plasmaUserID" = ua."userID"
+            JOIN "achievements" a ON ua."achievementID" = a."achievementID"
+            WHERE fr."isMutual" = TRUE AND a."appID" = $2
+            ORDER BY ua."unlockedAt" DESC
+        `, [userId, appID]);
+
+        // Group by friend
+        const friendsMap = {};
+        result.rows.forEach(row => {
+            if (!friendsMap[row.friendID]) {
+                friendsMap[row.friendID] = {
+                    id: row.friendID,
+                    username: row.username,
+                    avatar: row.avatarURL,
+                    unlockedCount: 0,
+                    achievements: []
+                };
+            }
+            friendsMap[row.friendID].unlockedCount++;
+            friendsMap[row.friendID].achievements.push({
+                id: row.achievementID,
+                title: row.achievementTitle,
+                unlockedAt: row.unlockedAt
+            });
+        });
+
+        res.json({ success: true, data: Object.values(friendsMap) });
+    } catch (error) {
+        console.error('Error fetching friends game achievements:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });

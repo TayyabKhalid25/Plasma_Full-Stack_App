@@ -40,7 +40,14 @@ export function ShareModal({ isOpen, onClose, shareType = "post", shareId }) {
     setSentTo(new Set());
   }, [isOpen, token]);
 
-  const shareLink = `https://plasma.gg/${shareType}/${shareId || "1234"}`;
+  const getSharePath = () => {
+    if (shareType === 'post') return `pulse/${shareId}`;
+    return `${shareType}/${shareId || "1234"}`;
+  };
+
+  const shareLink = typeof window !== 'undefined' 
+    ? `${window.location.origin}/${getSharePath()}`
+    : `https://plasma.gg/${getSharePath()}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(shareLink);
@@ -51,6 +58,8 @@ export function ShareModal({ isOpen, onClose, shareType = "post", shareId }) {
   const handleSendToFriend = async (friendId) => {
     try {
       const isRally = shareType === "rally";
+      const internalLink = `plasma:${shareType}:${shareId}`;
+      
       await fetch(`${API_BASE}/api/messages/${friendId}`, {
         method: "POST",
         headers: {
@@ -58,7 +67,7 @@ export function ShareModal({ isOpen, onClose, shareType = "post", shareId }) {
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ 
-          content: isRally ? `Invited you to a Rally!` : `Check this out: ${shareLink}`,
+          content: isRally ? `Invited you to a Rally!` : `Shared a ${shareType}: ${internalLink}`,
           isLobbyInvite: isRally,
           lobbyLink: isRally ? shareLink : null
         })

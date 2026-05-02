@@ -331,4 +331,50 @@ router.get('/verify', authenticateToken, (req, res) => {
     res.json({ success: true, message: 'Token is valid' });
 });
 
+// PUT /api/auth/change-password
+router.put('/change-password', authenticateToken, async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.userId;
+
+    if (!currentPassword || !newPassword) {
+        return res.status(400).json({ success: false, message: 'Current and new passwords are required' });
+    }
+
+    try {
+        // 1. Fetch the current user's password hash
+        const result = await pool.query('SELECT "passwordHash" FROM "users" WHERE "plasmaUserID" = $1', [userId]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        const user = result.rows[0];
+
+        // 2. Check if the user even has a password (Steam-only users might not)
+        if (!user.passwordHash) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'This account does not have a password set (Steam-only). Please contact support to set a password.' 
+            });
+        }
+
+        // 3. Verify current password
+        const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+        if (!isMatch) {
+            return res.status(401).json({ success: false, message: 'Current password is incorrect' });
+        }
+
+        // 4. Hash new password and update
+        const saltRounds = 10;
+        const newHash = await bcrypt.hash(newPassword, saltRounds);
+
+        await pool.query('UPDATE "users" SET "passwordHash" = $1 WHERE "plasmaUserID" = $2', [newHash, userId]);
+
+        res.json({ success: true, message: 'Password updated successfully' });
+
+    } catch (err) {
+        console.error('Error changing password:', err.message);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
 module.exports = router;

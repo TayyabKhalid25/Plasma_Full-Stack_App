@@ -18,7 +18,6 @@ import { getAvatarUrl } from "@/lib/utils";
 const sectionNav = [
   { id: "account", label: "Account", icon: User },
   { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "connections", label: "Connections", icon: Link2 },
   { id: "privacy", label: "Privacy", icon: Shield },
   { id: "danger", label: "Danger Zone", icon: Trash2 },
 ];
@@ -56,7 +55,6 @@ export default function SettingsPage() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [avatar, setAvatar] = useState("");
-  const [steamID64, setSteamID64] = useState("");
 
   // Settings state
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -77,7 +75,6 @@ export default function SettingsPage() {
     setUsername(user.name || user.username || "");
     setEmail(user.email || "");
     setAvatar(user.avatar || null);
-    setSteamID64(user.steamID64 || "");
   }, [user]);
 
   // Fetch settings from API
@@ -118,9 +115,16 @@ export default function SettingsPage() {
     setPrivacy(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState(null);
+
   const handleSave = async () => {
+    setIsSaving(true);
+    setSaved(false);
+    setError(null);
+
     try {
-      // Save settings (notifications + privacy)
+      // 1. Save settings (notifications + privacy)
       const settingsRes = await fetch(`${API_BASE}/api/settings`, {
         method: "PUT",
         headers: {
@@ -134,9 +138,14 @@ export default function SettingsPage() {
         })
       });
 
-      // Save account changes (username, avatar) via profile endpoint
+      const settingsData = await settingsRes.json();
+      if (!settingsRes.ok || !settingsData.success) {
+        throw new Error(settingsData.message || "Failed to save settings");
+      }
+
+      // 2. Save account changes (username, avatar) via profile endpoint
       if (activeSection === "account") {
-        await fetch(`${API_BASE}/api/users/me/profile`, {
+        const profileRes = await fetch(`${API_BASE}/api/users/me/profile`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -145,20 +154,26 @@ export default function SettingsPage() {
           body: JSON.stringify({
             username: username || undefined,
             avatarURL: avatar || undefined,
-            steamID64: steamID64 || undefined,
           })
         });
+        
+        const profileData = await profileRes.json();
+        if (!profileRes.ok || !profileData.success) {
+          throw new Error(profileData.message || "Failed to update profile");
+        }
+
         // Re-fetch user so the context updates globally
         if (fetchUser && token) await fetchUser(token);
       }
 
-      const data = await settingsRes.json();
-      if (data.success) {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
-      }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
     } catch (err) {
-      console.error("Failed to save settings", err);
+      console.error("Save error:", err);
+      setError(err.message);
+    } finally {
+      setIsSaving(true); // Wait, should be false
+      setIsSaving(false);
     }
   };
 
@@ -303,50 +318,7 @@ export default function SettingsPage() {
 
 
 
-            {/* Connections */}
-            {activeSection === "connections" && (
-              <section className="bg-plasma-slate rounded-2xl border border-white/5 p-6 animate-fade-in">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="font-display font-bold text-lg text-plasma-text-primary">Connections</h2>
-                  <div className="px-3 py-1 rounded-full bg-[#171a21]/50 border border-[#66c0f4]/20 flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${user?.steamID64 ? "bg-plasma-success shadow-[0_0_8px_#2ecc71]" : "bg-plasma-text-secondary"}`}></div>
-                    <span className="text-[10px] font-bold text-[#66c0f4] uppercase tracking-wider">Steam Engine</span>
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-xl bg-white/5 border border-white/5 mb-6">
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-[#171a21] flex items-center justify-center shrink-0">
-                      <Link2 className="w-5 h-5 text-[#66c0f4]" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-bold text-plasma-text-primary">Steam Integration</p>
-                      <p className="text-xs text-plasma-text-secondary mt-1">
-                        Link your Steam account to sync your game library, achievements, and friends automatically.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <SettingRow 
-                  label="SteamID64" 
-                  description={user?.steamID64 ? "Your account is currently linked." : "Enter your 17-digit Steam ID to link."}
-                >
-                  <div className="flex flex-col items-end gap-2">
-                    <input
-                      type="text"
-                      placeholder="76561198..."
-                      value={steamID64}
-                      onChange={(e) => setSteamID64(e.target.value)}
-                      className="bg-plasma-bg border border-white/10 rounded-lg px-4 py-2 text-sm text-plasma-text-primary outline-none focus:border-plasma-primary transition-colors w-48"
-                    />
-                    {!user?.steamID64 && (
-                      <p className="text-[10px] text-plasma-primary font-medium italic">Click Save below to link</p>
-                    )}
-                  </div>
-                </SettingRow>
-              </section>
-            )}
+            {/* Removed Connections Section */}
             {/* Danger Zone */}
             {activeSection === "danger" && (
               <section className="bg-plasma-slate rounded-2xl border border-plasma-error/20 p-6 animate-fade-in">
@@ -354,16 +326,6 @@ export default function SettingsPage() {
                 <p className="text-sm text-plasma-text-secondary mb-6">These actions are irreversible. Please proceed with caution.</p>
 
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-plasma-bg/50">
-                    <div>
-                      <p className="text-sm font-medium text-plasma-text-primary">Export Your Data</p>
-                      <p className="text-xs text-plasma-text-secondary">Download a copy of all your Plasma data</p>
-                    </div>
-                    <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 text-sm text-plasma-text-primary hover:bg-white/5 transition-colors cursor-pointer">
-                      <Download className="w-4 h-4" /> Export
-                    </button>
-                  </div>
-
                   <div className="flex items-center justify-between p-4 rounded-xl border border-plasma-error/20 bg-plasma-error/5">
                     <div>
                       <p className="text-sm font-medium text-plasma-error">Delete Account</p>
@@ -386,16 +348,22 @@ export default function SettingsPage() {
 
             {/* Save Button */}
             {activeSection !== "danger" && (
-              <div className="flex justify-end mt-6">
+              <div className="flex flex-col items-end mt-6 gap-3">
+                {error && (
+                  <p className="text-xs font-bold text-plasma-error bg-plasma-error/10 px-4 py-2 rounded-lg border border-plasma-error/20">
+                    {error}
+                  </p>
+                )}
                 <button
                   onClick={handleSave}
-                  className={`flex items-center gap-2 px-8 py-3 rounded-full font-bold text-sm transition-all cursor-pointer ${
+                  disabled={isSaving}
+                  className={`flex items-center gap-2 px-8 py-3 rounded-full font-bold text-sm transition-all cursor-pointer disabled:opacity-50 ${
                     saved
                       ? "bg-plasma-success text-white"
                       : "bg-primary-gradient text-white hover:shadow-card-glow hover:scale-[1.02]"
                   }`}
                 >
-                  {saved ? <><Check className="w-4 h-4" /> Saved!</> : <><Save className="w-4 h-4" /> Save Changes</>}
+                  {isSaving ? "Saving..." : saved ? <><Check className="w-4 h-4" /> Saved!</> : <><Save className="w-4 h-4" /> Save Changes</>}
                 </button>
               </div>
             )}
