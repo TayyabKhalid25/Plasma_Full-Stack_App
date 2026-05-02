@@ -362,14 +362,12 @@ export default function Prestige() {
                 </button>
               ))}
             </div>
-            {activeAchTab === "manual" && (
-              <button
-                onClick={() => addMilestoneModal.open()}
-                className="pb-3 text-plasma-primary text-sm font-bold hover:text-plasma-secondary transition-colors cursor-pointer flex items-center gap-1"
-              >
-                + Add Milestone
-              </button>
-            )}
+            <button
+              onClick={() => addMilestoneModal.open()}
+              className="pb-3 text-plasma-primary text-sm font-bold hover:text-plasma-secondary transition-colors cursor-pointer flex items-center gap-1"
+            >
+              + Add Manual Milestone
+            </button>
           </div>
 
           {/* Achievement Grid */}

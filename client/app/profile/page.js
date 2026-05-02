@@ -241,7 +241,7 @@ export default function Profile() {
             setGamesProgress(formattedGames);
           }
         } else if (activeTab === "Rallies") {
-          const res = await fetch(`${API_BASE}/api/rallies`, {
+          const res = await fetch(`${API_BASE}/api/rallies/user/${user.id}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           const data = await res.json();
@@ -624,13 +624,17 @@ export default function Profile() {
                     </div>
                     <div className="space-y-3">
                       {rallies.length > 0 ? rallies.map((event) => (
-                        <div key={event.id} className="flex items-center justify-between p-4 bg-plasma-slate/60 rounded-xl border border-white/5">
+                        <Link 
+                          key={event.id} 
+                          href={`/rally/${event.id}`}
+                          className="flex items-center justify-between p-4 bg-plasma-slate/60 rounded-xl border border-white/5 hover:bg-white/10 hover:scale-[1.01] transition-all cursor-pointer group"
+                        >
                           <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-plasma-primary/10 flex items-center justify-center">
+                            <div className="w-12 h-12 rounded-xl bg-plasma-primary/10 flex items-center justify-center group-hover:bg-plasma-primary/20 transition-colors">
                               <Calendar className="w-5 h-5 text-plasma-primary" />
                             </div>
                             <div>
-                              <p className="text-sm font-bold text-plasma-text-primary">{event.title}</p>
+                              <p className="text-sm font-bold text-plasma-text-primary group-hover:text-plasma-primary transition-colors">{event.title}</p>
                               <div className="flex items-center gap-2 text-xs text-plasma-text-secondary">
                                 <span>{event.date} at {event.time}</span>
                               </div>
@@ -643,7 +647,7 @@ export default function Profile() {
                             </div>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${event.intentColor}`}>{event.intent}</span>
                           </div>
-                        </div>
+                        </Link>
                       )) : (
                         <div className="text-center py-12">
                           <p className="text-plasma-text-secondary text-sm">No rallies yet.</p>

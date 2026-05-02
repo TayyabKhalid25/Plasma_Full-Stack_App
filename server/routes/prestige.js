@@ -113,7 +113,7 @@ router.post('/milestones', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query(`
             INSERT INTO "achievements" ("achievementID", "appID", "title", "description", "proofUrl", "rarityWeight", "plasmaXP")
-            VALUES (gen_random_uuid(), $1, $2, $3, $4, 1.0, 50)
+            VALUES (gen_random_uuid(), $1, $2, $3, $4, 1.0, 100)
             RETURNING "achievementID"
         `, [gameId || 'custom_milestone', title, description, proofUrl]);
 
@@ -125,11 +125,11 @@ router.post('/milestones', authenticateToken, async (req, res) => {
         // ADD XP TO PROFILE
         await pool.query(`
             UPDATE "profiles" 
-            SET "totalPlasmaXP" = "totalPlasmaXP" + 50 
+            SET "totalPlasmaXP" = "totalPlasmaXP" + 100
             WHERE "plasmaUserID" = $1
         `, [req.userId]);
 
-        res.status(201).json({ success: true, message: 'Milestone recorded manually (+50 XP)', milestoneId: result.rows[0].achievementID });
+        res.status(201).json({ success: true, message: 'Milestone recorded manually (+100 XP)', milestoneId: result.rows[0].achievementID });
     } catch (error) {
         console.error('Error creating milestone:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });

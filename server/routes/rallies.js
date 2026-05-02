@@ -549,7 +549,10 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
                 ) AS "roleCounts"
             FROM "rally_events" e
             LEFT JOIN "games" g ON e."gameID" = g."appID"
-            WHERE e."organizerID" = $1 AND e."scheduledStartUTC" > CURRENT_TIMESTAMP
+            LEFT JOIN "rsvps" r2 ON e."eventID" = r2."eventID" AND r2."userID" = $1
+            WHERE (e."organizerID" = $1 OR r2."status" = 'CONFIRMED') 
+              AND e."scheduledStartUTC" > CURRENT_TIMESTAMP
+            GROUP BY e."eventID", g."appID"
             ORDER BY e."scheduledStartUTC" ASC
         `, [userId]);
 
