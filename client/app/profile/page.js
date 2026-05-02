@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
-  Gamepad2, Play, Medal, Trophy, Swords, Shield, Target, Calendar, Users, User, Cloud, Zap
+  Gamepad2, Play, Medal, Trophy, Swords, Shield, Target, Calendar, Users, User, Cloud, Zap, Loader2
 } from "lucide-react";
 import Link from "next/link";
 import { getIntentStyle } from "@/lib/intentStyles";
@@ -81,6 +81,7 @@ export default function Profile() {
   const [hofData, setHofData] = useState([]);
   const [squad, setSquad] = useState([]);
   const [loadingTab, setLoadingTab] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const syncModal = useModal();
   const [syncedCount, setSyncedCount] = useState(0);
 
@@ -260,8 +261,7 @@ export default function Profile() {
                       window.location.href = '/settings';
                       return;
                     }
-                    const btn = document.getElementById('sync-steam-btn');
-                    if (btn) btn.disabled = true;
+                    setIsSyncing(true);
                     try {
                       const res = await fetch(`${API_BASE}/api/library/sync/steam`, {
                         method: "POST",
@@ -277,13 +277,22 @@ export default function Profile() {
                     } catch (err) {
                       console.error(err);
                     } finally {
-                      if (btn) btn.disabled = false;
+                      setIsSyncing(false);
                     }
                   }}
                   id="sync-steam-btn"
-                  className="flex items-center gap-2 px-6 py-3 rounded-full bg-white/5 border border-white/10 text-white font-bold text-sm transition-all hover:bg-white/10 disabled:opacity-50 cursor-pointer"
+                  disabled={isSyncing}
+                  className="flex items-center gap-2 px-6 py-3 rounded-full bg-white/5 border border-white/10 text-white font-bold text-sm transition-all hover:bg-white/10 disabled:opacity-50 cursor-pointer min-w-[140px] justify-center"
                 >
-                  <Cloud className="w-4 h-4 text-[#66c0f4]" /> {user?.steamID64 ? "Sync Steam" : "Link Steam"}
+                  {isSyncing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Syncing...
+                    </>
+                  ) : (
+                    <>
+                      <Cloud className="w-4 h-4 text-[#66c0f4]" /> {user?.steamID64 ? "Sync Steam" : "Link Steam"}
+                    </>
+                  )}
                 </button>
                 <Link
                   href="/settings"
