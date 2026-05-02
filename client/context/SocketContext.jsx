@@ -12,6 +12,8 @@ export const SocketProvider = ({ children }) => {
     const [reconnectCount, setReconnectCount] = useState(0);
     const wsRef = useRef(null);
 
+    const [reconnectTrigger, setReconnectTrigger] = useState(0);
+
     useEffect(() => {
         if (!token) {
             if (wsRef.current) {
@@ -49,11 +51,12 @@ export const SocketProvider = ({ children }) => {
         }
 
         let heartbeatInterval;
+        let isClosingIntentionally = false;
 
         ws.onopen = () => {
             console.log("WS: Connected");
             setIsConnected(true);
-            setReconnectCount(0); // Reset on success
+            setReconnectCount(0); // Reset count but don't trigger effect
 
             // General heartbeat to keep 'Online' status fresh
             heartbeatInterval = setInterval(() => {
@@ -77,12 +80,13 @@ export const SocketProvider = ({ children }) => {
             setIsConnected(false);
             if (heartbeatInterval) clearInterval(heartbeatInterval);
             
-            // Reconnect logic with backoff
-            if (token) {
+            // Reconnect logic with backoff - skip if we are closing intentionally
+            if (token && !isClosingIntentionally) {
                 const delay = Math.min(1000 * Math.pow(2, reconnectCount), 10000);
                 console.log(`WS: Reconnecting in ${delay}ms...`);
                 setTimeout(() => {
                     setReconnectCount(prev => prev + 1);
+                    setReconnectTrigger(prev => prev + 1); // Trigger the effect
                 }, delay);
             }
         };
@@ -93,12 +97,13 @@ export const SocketProvider = ({ children }) => {
         };
 
         return () => {
-            if (ws && ws.readyState === WebSocket.OPEN) {
+            if (ws) {
+                isClosingIntentionally = true;
                 ws.close();
             }
             if (heartbeatInterval) clearInterval(heartbeatInterval);
         };
-    }, [token, reconnectCount]);
+    }, [token, reconnectTrigger]);
 
     const sendMessage = (type, data) => {
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
