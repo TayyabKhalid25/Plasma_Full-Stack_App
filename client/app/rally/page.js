@@ -170,13 +170,6 @@ export default function Rally() {
   const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
   const startOffset = firstDay === 0 ? 6 : firstDay - 1;
 
-  // Determine which days have events
-  const eventDaySet = new Set();
-  events.forEach(e => {
-    if (e.date.getMonth() === currentMonth && e.date.getFullYear() === currentYear) {
-      eventDaySet.add(e.date.getDate());
-    }
-  });
 
   const isCurrentMonthViewed = currentMonth === now.getMonth() && currentYear === now.getFullYear();
 
@@ -186,9 +179,16 @@ export default function Rally() {
       const i = e.intent?.toUpperCase();
       if (intentFilter === "COMP" && i !== "COMPETITIVE" && i !== "COMP") return false;
       if (intentFilter === "CHILL" && i !== "CHILL") return false;
-      if (intentFilter === "CHILL" && i !== "CHILL") return false;
     }
     return true;
+  });
+
+  // Determine which days have events (respecting filters)
+  const eventDaySet = new Set();
+  filteredEvents.forEach(e => {
+    if (e.date.getMonth() === currentMonth && e.date.getFullYear() === currentYear) {
+      eventDaySet.add(e.date.getDate());
+    }
   });
 
   const selectedDayEvents = filteredEvents.filter(e => 
