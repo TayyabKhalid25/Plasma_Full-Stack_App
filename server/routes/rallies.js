@@ -97,7 +97,11 @@ router.post('/', authenticateToken, async (req, res) => {
         }
 
         // Create a RALLY_BROADCAST post
-        const postContent = `Just organized a rally for ${gameTitle || title}! ${description || ""}`;
+        const formattedDate = new Date(newRally.scheduledStartUTC).toLocaleString('en-US', { 
+            weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+        });
+        const postContent = `Just organized a rally for ${gameTitle || title} on ${formattedDate}! ${description || ""}`;
+        
         await pool.query(`
             INSERT INTO "posts" ("userID", "type", "content", "deepLinkURI", "intent")
             VALUES ($1, 'RALLY_BROADCAST', $2, $3, $4)
@@ -183,7 +187,10 @@ router.put('/:eventId', authenticateToken, async (req, res) => {
             const gameRes = await pool.query('SELECT "title" FROM "games" WHERE "appID" = $1', [updatedRally.gameID]);
             gameTitle = gameRes.rows[0]?.title || "";
         }
-        const postContent = `Updated rally for ${gameTitle || updatedRally.title}! ${updatedRally.description || ""}`;
+        const formattedDate = new Date(updatedRally.scheduledStartUTC).toLocaleString('en-US', { 
+            weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+        });
+        const postContent = `Updated rally for ${gameTitle || updatedRally.title} on ${formattedDate}! ${updatedRally.description || ""}`;
         
         await pool.query(`
             UPDATE "posts" 
