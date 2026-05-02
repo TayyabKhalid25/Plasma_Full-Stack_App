@@ -11,20 +11,10 @@ import { EditHallOfFameModal } from "@/components/modals/EditHallOfFameModal";
 import { InviteFriendsModal } from "@/components/modals/InviteFriendsModal";
 import { AddMilestoneModal } from "@/components/modals/AddMilestoneModal";
 import { getIntentStyle } from "@/lib/intentStyles";
-import { getAvatarUrl } from "@/lib/utils";
+import { getAvatarUrl, getRarityProps } from "@/lib/utils";
 import Link from "next/link";
 
 const iconMap = { Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Diamond, Zap, Activity };
-
-const getRarityProps = (rarity) => {
-  switch (rarity) {
-    case 1: return { color: "text-plasma-bronze", iconName: "Shield", border: "border-plasma-bronze/30", shadow: "shadow-[0_0_15px_rgba(205,127,50,0.3)]" };
-    case 2: return { color: "text-plasma-silver", iconName: "Target", border: "border-plasma-silver/30", shadow: "shadow-[0_0_15px_rgba(192,192,192,0.3)]" };
-    case 3: return { color: "text-plasma-gold", iconName: "Medal", border: "border-plasma-gold/30", shadow: "shadow-[0_0_15px_rgba(255,215,0,0.3)]" };
-    case 4: return { color: "text-plasma-platinum", iconName: "Diamond", border: "border-plasma-platinum/30", shadow: "shadow-[0_0_15px_rgba(229,228,226,0.3)]" };
-    default: return { color: "text-plasma-text-primary", iconName: "Trophy", border: "border-white/10", shadow: "" };
-  }
-};
 
 const achievementTabs = [
   { id: "all", label: "All" },
@@ -35,10 +25,10 @@ const achievementTabs = [
 // --- SKELETONS ---
 function HofSkeleton() {
   return (
-    <div className="flex gap-[20px] overflow-x-auto pb-4 hide-scrollbar">
+    <div className="flex gap-6 overflow-x-auto pb-4 hide-scrollbar">
       {[1, 2, 3, 4, 5].map(i => (
-        <div key={i} className="flex flex-col items-center gap-3 w-[96px] shrink-0 animate-pulse">
-          <div className="w-[96px] h-[96px] rounded-full bg-plasma-slate-hover" />
+        <div key={i} className="flex flex-col items-center gap-2 w-[72px] shrink-0 animate-pulse">
+          <div className="w-[72px] h-[72px] rounded-full bg-plasma-slate-hover" />
           <div className="w-16 h-3 rounded bg-plasma-slate-hover" />
           <div className="w-12 h-2.5 rounded bg-plasma-slate-hover" />
         </div>
@@ -130,10 +120,8 @@ export default function Prestige() {
             return {
               id: item.achievementID,
               title: item.title,
-              xp: `${item.plasmaXP} XP`,
-              ...rarityProps,
-              borderColor: rarityProps.border,
-              glow: rarityProps.shadow,
+              xp: `+${item.plasmaXP}`,
+              ...rarityProps
             };
           }));
         }
@@ -278,8 +266,8 @@ export default function Prestige() {
       {/* Toast Notification */}
       {toast && (
         <div className={`fixed top-20 right-6 z-[200] flex items-center gap-2 px-5 py-3 rounded-xl shadow-2xl text-sm font-medium animate-fade-in transition-all ${toast.type === "success"
-            ? "bg-plasma-success/20 border border-plasma-success/30 text-plasma-success"
-            : "bg-plasma-error/20 border border-plasma-error/30 text-plasma-error"
+          ? "bg-plasma-success/20 border border-plasma-success/30 text-plasma-success"
+          : "bg-plasma-error/20 border border-plasma-error/30 text-plasma-error"
           }`}>
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           {toast.message}
@@ -327,7 +315,7 @@ export default function Prestige() {
           {/* HALL OF FAME */}
           <section className="mt-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[11px] font-bold text-plasma-text-secondary tracking-[0.2em] uppercase">HALL OF FAME ⭐</h2>
+              <h2 className="text-[11px] font-bold text-plasma-text-secondary tracking-[0.2em] uppercase">HALL OF FAME</h2>
               <button
                 onClick={() => editHofModal.open()}
                 className="text-plasma-primary text-sm font-semibold hover:text-plasma-secondary transition-colors cursor-pointer"
@@ -337,20 +325,20 @@ export default function Prestige() {
             </div>
 
             {loading ? <HofSkeleton /> : (
-              <div className="flex gap-[20px] overflow-x-auto pb-4 hide-scrollbar">
+              <div className="flex gap-6 overflow-x-auto pb-4 hide-scrollbar">
                 {hof.length > 0 ? hof.map((item) => {
                   const Icon = iconMap[item.iconName] || Trophy;
                   return (
-                    <div key={item.id} className="flex flex-col items-center gap-3 w-[96px] shrink-0">
-                      <div className={`w-[96px] h-[96px] rounded-full border-[3px] ${item.borderColor} ${item.glow || ''} flex items-center justify-center bg-white/5 backdrop-blur-sm group cursor-pointer hover:scale-105 transition-transform`}>
-                        <Icon className={`w-12 h-12 ${item.color}`} />
+                    <div key={item.id} className="flex flex-col items-center gap-2 shrink-0">
+                      <div className={`w-[72px] h-[72px] rounded-full bg-plasma-slate/60 backdrop-blur-md border-2 ${item.border} flex items-center justify-center hover:border-plasma-secondary/40 transition-all overflow-hidden ${item.shadow}`}>
+                        <Icon className={`w-8 h-8 ${item.color} opacity-80`} />
                       </div>
-                      <div className="text-center">
-                        <p className="text-[11px] font-bold text-plasma-text-primary whitespace-nowrap">{item.title}</p>
-                        <p className={`text-[12px] font-mono ${item.color}`}>{item.xp}</p>
+                      <div className="text-center w-[72px]">
+                        <p className="text-[10px] font-bold text-plasma-text-primary truncate">{item.title}</p>
+                        <p className={`text-[10px] font-mono ${item.color}`}>{item.xp}</p>
                       </div>
                     </div>
-                  )
+                  );
                 }) : (
                   <p className="text-sm text-plasma-text-secondary py-4">No achievements pinned yet.</p>
                 )}
@@ -366,8 +354,8 @@ export default function Prestige() {
                   key={tab.id}
                   onClick={() => setActiveAchTab(tab.id)}
                   className={`pb-3 px-1 border-b-2 text-sm font-semibold cursor-pointer transition-colors ${activeAchTab === tab.id
-                      ? "border-plasma-primary text-plasma-text-primary"
-                      : "border-transparent text-plasma-text-secondary hover:text-plasma-text-primary"
+                    ? "border-plasma-primary text-plasma-text-primary"
+                    : "border-transparent text-plasma-text-secondary hover:text-plasma-text-primary"
                     }`}
                 >
                   {tab.label}
@@ -451,8 +439,8 @@ export default function Prestige() {
               <button
                 onClick={() => setActiveLeaderboard("friends")}
                 className={`pb-2 px-1 border-b-2 text-sm font-medium cursor-pointer transition-colors ${activeLeaderboard === "friends"
-                    ? "border-plasma-primary text-plasma-text-primary"
-                    : "border-transparent text-plasma-text-secondary hover:text-plasma-text-primary"
+                  ? "border-plasma-primary text-plasma-text-primary"
+                  : "border-transparent text-plasma-text-secondary hover:text-plasma-text-primary"
                   }`}
               >
                 Friends
@@ -460,8 +448,8 @@ export default function Prestige() {
               <button
                 onClick={() => setActiveLeaderboard("global")}
                 className={`pb-2 px-1 border-b-2 text-sm font-medium cursor-pointer transition-colors ${activeLeaderboard === "global"
-                    ? "border-plasma-primary text-plasma-text-primary"
-                    : "border-transparent text-plasma-text-secondary hover:text-plasma-text-primary"
+                  ? "border-plasma-primary text-plasma-text-primary"
+                  : "border-transparent text-plasma-text-secondary hover:text-plasma-text-primary"
                   }`}
               >
                 Global

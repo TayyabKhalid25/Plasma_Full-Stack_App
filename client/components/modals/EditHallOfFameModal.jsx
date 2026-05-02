@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
 import { ModalWrapper } from "../ui/ModalWrapper";
-import { Loader2, Check, Trophy } from "lucide-react";
+import { Loader2, Check, Trophy, Shield, Target, Medal, Diamond, Lock } from "lucide-react";
 import { apiService } from "@/services/apiService";
 import { useAuth, API_BASE } from "@/context/AuthContext";
+import { getRarityProps } from "@/lib/utils";
+
+const iconMap = { Trophy, Shield, Target, Medal, Diamond, Lock };
 
 export function EditHallOfFameModal({ isOpen, onClose, onUpdate, initialSelectedIds = [] }) {
   const { token } = useAuth();
@@ -18,7 +21,7 @@ export function EditHallOfFameModal({ isOpen, onClose, onUpdate, initialSelected
     const fetchAchievements = async () => {
       setLoadingAchievements(true);
       try {
-        const res = await fetch(`${API_BASE}/api/achievements`, {
+        const res = await fetch(`${API_BASE}/api/achievements?orderBy=rarityWeight&direction=DESC`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
@@ -30,6 +33,7 @@ export function EditHallOfFameModal({ isOpen, onClose, onUpdate, initialSelected
               title: ach.title,
               xp: ach.plasmaXP,
               gameTitle: game.gameTitle,
+              rarityWeight: ach.rarityWeight,
             }))
           );
           setAvailableAchievements(allAch);
@@ -75,7 +79,17 @@ export function EditHallOfFameModal({ isOpen, onClose, onUpdate, initialSelected
 
   const footer = (
     <div className="flex justify-between items-center w-full">
-      <span className="text-xs font-bold text-plasma-text-secondary">{selectedIds.length} / 5 Selected</span>
+      <div className="flex items-center gap-4">
+        <span className="text-xs font-bold text-plasma-text-secondary">{selectedIds.length} / 5 Selected</span>
+        {selectedIds.length > 0 && (
+          <button 
+            onClick={() => setSelectedIds([])}
+            className="text-[10px] font-bold text-plasma-error/80 hover:text-plasma-error transition-all cursor-pointer uppercase tracking-wider hover:underline"
+          >
+            Deselect All
+          </button>
+        )}
+      </div>
       <div className="flex gap-3">
         <button onClick={onClose} className="px-5 py-2 rounded-xl text-sm font-bold text-plasma-text-secondary hover:text-white transition-colors cursor-pointer">
           Cancel
@@ -110,29 +124,32 @@ export function EditHallOfFameModal({ isOpen, onClose, onUpdate, initialSelected
           </div>
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4 overflow-y-auto custom-scrollbar p-1">
-            {availableAchievements.map((ach) => {
-              const isSelected = selectedIds.includes(ach.id);
-              return (
-                <div 
-                  key={ach.id} 
-                  onClick={() => toggleSelect(ach.id)}
-                  className={`relative flex flex-col items-center p-3 rounded-xl cursor-pointer transition-all border-2 ${
-                    isSelected ? "border-plasma-primary bg-plasma-primary/10" : "border-transparent bg-white/5 hover:bg-white/10 hover:border-white/10"
-                  }`}
-                >
-                  {isSelected && (
-                    <div className="absolute -top-2 -right-2 w-5 h-5 bg-plasma-primary rounded-full flex items-center justify-center shadow-lg">
-                      <Check className="w-3 h-3 text-white" />
-                    </div>
-                  )}
-                  <div className="w-12 h-12 rounded-full border-2 border-plasma-primary/30 flex items-center justify-center bg-white/5 mb-2">
-                    <Trophy className="w-6 h-6 text-plasma-primary" />
-                  </div>
-                  <p className="text-[10px] font-bold text-plasma-text-primary text-center leading-tight line-clamp-2">{ach.title}</p>
-                  <p className="text-[8px] text-plasma-text-secondary mt-0.5">{ach.xp} XP</p>
-                </div>
-              );
-            })}
+             {availableAchievements.map((ach) => {
+               const isSelected = selectedIds.includes(ach.id);
+               const rarityProps = getRarityProps(ach.rarityWeight);
+               const Icon = iconMap[rarityProps.iconName] || Trophy;
+
+               return (
+                 <div 
+                   key={ach.id} 
+                   onClick={() => toggleSelect(ach.id)}
+                   className={`relative flex flex-col items-center p-3 rounded-xl cursor-pointer transition-all border-2 ${
+                     isSelected ? "border-plasma-primary bg-plasma-primary/10" : "border-transparent bg-white/5 hover:bg-white/10 hover:border-white/10"
+                   }`}
+                 >
+                   {isSelected && (
+                     <div className="absolute -top-2 -right-2 w-5 h-5 bg-plasma-primary rounded-full flex items-center justify-center shadow-lg z-10">
+                       <Check className="w-3 h-3 text-white" />
+                     </div>
+                   )}
+                   <div className={`w-12 h-12 rounded-full border-2 ${rarityProps.border} flex items-center justify-center bg-white/5 mb-2 ${rarityProps.shadow}`}>
+                     <Icon className={`w-6 h-6 ${rarityProps.color}`} />
+                   </div>
+                   <p className="text-[10px] font-bold text-plasma-text-primary text-center leading-tight line-clamp-2">{ach.title}</p>
+                   <p className={`text-[8px] font-mono mt-0.5 ${rarityProps.color}`}>+{ach.xp} XP</p>
+                 </div>
+               );
+             })}
           </div>
         )}
       </div>

@@ -8,19 +8,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { getIntentStyle } from "@/lib/intentStyles";
-import { getAvatarUrl } from "@/lib/utils";
+import { getAvatarUrl, getRarityProps } from "@/lib/utils";
 
 const iconMap = { Trophy, Swords, Shield, Target, Medal, Diamond, Lock };
-
-const getRarityProps = (rarity) => {
-  switch (rarity) {
-    case 1: return { color: "text-plasma-bronze", iconName: "Shield", border: "border-plasma-bronze/30", shadow: "shadow-[0_0_15px_rgba(205,127,50,0.3)]" };
-    case 2: return { color: "text-plasma-silver", iconName: "Target", border: "border-plasma-silver/30", shadow: "shadow-[0_0_15px_rgba(192,192,192,0.3)]" };
-    case 3: return { color: "text-plasma-gold", iconName: "Medal", border: "border-plasma-gold/30", shadow: "shadow-[0_0_15px_rgba(255,215,0,0.3)]" };
-    case 4: return { color: "text-plasma-platinum", iconName: "Diamond", border: "border-plasma-platinum/30", shadow: "shadow-[0_0_15px_rgba(229,228,226,0.3)]" };
-    default: return { color: "text-plasma-text-primary", iconName: "Trophy", border: "border-white/10", shadow: "" };
-  }
-};
 
 function ProfileHeaderSkeleton() {
   return (
@@ -326,7 +316,7 @@ export default function UserProfile({ params }) {
                 const Icon = iconMap[item.iconName] || Trophy;
                 return (
                   <div key={item.id} className="flex flex-col items-center gap-2 shrink-0">
-                    <div className={`w-[72px] h-[72px] rounded-2xl bg-plasma-slate/60 backdrop-blur-md border-2 ${item.border} flex items-center justify-center hover:border-plasma-secondary/40 transition-all overflow-hidden ${item.shadow}`}>
+                    <div className={`w-[72px] h-[72px] rounded-full bg-plasma-slate/60 backdrop-blur-md border-2 ${item.border} flex items-center justify-center hover:border-plasma-secondary/40 transition-all overflow-hidden ${item.shadow}`}>
                       <Icon className={`w-8 h-8 ${item.color} opacity-80`} />
                     </div>
                     <div className="text-center w-[72px]">
