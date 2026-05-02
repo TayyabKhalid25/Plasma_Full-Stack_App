@@ -71,48 +71,35 @@ function setupWebSocket(server) {
                 }
 
                 if (msg.type === 'SEND_MESSAGE') {
-                    const { receiverId, content } = msg;
+                    const { receiverId, content, mediaURL, isLobbyInvite, lobbyLink } = msg;
                     console.log(`WS: User ${userId} sending message to ${receiverId}`);
                     
-                    if (!receiverId || !content) {
-                        console.log('WS: Missing receiverId or content');
+                    if (!receiverId && !content && !mediaURL && !isLobbyInvite) {
+                        console.log('WS: Missing message payload');
                         return;
                     }
 
                     // Persist to database
                     try {
                         const result = await pool.query(`
-                            INSERT INTO "direct_messages" ("senderID", "receiverID", "content")
-                            VALUES ($1, $2, $3)
-                            RETURNING "messageID", "senderID", "receiverID", "content", "timestampUTC"
-                        `, [userId, receiverId, content]);
+                            INSERT INTO "direct_messages" ("senderID", "receiverID", "content", "mediaURL", "isLobbyInvite", "lobbyLink")
+                            VALUES ($1, $2, $3, $4, $5, $6)
+                            RETURNING "messageID", "senderID", "receiverID", "content", "mediaURL", "isLobbyInvite", "lobbyLink", "timestampUTC"
+                        `, [userId, receiverId, content, mediaURL, isLobbyInvite || false, lobbyLink]);
 
                         const savedMsg = result.rows[0];
                         console.log(`WS: Message saved to DB with ID: ${savedMsg.messageID}`);
 
-                        const payload = JSON.stringify({
+                        const payload = {
                             type: 'NEW_MESSAGE',
                             data: savedMsg
-                        });
+                        };
 
                         // Send to receiver if online
-                        const receiverSockets = clients.get(receiverId);
-                        if (receiverSockets) {
-                            console.log(`WS: Sending to receiver ${receiverId} (${receiverSockets.size} sockets)`);
-                            receiverSockets.forEach(s => {
-                                if (s.readyState === 1) s.send(payload);
-                            });
-                        } else {
-                            console.log(`WS: Receiver ${receiverId} is offline`);
-                        }
+                        sendToUser(receiverId, payload);
 
                         // Echo back to sender
-                        const senderSockets = clients.get(userId);
-                        if (senderSockets) {
-                            senderSockets.forEach(s => {
-                                if (s.readyState === 1) s.send(payload);
-                            });
-                        }
+                        sendToUser(userId, payload);
                     } catch (dbErr) {
                         console.error('WS: Database error during message save:', dbErr.message);
                     }
@@ -157,9 +144,12 @@ function setupWebSocket(server) {
 function sendToUser(userId, payload) {
     const userSockets = clients.get(userId);
     if (userSockets) {
+        console.log(`[WS] Delivering ${payload.type} to user ${userId} (${userSockets.size} active connections)`);
         userSockets.forEach(s => {
             if (s.readyState === 1) s.send(JSON.stringify(payload));
         });
+    } else {
+        console.log(`[WS] Cannot deliver ${payload.type} - User ${userId} is offline (no active connections)`);
     }
 }
 

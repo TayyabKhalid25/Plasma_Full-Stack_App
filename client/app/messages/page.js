@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { useSocket } from "@/context/SocketContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -8,12 +8,14 @@ import { getAvatarUrl } from "@/lib/utils";
 import { 
   Search, Send, MoreVertical, Phone, Video, Info, User, 
   ChevronRight, ArrowLeft, Trophy, Settings, MessageSquare,
-  Share2, Calendar, Clock, PlusCircle
+  Share2, Calendar, Clock, PlusCircle, Image as ImageIcon, X as CloseIcon
 } from "lucide-react";
 import { useModal } from "@/hooks/useModal";
 import { NewMessageModal } from "@/components/modals/NewMessageModal";
+import { UploadMediaModal } from "@/components/modals/UploadMediaModal";
 import { getIntentStyle } from "@/lib/intentStyles";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 const formatMessage = (text) => {
   if (!text) return null;
@@ -173,6 +175,20 @@ function RallyInviteCard({ lobbyLink, isMe }) {
 }
 
 export default function MessagesPage() {
+  return (
+    <Suspense fallback={
+      <DashboardLayout showRightRail={false}>
+        <div className="flex h-[calc(100vh-64px)] items-center justify-center">
+          <div className="w-8 h-8 rounded-full border-2 border-plasma-primary border-t-transparent animate-spin" />
+        </div>
+      </DashboardLayout>
+    }>
+      <MessagesContent />
+    </Suspense>
+  );
+}
+
+function MessagesContent() {
   const { token, user } = useAuth();
   const { isConnected, lastMessage, sendMessage } = useSocket();
   const [conversations, setConversations] = useState([]);
@@ -182,8 +198,19 @@ export default function MessagesPage() {
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [loadingChat, setLoadingChat] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [mediaUrl, setMediaUrl] = useState(null);
+  const uploadModal = useModal();
   const newMessageModal = useModal();
   const messagesEndRef = useRef(null);
+  const searchParams = useSearchParams();
+
+  // Handle direct navigation via URL parameter
+  useEffect(() => {
+    const friendId = searchParams.get('id');
+    if (friendId) {
+      setActiveConvId(friendId);
+    }
+  }, [searchParams]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -240,7 +267,8 @@ export default function MessagesPage() {
             text: m.content,
             time: new Date(m.timestampUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             isLobbyInvite: m.isLobbyInvite,
-            lobbyLink: m.lobbyLink
+            lobbyLink: m.lobbyLink,
+            mediaURL: m.mediaURL
           })));
 
           // Mark as read in the background
@@ -284,7 +312,8 @@ export default function MessagesPage() {
             text: msg.content,
             time: new Date(msg.timestampUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             isLobbyInvite: msg.isLobbyInvite,
-            lobbyLink: msg.lobbyLink
+            lobbyLink: msg.lobbyLink,
+            mediaURL: msg.mediaURL
           };
           if (tempIndex !== -1) {
             const updated = [...prev];
@@ -331,6 +360,7 @@ export default function MessagesPage() {
     const success = sendMessage("SEND_MESSAGE", {
       receiverId: activeConvId,
       content: messageInput.trim(),
+      mediaURL: mediaUrl,
     });
 
     if (!success) {
@@ -343,10 +373,14 @@ export default function MessagesPage() {
       id: `temp-${Date.now()}`,
       sender: user?.id,
       text: messageInput.trim(),
+      mediaURL: mediaUrl,
+      isLobbyInvite: false,
+      lobbyLink: null,
       time: "Just now",
     };
     setMessages(prev => [...prev, optimisticMsg]);
     setMessageInput("");
+    setMediaUrl(null);
   };
 
   const handleKeyDown = (e) => {
@@ -483,6 +517,15 @@ export default function MessagesPage() {
                             ? "bg-plasma-primary text-white rounded-br-md"
                             : "bg-plasma-slate border border-white/5 text-plasma-text-primary rounded-bl-md"
                           }`}>
+                          {msg.mediaURL && (
+                            <div className="mb-2 rounded-xl overflow-hidden border border-white/10 bg-black max-w-sm">
+                              {msg.mediaURL.match(/\.(mp4|webm|ogg|mov)$/i) ? (
+                                <video src={msg.mediaURL} controls className="w-full h-auto max-h-60 object-contain" />
+                              ) : (
+                                <img src={msg.mediaURL} alt="Shared media" className="w-full h-auto max-h-60 object-contain hover:scale-[1.02] transition-transform cursor-pointer" onClick={() => window.open(msg.mediaURL, '_blank')} />
+                              )}
+                            </div>
+                          )}
                           <div className="text-sm leading-relaxed whitespace-pre-wrap">{formatMessage(msg.text)}</div>
 
                           {msg.isLobbyInvite && (
@@ -500,7 +543,28 @@ export default function MessagesPage() {
 
               {/* Input */}
               <div className="p-4 border-t border-white/5 bg-plasma-slate/30">
+                {mediaUrl && (
+                  <div className="mb-3 relative w-32 h-32 rounded-xl overflow-hidden border border-white/10 group">
+                    {mediaUrl.match(/\.(mp4|webm|ogg|mov)$/i) ? (
+                      <video src={mediaUrl} className="w-full h-full object-cover" />
+                    ) : (
+                      <img src={mediaUrl} alt="Preview" className="w-full h-full object-cover" />
+                    )}
+                    <button 
+                      onClick={() => setMediaUrl(null)}
+                      className="absolute top-1 right-1 p-1.5 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors"
+                    >
+                      <CloseIcon className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
                 <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => uploadModal.open()}
+                    className="p-2 text-plasma-text-secondary hover:text-plasma-primary transition-colors cursor-pointer shrink-0"
+                  >
+                    <ImageIcon className="w-5 h-5" />
+                  </button>
                   <input
                     type="text"
                     value={messageInput}
@@ -511,7 +575,7 @@ export default function MessagesPage() {
                   />
                   <button
                     onClick={handleSend}
-                    disabled={!messageInput.trim() || !isConnected}
+                    disabled={(!messageInput.trim() && !mediaUrl) || !isConnected}
                     className="w-10 h-10 rounded-full bg-primary-gradient flex items-center justify-center text-white hover:shadow-card-glow transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shrink-0"
                   >
                     <Send className="w-4 h-4" />
@@ -554,6 +618,11 @@ export default function MessagesPage() {
           }
           setActiveConvId(friend.id);
         }}
+      />
+      <UploadMediaModal
+        isOpen={uploadModal.isOpen}
+        onClose={uploadModal.close}
+        onUploadComplete={(url) => setMediaUrl(url)}
       />
     </DashboardLayout>
   );

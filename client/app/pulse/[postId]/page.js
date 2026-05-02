@@ -167,16 +167,16 @@ export default function PostPage() {
         {/* Navigation */}
         <button 
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-plasma-text-secondary hover:text-white transition-colors mb-8 group"
+          className="flex items-center gap-3 text-plasma-text-secondary hover:text-white transition-all mb-8 group"
         >
-          <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
-            <ArrowLeft className="w-4 h-4" />
+          <div className="w-10 h-10 rounded-full bg-plasma-slate border border-white/5 flex items-center justify-center group-hover:border-plasma-primary/50 group-hover:bg-plasma-primary/10 transition-all shadow-lg">
+            <ArrowLeft className="w-5 h-5" />
           </div>
-          <span className="text-sm font-bold uppercase tracking-widest">Back</span>
+          <span className="text-xs font-black uppercase tracking-[0.2em]">Return to Feed</span>
         </button>
 
         {/* Main Post Section */}
-        <article className="bg-plasma-slate/40 backdrop-blur-xl rounded-[32px] border border-white/5 overflow-hidden shadow-2xl relative">
+        <article className="bg-plasma-slate/40 backdrop-blur-md rounded-2xl border border-white/10 overflow-hidden shadow-lg relative">
           
           {/* Header */}
           <div className="p-6 md:p-8 flex items-center justify-between">
@@ -297,12 +297,12 @@ export default function PostPage() {
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               placeholder="Add your thoughts..."
-              className="w-full bg-plasma-slate/40 backdrop-blur-md border border-white/5 rounded-2xl py-4 pl-16 pr-16 text-sm text-white placeholder:text-plasma-text-secondary outline-none focus:border-plasma-primary/30 transition-all shadow-xl"
+              className="w-full bg-plasma-slate/50 border border-white/10 rounded-2xl py-4 pl-14 pr-14 text-sm text-white placeholder:text-plasma-text-secondary outline-none focus:border-plasma-primary/50 transition-all"
             />
             <button 
               type="submit"
               disabled={!commentText.trim() || submitting}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-primary-gradient flex items-center justify-center text-white disabled:opacity-30 transition-all hover:scale-105"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-primary-gradient flex items-center justify-center text-white disabled:opacity-30 transition-all hover:scale-105"
             >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             </button>
@@ -311,9 +311,10 @@ export default function PostPage() {
           {/* Comments List */}
           <div className="space-y-4">
             {comments.length === 0 ? (
-              <div className="py-12 text-center bg-white/2 backdrop-blur-sm rounded-3xl border border-dashed border-white/5">
-                <Sparkles className="w-8 h-8 mx-auto text-plasma-text-secondary opacity-20 mb-3" />
-                <p className="text-sm text-plasma-text-secondary font-medium">Be the first to spark a conversation!</p>
+              <div className="py-20 text-center bg-plasma-slate/20 backdrop-blur-sm rounded-[32px] border border-white/5 border-dashed">
+                <Sparkles className="w-10 h-10 mx-auto text-plasma-primary/40 mb-4" />
+                <p className="text-plasma-text-secondary font-bold tracking-tight">Be the first to spark a conversation!</p>
+                <p className="text-[11px] text-plasma-text-muted mt-2 uppercase tracking-widest font-black">Plasma Pulse Protocol</p>
               </div>
             ) : (
               comments.map((comment) => (

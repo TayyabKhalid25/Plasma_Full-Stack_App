@@ -2,6 +2,7 @@ const express = require('express');
 const { pool } = require('../config/dbConfig');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { isOnline } = require('../ws/presence');
+const { sendToUser } = require('../ws/chatSocket');
 
 const router = express.Router();
 
@@ -129,14 +130,14 @@ router.get('/:userId', authenticateToken, async (req, res) => {
 });
 
 // POST /api/messages/:userId
-// Sends a new DM, with lobby invite support
+// Sends a new DM, with lobby invite and media support
 router.post('/:userId', authenticateToken, async (req, res) => {
     const friendId = req.params.userId;
     const myId = req.userId;
-    const { content, isLobbyInvite, lobbyLink } = req.body;
+    const { content, isLobbyInvite, lobbyLink, mediaURL } = req.body;
     
-    if (!content && !isLobbyInvite) {
-        return res.status(400).json({ success: false, message: 'Message content or lobby invite is required' });
+    if (!content && !isLobbyInvite && !mediaURL) {
+        return res.status(400).json({ success: false, message: 'Message content, lobby invite, or media is required' });
     }
     
     try {
@@ -146,10 +147,32 @@ router.post('/:userId', authenticateToken, async (req, res) => {
         }
         
         const result = await pool.query(`
-            INSERT INTO "direct_messages" ("senderID", "receiverID", "content", "isLobbyInvite", "lobbyLink")
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO "direct_messages" ("senderID", "receiverID", "content", "isLobbyInvite", "lobbyLink", "mediaURL")
+            VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING "messageID", "timestampUTC"
-        `, [myId, friendId, content, isLobbyInvite || false, lobbyLink]);
+        `, [myId, friendId, content, isLobbyInvite || false, lobbyLink, mediaURL]);
+        
+        const newMessage = {
+            messageID: result.rows[0].messageID,
+            senderID: myId,
+            receiverID: friendId,
+            content,
+            isLobbyInvite: isLobbyInvite === true || isLobbyInvite === 'true',
+            lobbyLink,
+            mediaURL,
+            timestampUTC: result.rows[0].timestampUTC,
+            isRead: false
+        };
+
+        // Prepare the payload
+        const payload = {
+            type: 'NEW_MESSAGE',
+            data: newMessage
+        };
+
+        // Notify BOTH the receiver and the sender so both UI's update instantly
+        sendToUser(friendId, payload);
+        sendToUser(myId, payload);
         
         res.status(201).json({ success: true, data: result.rows[0], message: 'Message sent' });
     } catch (error) {
