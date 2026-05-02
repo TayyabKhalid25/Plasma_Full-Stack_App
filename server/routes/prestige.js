@@ -25,14 +25,14 @@ async function fetchPrestige(userId) {
         FROM "user_achievements" ua
         WHERE ua."userID" = $1
     `, [userId]);
-    
+
     const hallOfFame = await pool.query(`
         SELECT a."achievementID", a."title", a."plasmaXP", a."rarityWeight"
         FROM "user_achievements" ua
         JOIN "achievements" a ON ua."achievementID" = a."achievementID"
         WHERE ua."userID" = $1 AND ua."isPinned" = TRUE
     `, [userId]);
-    
+
     // Level Calculation (1000 XP per level)
     const level = Math.floor(totalPlasmaXP / 1000) + 1;
     const nextLevelXP = level * 1000;
@@ -65,12 +65,12 @@ router.get('/me', authenticateToken, async (req, res) => {
 // GET /api/prestige/:userId
 router.get('/:userId', authenticateToken, async (req, res) => {
     try {
-        const data = await fetchPrestige(req.params.userId);
-        
         // Ensure user exists
         const userExists = await pool.query('SELECT "plasmaUserID" FROM "users" WHERE "plasmaUserID" = $1', [req.params.userId]);
         if (userExists.rows.length === 0) return res.status(404).json({ success: false, message: 'User not found' });
-        
+
+        const data = await fetchPrestige(req.params.userId);
+
         res.json({ success: true, data });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Internal server error' });
@@ -80,15 +80,15 @@ router.get('/:userId', authenticateToken, async (req, res) => {
 // PUT /api/prestige/me/hall-of-fame
 router.put('/me/hall-of-fame', authenticateToken, async (req, res) => {
     const { achievementIds } = req.body; // Array of IDs up to 5
-    
+
     if (!Array.isArray(achievementIds) || achievementIds.length > 5) {
         return res.status(400).json({ success: false, message: 'Provide an array of up to 5 achievement IDs' });
     }
-    
+
     try {
         // Reset all pins
         await pool.query(`UPDATE "user_achievements" SET "isPinned" = FALSE WHERE "userID" = $1`, [req.userId]);
-        
+
         // Set new pins
         if (achievementIds.length > 0) {
             await pool.query(`
@@ -96,7 +96,7 @@ router.put('/me/hall-of-fame', authenticateToken, async (req, res) => {
                 WHERE "userID" = $1 AND "achievementID" = ANY($2::text[])
             `, [req.userId, achievementIds]);
         }
-        
+
         res.json({ success: true, message: 'Hall of Fame updated successfully' });
     } catch (error) {
         console.error('Error updating hall of fame:', error);
@@ -107,7 +107,7 @@ router.put('/me/hall-of-fame', authenticateToken, async (req, res) => {
 // POST /api/prestige/milestones
 router.post('/milestones', authenticateToken, async (req, res) => {
     const { title, description, gameId, proofUrl } = req.body;
-    
+
     if (!title) return res.status(400).json({ success: false, message: 'Title is required' });
 
     try {
@@ -116,19 +116,19 @@ router.post('/milestones', authenticateToken, async (req, res) => {
             VALUES (gen_random_uuid(), $1, $2, $3, $4, 1.0, 50)
             RETURNING "achievementID"
         `, [gameId || 'custom_milestone', title, description, proofUrl]);
-        
+
         await pool.query(`
             INSERT INTO "user_achievements" ("userID", "achievementID", "unlockedAt")
             VALUES ($1, $2, CURRENT_TIMESTAMP)
         `, [req.userId, result.rows[0].achievementID]);
-        
+
         // ADD XP TO PROFILE
         await pool.query(`
             UPDATE "profiles" 
             SET "totalPlasmaXP" = "totalPlasmaXP" + 50 
             WHERE "plasmaUserID" = $1
         `, [req.userId]);
-        
+
         res.status(201).json({ success: true, message: 'Milestone recorded manually (+50 XP)', milestoneId: result.rows[0].achievementID });
     } catch (error) {
         console.error('Error creating milestone:', error);

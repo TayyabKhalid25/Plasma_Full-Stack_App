@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { 
-  Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Diamond, Zap, Activity, Loader2, CheckCircle2
+import {
+  Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Diamond, Zap, Activity, Loader2, CheckCircle2, ChevronDown, ChevronUp
 } from "lucide-react";
 import { useModal } from "@/hooks/useModal";
 import { EditHallOfFameModal } from "@/components/modals/EditHallOfFameModal";
@@ -16,6 +16,16 @@ import Link from "next/link";
 
 const iconMap = { Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Diamond, Zap, Activity };
 
+const getRarityProps = (rarity) => {
+  switch (rarity) {
+    case 1: return { color: "text-plasma-bronze", iconName: "Shield", border: "border-plasma-bronze/30", shadow: "shadow-[0_0_15px_rgba(205,127,50,0.3)]" };
+    case 2: return { color: "text-plasma-silver", iconName: "Target", border: "border-plasma-silver/30", shadow: "shadow-[0_0_15px_rgba(192,192,192,0.3)]" };
+    case 3: return { color: "text-plasma-gold", iconName: "Medal", border: "border-plasma-gold/30", shadow: "shadow-[0_0_15px_rgba(255,215,0,0.3)]" };
+    case 4: return { color: "text-plasma-platinum", iconName: "Diamond", border: "border-plasma-platinum/30", shadow: "shadow-[0_0_15px_rgba(229,228,226,0.3)]" };
+    default: return { color: "text-plasma-text-primary", iconName: "Trophy", border: "border-white/10", shadow: "" };
+  }
+};
+
 const achievementTabs = [
   { id: "all", label: "All" },
   { id: "steam", label: "Steam Trophies" },
@@ -26,7 +36,7 @@ const achievementTabs = [
 function HofSkeleton() {
   return (
     <div className="flex gap-[20px] overflow-x-auto pb-4 hide-scrollbar">
-      {[1,2,3,4,5].map(i => (
+      {[1, 2, 3, 4, 5].map(i => (
         <div key={i} className="flex flex-col items-center gap-3 w-[96px] shrink-0 animate-pulse">
           <div className="w-[96px] h-[96px] rounded-full bg-plasma-slate-hover" />
           <div className="w-16 h-3 rounded bg-plasma-slate-hover" />
@@ -40,7 +50,7 @@ function HofSkeleton() {
 function LeaderboardSkeleton() {
   return (
     <div className="space-y-1">
-      {[1,2,3,4,5,6].map(i => (
+      {[1, 2, 3, 4, 5, 6].map(i => (
         <div key={i} className="flex items-center gap-3 p-2.5 border-b border-white/5 animate-pulse">
           <div className="w-6 h-5 rounded bg-plasma-slate-hover" />
           <div className="w-8 h-8 rounded-full bg-plasma-slate-hover" />
@@ -55,11 +65,11 @@ function LeaderboardSkeleton() {
 function AchievementGridSkeleton() {
   return (
     <div className="space-y-10 py-6">
-      {[1,2].map(g => (
+      {[1, 2].map(g => (
         <div key={g}>
           <div className="w-32 h-3 rounded bg-plasma-slate-hover mb-4 animate-pulse" />
           <div className="flex flex-wrap gap-[32px]">
-            {[1,2,3,4].map(a => (
+            {[1, 2, 3, 4].map(a => (
               <div key={a} className="flex flex-col items-center gap-2 w-[72px] animate-pulse">
                 <div className="w-[72px] h-[72px] rounded-full bg-plasma-slate-hover" />
                 <div className="w-14 h-2.5 rounded bg-plasma-slate-hover" />
@@ -77,16 +87,17 @@ export default function Prestige() {
   const { token, user } = useAuth();
   const [activeAchTab, setActiveAchTab] = useState("all");
   const [activeLeaderboard, setActiveLeaderboard] = useState("friends");
-  
+
   const [loading, setLoading] = useState(true);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [toast, setToast] = useState(null);
-  
+
   const [prestigeData, setPrestigeData] = useState({ totalPlasmaXP: 0, unlockedCount: 0, hallOfFame: [] });
   const [gamesProgress, setGamesProgress] = useState([]);
   const [hof, setHof] = useState([]);
   const [leaderboardData, setLeaderboardData] = useState([]);
+  const [expandedGames, setExpandedGames] = useState({});
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -105,37 +116,40 @@ export default function Prestige() {
       try {
         const [prestigeRes, achievementsRes] = await Promise.all([
           fetch(`${API_BASE}/api/prestige/me`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API_BASE}/api/achievements?type=${activeAchTab}`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API_BASE}/api/achievements?type=${activeAchTab}&orderBy=rarityWeight&direction=DESC`, { headers: { Authorization: `Bearer ${token}` } }),
         ]);
-        
+
         const prestigeJson = await prestigeRes.json();
         const achievementsJson = await achievementsRes.json();
-        
+
         if (prestigeJson.success) {
           setPrestigeData(prestigeJson.data);
           // Map hall of fame
-          setHof(prestigeJson.data.hallOfFame.map((item, i) => ({
-            id: item.achievementID,
-            title: item.title,
-            xp: `${item.plasmaXP} XP`,
-            iconName: "Trophy",
-            color: i === 0 ? "text-plasma-secondary" : "text-plasma-primary",
-            borderColor: i === 0 ? "border-plasma-secondary" : "border-plasma-primary",
-            glow: i === 0 ? "shadow-[0_0_15px_rgba(255,42,122,0.4)]" : "",
-          })));
+          setHof(prestigeJson.data.hallOfFame.map((item) => {
+            const rarityProps = getRarityProps(item.rarityWeight);
+            return {
+              id: item.achievementID,
+              title: item.title,
+              xp: `${item.plasmaXP} XP`,
+              ...rarityProps,
+              borderColor: rarityProps.border,
+              glow: rarityProps.shadow,
+            };
+          }));
         }
-        
+
         if (achievementsJson.success) {
           setGamesProgress(achievementsJson.data.gamesProgress.map(game => ({
             title: game.gameTitle?.toUpperCase() || "UNKNOWN GAME",
-            achievements: game.achievements.map(ach => ({
-              title: ach.title,
-              xp: `${ach.plasmaXP} XP`,
-              iconName: "Trophy",
-              color: "text-plasma-primary",
-              border: "border-plasma-primary",
-              unlocked: true,
-            }))
+            achievements: game.achievements.map(ach => {
+              const rarityProps = getRarityProps(ach.rarityWeight);
+              return {
+                title: ach.title,
+                xp: `${ach.plasmaXP} XP`,
+                unlocked: !!ach.unlockedAt,
+                ...rarityProps
+              };
+            })
           })));
         }
       } catch (err) {
@@ -190,15 +204,17 @@ export default function Prestige() {
       const data = await res.json();
       if (data.success) {
         setPrestigeData(data.data);
-        setHof(data.data.hallOfFame.map((item, i) => ({
-          id: item.achievementID,
-          title: item.title,
-          xp: `${item.plasmaXP} XP`,
-          iconName: "Trophy",
-          color: i === 0 ? "text-plasma-secondary" : "text-plasma-primary",
-          borderColor: i === 0 ? "border-plasma-secondary" : "border-plasma-primary",
-          glow: i === 0 ? "shadow-[0_0_15px_rgba(255,42,122,0.4)]" : "",
-        })));
+        setHof(data.data.hallOfFame.map((item) => {
+          const rarityProps = getRarityProps(item.rarityWeight);
+          return {
+            id: item.achievementID,
+            title: item.title,
+            xp: `${item.plasmaXP} XP`,
+            ...rarityProps,
+            borderColor: rarityProps.border,
+            glow: rarityProps.shadow,
+          };
+        }));
       }
     } catch (err) {
       console.error("Failed to update Hall of Fame", err);
@@ -220,7 +236,7 @@ export default function Prestige() {
         // Manually re-fetch
         const [prestigeRes, achievementsRes] = await Promise.all([
           fetch(`${API_BASE}/api/prestige/me`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API_BASE}/api/achievements?type=${activeAchTab}`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API_BASE}/api/achievements?type=${activeAchTab}&orderBy=rarityWeight&direction=DESC`, { headers: { Authorization: `Bearer ${token}` } }),
         ]);
         const prestigeJson = await prestigeRes.json();
         const achievementsJson = await achievementsRes.json();
@@ -228,14 +244,15 @@ export default function Prestige() {
         if (achievementsJson.success) {
           setGamesProgress(achievementsJson.data.gamesProgress.map(game => ({
             title: game.gameTitle?.toUpperCase() || "UNKNOWN GAME",
-            achievements: game.achievements.map(ach => ({
-              title: ach.title,
-              xp: `${ach.plasmaXP} XP`,
-              iconName: "Trophy",
-              color: "text-plasma-primary",
-              border: "border-plasma-primary",
-              unlocked: true,
-            }))
+            achievements: game.achievements.map(ach => {
+              const rarityProps = getRarityProps(ach.rarityWeight);
+              return {
+                title: ach.title,
+                xp: `${ach.plasmaXP} XP`,
+                unlocked: !!ach.unlockedAt,
+                ...rarityProps
+              };
+            })
           })));
         }
       } else {
@@ -249,30 +266,36 @@ export default function Prestige() {
     }
   };
 
+  const toggleExpand = (index) => {
+    setExpandedGames(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
+
   return (
     <DashboardLayout showRightRail={false}>
       {/* Toast Notification */}
       {toast && (
-        <div className={`fixed top-20 right-6 z-[200] flex items-center gap-2 px-5 py-3 rounded-xl shadow-2xl text-sm font-medium animate-fade-in transition-all ${
-          toast.type === "success" 
-            ? "bg-plasma-success/20 border border-plasma-success/30 text-plasma-success" 
+        <div className={`fixed top-20 right-6 z-[200] flex items-center gap-2 px-5 py-3 rounded-xl shadow-2xl text-sm font-medium animate-fade-in transition-all ${toast.type === "success"
+            ? "bg-plasma-success/20 border border-plasma-success/30 text-plasma-success"
             : "bg-plasma-error/20 border border-plasma-error/30 text-plasma-error"
-        }`}>
+          }`}>
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           {toast.message}
         </div>
       )}
 
       <div className="max-w-[1440px] mx-auto p-8 flex flex-col lg:flex-row gap-8 min-h-screen pb-20">
-        
+
         {/* LEFT SECTION (65%) */}
         <div className="w-full lg:w-[65%] space-y-8 animate-fade-in">
-          
+
           {/* Header Row */}
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
             <h1 className="font-display font-bold text-[32px] text-plasma-text-primary leading-none">The Prestige</h1>
             <div className="flex items-center gap-6">
-              <button 
+              <button
                 onClick={syncAchievements}
                 disabled={syncing}
                 className="px-4 py-2 bg-primary-gradient text-white font-bold text-xs rounded-full shadow-card-glow hover:scale-[1.02] transition-all cursor-pointer flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
@@ -305,14 +328,14 @@ export default function Prestige() {
           <section className="mt-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-[11px] font-bold text-plasma-text-secondary tracking-[0.2em] uppercase">HALL OF FAME ⭐</h2>
-              <button 
+              <button
                 onClick={() => editHofModal.open()}
                 className="text-plasma-primary text-sm font-semibold hover:text-plasma-secondary transition-colors cursor-pointer"
               >
                 Edit Hall of Fame
               </button>
             </div>
-            
+
             {loading ? <HofSkeleton /> : (
               <div className="flex gap-[20px] overflow-x-auto pb-4 hide-scrollbar">
                 {hof.length > 0 ? hof.map((item) => {
@@ -342,18 +365,17 @@ export default function Prestige() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveAchTab(tab.id)}
-                  className={`pb-3 px-1 border-b-2 text-sm font-semibold cursor-pointer transition-colors ${
-                    activeAchTab === tab.id
+                  className={`pb-3 px-1 border-b-2 text-sm font-semibold cursor-pointer transition-colors ${activeAchTab === tab.id
                       ? "border-plasma-primary text-plasma-text-primary"
                       : "border-transparent text-plasma-text-secondary hover:text-plasma-text-primary"
-                  }`}
+                    }`}
                 >
                   {tab.label}
                 </button>
               ))}
             </div>
             {activeAchTab === "manual" && (
-              <button 
+              <button
                 onClick={() => addMilestoneModal.open()}
                 className="pb-3 text-plasma-primary text-sm font-bold hover:text-plasma-secondary transition-colors cursor-pointer flex items-center gap-1"
               >
@@ -366,27 +388,45 @@ export default function Prestige() {
           {loading ? <AchievementGridSkeleton /> : (
             <div className="space-y-10 py-6">
               {gamesProgress.length > 0 ? (
-                gamesProgress.map((game, index) => (
-                  <div key={index}>
-                    <h3 className="text-[11px] font-bold text-plasma-text-secondary tracking-[0.2em] uppercase mb-4">{game.title}</h3>
-                    <div className="flex flex-wrap gap-[32px]">
-                      {game.achievements.map((ach, aIdx) => {
-                        const Icon = iconMap[ach.iconName] || Lock;
-                        return (
-                          <div key={aIdx} className={`flex flex-col items-center gap-2 w-[72px] text-center ${!ach.unlocked ? 'opacity-50 grayscale' : ''}`}>
-                            <div className={`w-[72px] h-[72px] rounded-full border-2 ${ach.border} flex items-center justify-center bg-white/5 relative`}>
-                              <Icon className={`w-8 h-8 ${ach.color}`} />
+                gamesProgress.map((game, index) => {
+                  const isExpanded = expandedGames[index];
+                  const itemsPerRow = 8;
+                  const hasMore = game.achievements.length > itemsPerRow;
+                  const displayedAchievements = isExpanded ? game.achievements : game.achievements.slice(0, itemsPerRow);
+
+                  return (
+                    <div key={index} className="animate-fade-in">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-[11px] font-bold text-plasma-text-secondary tracking-[0.2em] uppercase">{game.title}</h3>
+                        {hasMore && (
+                          <button
+                            onClick={() => toggleExpand(index)}
+                            className="text-[10px] font-bold text-plasma-primary hover:text-plasma-secondary transition-colors uppercase tracking-[0.15em] flex items-center gap-1 cursor-pointer"
+                          >
+                            {isExpanded ? "Show Less" : "Show All"}
+                            {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-[32px]">
+                        {displayedAchievements.map((ach, aIdx) => {
+                          const Icon = iconMap[ach.iconName] || Lock;
+                          return (
+                            <div key={aIdx} className={`flex flex-col items-center gap-2 w-[72px] text-center ${!ach.unlocked ? 'opacity-50 grayscale' : ''}`}>
+                              <div className={`w-[72px] h-[72px] rounded-full border-2 ${ach.border} flex items-center justify-center bg-white/5 relative ${ach.unlocked ? ach.shadow : ''}`}>
+                                <Icon className={`w-8 h-8 ${ach.color}`} />
+                              </div>
+                              <p className={`text-[10px] font-medium truncate w-full ${!ach.unlocked ? 'text-plasma-text-secondary' : 'text-plasma-text-primary'}`}>
+                                {ach.title}
+                              </p>
+                              <p className={`text-[9px] font-mono ${ach.color}`}>{ach.xp}</p>
                             </div>
-                            <p className={`text-[10px] font-medium truncate w-full ${!ach.unlocked ? 'text-plasma-text-secondary' : 'text-plasma-text-primary'}`}>
-                              {ach.title}
-                            </p>
-                            <p className={`text-[9px] font-mono ${ach.color}`}>{ach.xp}</p>
-                          </div>
-                        )
-                      })}
+                          )
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="text-center py-12">
                   <p className="text-plasma-text-secondary text-sm">No achievements in this category yet.</p>
@@ -405,31 +445,29 @@ export default function Prestige() {
                 {activeLeaderboard === "friends" ? "FRIENDS LEADERBOARD" : "GLOBAL LEADERBOARD"}
               </h2>
             </div>
-            
+
             {/* Ranking Tabs */}
             <div className="flex gap-6 border-b border-white/5 mb-4">
               <button
                 onClick={() => setActiveLeaderboard("friends")}
-                className={`pb-2 px-1 border-b-2 text-sm font-medium cursor-pointer transition-colors ${
-                  activeLeaderboard === "friends"
+                className={`pb-2 px-1 border-b-2 text-sm font-medium cursor-pointer transition-colors ${activeLeaderboard === "friends"
                     ? "border-plasma-primary text-plasma-text-primary"
                     : "border-transparent text-plasma-text-secondary hover:text-plasma-text-primary"
-                }`}
+                  }`}
               >
                 Friends
               </button>
               <button
                 onClick={() => setActiveLeaderboard("global")}
-                className={`pb-2 px-1 border-b-2 text-sm font-medium cursor-pointer transition-colors ${
-                  activeLeaderboard === "global"
+                className={`pb-2 px-1 border-b-2 text-sm font-medium cursor-pointer transition-colors ${activeLeaderboard === "global"
                     ? "border-plasma-primary text-plasma-text-primary"
                     : "border-transparent text-plasma-text-secondary hover:text-plasma-text-primary"
-                }`}
+                  }`}
               >
                 Global
               </button>
             </div>
-            
+
             {/* Leaderboard Rows */}
             {loadingLeaderboard ? <LeaderboardSkeleton /> : (
               <div className="space-y-1">
@@ -437,21 +475,20 @@ export default function Prestige() {
                   const liveIntent = lb.isCurrentUser ? user?.intent : lb.rawIntent;
                   const style = getIntentStyle(liveIntent);
                   return (
-                    <Link 
+                    <Link
                       href={`/profile/${lb.plasmaUserID}`}
-                      key={lb.id} 
-                      className={`flex items-center gap-3 p-2.5 border-b border-white/5 transition-colors cursor-pointer ${
-                        lb.isCurrentUser ? 'bg-white/10 rounded-lg' : 'hover:bg-white/5'
-                      }`}
+                      key={lb.id}
+                      className={`flex items-center gap-3 p-2.5 border-b border-white/5 transition-colors cursor-pointer ${lb.isCurrentUser ? 'bg-white/10 rounded-lg' : 'hover:bg-white/5'
+                        }`}
                     >
                       <span className={`w-6 text-center ${lb.id <= 3 ? 'text-lg' : 'text-sm text-plasma-text-secondary font-mono'}`}>
                         {lb.rank}
                       </span>
                       <div className="relative shrink-0">
-                        <img 
-                          src={lb.avatar} 
-                          alt={lb.name} 
-                          className={`w-8 h-8 rounded-full border-2 ${style.border}`} 
+                        <img
+                          src={lb.avatar}
+                          alt={lb.name}
+                          className={`w-8 h-8 rounded-full border-2 ${style.border}`}
                         />
                       </div>
                       <span className={`flex-1 text-sm truncate ${lb.isCurrentUser ? 'text-plasma-secondary font-bold' : lb.id <= 3 ? 'text-plasma-text-primary font-medium' : 'text-plasma-text-secondary'}`}>
@@ -465,9 +502,9 @@ export default function Prestige() {
                 })}
               </div>
             )}
-            
+
             {/* Bottom CTA */}
-            <button 
+            <button
               onClick={() => inviteModal.open()}
               className="w-full mt-6 py-3 rounded-full bg-primary-gradient text-white font-bold text-sm tracking-widest uppercase hover:shadow-[0_0_20px_rgba(255,42,122,0.3)] transition-all cursor-pointer"
             >
@@ -477,15 +514,15 @@ export default function Prestige() {
         </div>
 
       </div>
-      
-      <EditHallOfFameModal 
-        isOpen={editHofModal.isOpen} 
+
+      <EditHallOfFameModal
+        isOpen={editHofModal.isOpen}
         onClose={editHofModal.close}
         initialSelectedIds={hof.map(h => h.id)}
         onUpdate={(ids) => handleUpdateHof(ids)}
       />
-      <InviteFriendsModal 
-        isOpen={inviteModal.isOpen} 
+      <InviteFriendsModal
+        isOpen={inviteModal.isOpen}
         onClose={inviteModal.close}
       />
       <AddMilestoneModal

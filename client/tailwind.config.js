@@ -32,6 +32,10 @@ module.exports = {
           success: "#2ECC71",
           warning: "#F1C40F",
           error: "#E74C3C",
+          platinum: "#E5E4E2",
+          gold: "#FFD700",
+          silver: "#C0C0C0",
+          bronze: "#CD7F32",
         },
       },
       fontFamily: {

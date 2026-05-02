@@ -19,6 +19,10 @@
   --color-plasma-success: #2ECC71;
   --color-plasma-warning: #F1C40F;
   --color-plasma-error: #E74C3C;
+  --color-plasma-platinum: #E5E4E2;
+  --color-plasma-gold: #FFD700;
+  --color-plasma-silver: #C0C0C0;
+  --color-plasma-bronze: #CD7F32;
 
   /* Fonts - accessible via font-sans, font-display, font-mono */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui;
