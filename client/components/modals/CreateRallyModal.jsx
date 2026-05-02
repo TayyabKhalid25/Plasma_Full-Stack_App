@@ -344,5 +344,14 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated, initialData 
         </div>
       </div>
     </ModalWrapper>
+
+    <ConfirmDeleteModal 
+      isOpen={showDeleteConfirm} 
+      onClose={() => setShowDeleteConfirm(false)}
+      onConfirm={confirmDelete}
+      title="Delete Rally"
+      message="Are you sure you want to delete this rally? This will also remove the associated post and notify all attendees."
+    />
+    </>
   );
 }
