@@ -5,6 +5,26 @@ const { getSteamOwnedGames, getSteamPlayerSummaries, searchIgdbGames, fetchHighR
 
 const router = express.Router();
 
+// GET /api/library
+// Get current user's library
+router.get('/', authenticateToken, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT le."appID" AS "gameID", le."hoursPlayed", le."isCurrentlyPlaying", 
+                   g."title", g."platform", g."coverArtURL"
+            FROM "library_entries" le
+            JOIN "games" g ON le."appID" = g."appID"
+            WHERE le."userID" = $1
+            ORDER BY g."title" ASC
+        `, [req.userId]);
+
+        res.json({ success: true, data: result.rows });
+    } catch (error) {
+        console.error('Error fetching library:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
 // POST /api/library/sync/steam (Unified Sync Endpoint)
 router.post('/sync/steam', authenticateToken, async (req, res) => {
     try {

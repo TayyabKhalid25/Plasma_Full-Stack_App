@@ -327,7 +327,7 @@ export default function Prestige() {
                         <p className={`text-[12px] font-mono ${item.color}`}>{item.xp}</p>
                       </div>
                     </div>
-                  );
+                  )
                 }) : (
                   <p className="text-sm text-plasma-text-secondary py-4">No achievements pinned yet.</p>
                 )}
@@ -382,7 +382,7 @@ export default function Prestige() {
                             </p>
                             <p className={`text-[9px] font-mono ${ach.color}`}>{ach.xp}</p>
                           </div>
-                        );
+                        )
                       })}
                     </div>
                   </div>
@@ -461,7 +461,7 @@ export default function Prestige() {
                         {lb.xp}
                       </span>
                     </Link>
-                  );
+                  )
                 })}
               </div>
             )}

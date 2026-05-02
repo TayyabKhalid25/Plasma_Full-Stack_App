@@ -156,7 +156,7 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated }) {
         <div>
           <label className="text-xs font-bold text-plasma-text-secondary uppercase tracking-wider mb-2 block">Intent</label>
           <div className="flex gap-3">
-            {["CHILL", "COMP", "LFG"].map(intent => (
+            {["CHILL", "COMP"].map(intent => (
               <button
                 key={intent}
                 onClick={() => setFormData({...formData, intent})}

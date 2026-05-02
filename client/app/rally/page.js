@@ -21,7 +21,7 @@ function getDaysInMonth(year, month) {
   return DAYS_IN_MONTH[month];
 }
 
-const intentOptions = ["All Intents", "COMP", "CHILL", "LFG"];
+const intentOptions = ["All Intents", "COMP", "CHILL"];
 
 
 // --- SKELETON ---
@@ -92,7 +92,10 @@ export default function Rally() {
             organizerName: e.organizerName,
             rsvpd: e.hasRsvpd === true || e.hasRsvpd === 't',
             image: "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop",
-            roles: [{ name: "Open Slots", filled, total, percent: total > 0 ? Math.round((filled / total) * 100) : 0 }],
+            roles: e.roles && e.roles.length > 0 
+              ? e.roles.map(r => ({ ...r, percent: r.totalSlots > 0 ? Math.round((0 / r.totalSlots) * 100) : 0 })) // 0 filled for now as rsvps are not split by role yet in this simple view
+              : [{ name: "Open Slots", filled, total, percent: total > 0 ? Math.round((filled / total) * 100) : 0 }],
+            gameTitle: e.gameTitle,
             players: [],
           };
         }));
@@ -169,7 +172,7 @@ export default function Rally() {
       const i = e.intent?.toUpperCase();
       if (intentFilter === "COMP" && i !== "COMPETITIVE" && i !== "COMP") return false;
       if (intentFilter === "CHILL" && i !== "CHILL") return false;
-      if (intentFilter === "LFG" && i !== "LFG") return false;
+      if (intentFilter === "CHILL" && i !== "CHILL") return false;
     }
     return true;
   });
@@ -351,13 +354,14 @@ export default function Rally() {
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${event.intentColor}`}>{event.intent}</span>
                           <span className="text-xs font-medium text-plasma-text-secondary">{event.time}</span>
                         </div>
-                        <h4 className="text-xl font-display font-bold mb-4 text-plasma-text-primary">{event.title}</h4>
+                        <h4 className="text-xl font-display font-bold mb-1 text-plasma-text-primary">{event.title}</h4>
+                        {event.gameTitle && <p className="text-xs font-bold text-plasma-primary uppercase tracking-widest mb-3">{event.gameTitle}</p>}
                         
                         <div className="space-y-3 mb-6">
                           {event.roles.map((role, idx) => (
                             <div key={idx}>
                               <div className="flex justify-between text-[10px] font-bold mb-1">
-                                <span className="text-plasma-text-secondary uppercase">{role.name} ({role.filled}/{role.total})</span>
+                                <span className="text-plasma-text-secondary uppercase">{role.name} ({role.totalSlots || role.total} Slots)</span>
                               </div>
                               <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
                                 <div className="h-full bg-plasma-primary" style={{ width: `${role.percent}%` }}></div>
@@ -427,7 +431,8 @@ export default function Rally() {
                           </div>
                           <div>
                             <h3 className="font-display font-bold text-xl text-plasma-text-primary">{item.title}</h3>
-                            <div className="flex items-center gap-3 text-sm text-plasma-text-secondary font-medium">
+                            {item.gameTitle && <p className="text-[10px] font-bold text-plasma-primary uppercase tracking-widest">{item.gameTitle}</p>}
+                            <div className="flex items-center gap-3 text-sm text-plasma-text-secondary font-medium mt-1">
                               <span>{item.dateLabel}</span>
                               <span className="w-1 h-1 rounded-full bg-plasma-text-secondary/30"></span>
                               <span>{item.time}</span>

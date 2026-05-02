@@ -18,12 +18,16 @@ router.get('/', authenticateToken, async (req, res) => {
                 e."scheduledStartUTC", 
                 e."maxCapacity", 
                 e."requiredIntent",
+                e."gameID",
+                e."roles",
+                g."title" AS "gameTitle",
                 u."username" AS "organizerName",
                 u."plasmaUserID" AS "organizerID",
                 (SELECT COUNT(*) FROM "rsvps" r WHERE r."eventID" = e."eventID" AND r."status" = 'CONFIRMED') AS "currentAttendees",
                 (SELECT COUNT(*) > 0 FROM "rsvps" r WHERE r."eventID" = e."eventID" AND r."userID" = $1) AS "hasRsvpd"
             FROM "rally_events" e
             JOIN "users" u ON e."organizerID" = u."plasmaUserID"
+            LEFT JOIN "games" g ON e."gameID" = g."appID"
             WHERE e."scheduledStartUTC" > CURRENT_TIMESTAMP
             ORDER BY e."scheduledStartUTC" ASC
         `, [userId]);
@@ -66,7 +70,7 @@ router.get('/upcoming', authenticateToken, async (req, res) => {
 // Create a new rally event
 router.post('/', authenticateToken, async (req, res) => {
     const userId = req.userId;
-    const { title, description, scheduledStartUTC, maxCapacity, requiredIntent } = req.body;
+    const { title, description, scheduledStartUTC, maxCapacity, requiredIntent, gameId, roles } = req.body;
 
     if (!title || !scheduledStartUTC || !maxCapacity) {
         return res.status(400).json({ success: false, message: 'title, scheduledStartUTC, and maxCapacity are required' });
@@ -74,10 +78,10 @@ router.post('/', authenticateToken, async (req, res) => {
 
     try {
         const result = await pool.query(`
-            INSERT INTO "rally_events" ("organizerID", "title", "description", "scheduledStartUTC", "maxCapacity", "requiredIntent")
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO "rally_events" ("organizerID", "title", "description", "scheduledStartUTC", "maxCapacity", "requiredIntent", "gameID", "roles")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *
-        `, [userId, title, description || null, scheduledStartUTC, maxCapacity, requiredIntent || 'CHILL']);
+        `, [userId, title, description || null, scheduledStartUTC, maxCapacity, requiredIntent || 'CHILL', gameId || null, JSON.stringify(roles || [])]);
 
         res.status(201).json({ success: true, data: result.rows[0] });
 
@@ -93,11 +97,13 @@ router.get('/:eventId', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT 
-                e."eventID", e."title", e."description", e."scheduledStartUTC", e."maxCapacity", e."requiredIntent",
+                e."eventID", e."title", e."description", e."scheduledStartUTC", e."maxCapacity", e."requiredIntent", e."gameID", e."roles",
+                g."title" AS "gameTitle",
                 u."username" AS "organizerName", u."plasmaUserID" AS "organizerID",
                 (SELECT COUNT(*) FROM "rsvps" r WHERE r."eventID" = e."eventID" AND r."status" = 'CONFIRMED') AS "currentAttendees"
             FROM "rally_events" e
             JOIN "users" u ON e."organizerID" = u."plasmaUserID"
+            LEFT JOIN "games" g ON e."gameID" = g."appID"
             WHERE e."eventID" = $1
         `, [eventId]);
         

@@ -32,6 +32,8 @@ export const apiService = {
       scheduledStartUTC: `${sanitized.date}T${sanitized.time}:00Z`,
       maxCapacity: sanitized.roles.reduce((sum, r) => sum + r.totalSlots, 0),
       requiredIntent: sanitized.intent === "COMP" ? "COMPETITIVE" : sanitized.intent,
+      gameId: sanitized.gameId,
+      roles: sanitized.roles,
     };
 
     const res = await fetch(`${API_BASE}/api/rallies`, {
