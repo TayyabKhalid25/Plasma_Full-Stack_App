@@ -287,7 +287,7 @@ export default function Rally() {
           <div className="flex gap-10 items-start flex-col xl:flex-row">
             
             {/* Calendar Grid Container */}
-            <div className="flex-shrink-0 w-full xl:w-[750px]">
+            <div className="flex-shrink-0 w-full xl:w-[600px]">
               <div className="flex justify-between items-center mb-6 px-4">
                 <h2 className="font-display text-2xl font-bold tracking-wider text-plasma-text-primary">
                   {MONTHS[currentMonth].toUpperCase()} {currentYear}
@@ -298,11 +298,11 @@ export default function Rally() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-7 text-center text-[10px] font-bold text-plasma-text-secondary mb-4 min-w-[700px] xl:min-w-0">
+              <div className="grid grid-cols-7 text-center text-[10px] font-bold text-plasma-text-secondary mb-4 min-w-[600px] xl:min-w-0">
                 <div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div><div>SUN</div>
               </div>
               
-              <div className="grid grid-cols-7 border-l border-t border-white/5 min-w-[700px] xl:min-w-0">
+              <div className="grid grid-cols-7 border-l border-t border-white/5 min-w-[600px] xl:min-w-0">
                 {Array.from({ length: 42 }).map((_, i) => {
                   const day = i - startOffset + 1;
                   const isCurrentMonth = day > 0 && day <= daysInMonth;
@@ -316,7 +316,7 @@ export default function Rally() {
                     <div 
                       key={i}
                       onClick={() => isCurrentMonth && setSelectedDay(day)}
-                      className={`h-24 border-r border-b border-white/5 p-3 relative flex flex-col items-center justify-center cursor-pointer transition-all ${
+                      className={`h-20 border-r border-b border-white/5 p-3 relative flex flex-col items-center justify-center cursor-pointer transition-all ${
                         !isCurrentMonth ? "bg-plasma-bg/50 text-plasma-text-secondary/30" : "bg-plasma-slate hover:bg-plasma-slate-hover"
                       } ${isToday ? "bg-plasma-primary/10 border-plasma-primary shadow-[inset_0_0_15px_rgba(86,56,149,0.5)]" : ""}
                       ${isSelected && !isToday ? "bg-plasma-secondary/10 border-plasma-secondary/30" : ""}`}
