@@ -200,6 +200,17 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated, initialData 
             </select>
             {errors.gameId && <span className="text-xs text-plasma-error mt-1">{errors.gameId}</span>}
           </div>
+
+          <div>
+            <label className="text-xs font-bold text-plasma-text-secondary uppercase tracking-wider mb-2 block">Description / Mission Briefing</label>
+            <textarea 
+              value={formData.description}
+              onChange={e => setFormData({...formData, description: e.target.value})}
+              placeholder="e.g. Bringing the heat in Diamond lobbies. Need a focused squad for a 5-win streak."
+              rows={3}
+              className="w-full bg-plasma-bg border border-white/10 rounded-lg px-4 py-2 text-sm text-plasma-text-primary outline-none focus:border-plasma-primary resize-none custom-scrollbar"
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">

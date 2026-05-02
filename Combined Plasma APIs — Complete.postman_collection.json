@@ -2215,6 +2215,45 @@
             "description": "Returns the list of upcoming rallies organized by a specific user. Visibility is restricted to mutual friends only (BR-1)."
           },
           "response": []
+        },
+        {
+          "name": "Kick Attendee from Rally",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/rallies/:eventId/kick/:targetUserId",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "rallies",
+                ":eventId",
+                "kick",
+                ":targetUserId"
+              ],
+              "variable": [
+                {
+                  "key": "eventId",
+                  "value": "rally_123"
+                },
+                {
+                  "key": "targetUserId",
+                  "value": "user_456"
+                }
+              ]
+            },
+            "description": "Allows the rally organizer to manually remove an attendee. This endpoint validates that the caller is the organizer and then deletes the corresponding RSVP record. It also triggers a 'RALLY_REMOVED' notification to the kicked user."
+          },
+          "response": []
         }
       ]
     },

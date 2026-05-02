@@ -52,7 +52,7 @@ export const RightRail = () => {
         <div className="flex flex-col items-start gap-4 relative self-stretch w-full">
           {loading ? (
             <span className="text-xs text-plasma-text-secondary">Loading...</span>
-          ) : (
+          ) : trendingGames.length > 0 ? (
             trendingGames.map((game) => (
               <div key={game.appID || game.name} className="flex items-center justify-between w-full gap-2 cursor-pointer hover:opacity-80 transition-opacity">
                 <div className="flex items-center gap-3 min-w-0">
@@ -69,6 +69,10 @@ export const RightRail = () => {
                 </div>
               </div>
             ))
+          ) : (
+            <span className="text-[10px] font-bold text-plasma-text-secondary uppercase tracking-widest opacity-40 py-2">
+              Everyone is offline
+            </span>
           )}
         </div>
       </div>
@@ -84,13 +88,12 @@ export const RightRail = () => {
           ) : (
             upcomingRallies.map((rally) => (
               <Link 
-                key={rally.eventID || rally.title}
-                href="/rally"
-                className="flex flex-col gap-1 pl-3 border-l-2 cursor-pointer hover:opacity-80 transition-opacity"
-                style={{ borderColor: rally.borderColor || '#563895' }}
+                key={rally.id}
+                href={`/rally/${rally.id}`}
+                className="flex flex-col gap-1 pl-3 border-l-2 border-plasma-primary cursor-pointer hover:bg-white/5 rounded-lg transition-all w-full"
               >
                 <span className="font-sans font-bold text-plasma-text-primary text-xs">{rally.title}</span>
-                <span className="font-sans text-plasma-text-secondary text-[10px]">{rally.time || rally.scheduledStartUTC}</span>
+                <span className="font-sans text-plasma-text-secondary text-[10px]">{rally.time}</span>
               </Link>
             ))
           )}

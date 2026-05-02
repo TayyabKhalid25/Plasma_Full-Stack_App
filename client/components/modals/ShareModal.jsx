@@ -50,13 +50,18 @@ export function ShareModal({ isOpen, onClose, shareType = "post", shareId }) {
 
   const handleSendToFriend = async (friendId) => {
     try {
+      const isRally = shareType === "rally";
       await fetch(`${API_BASE}/api/messages/${friendId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ content: `Check this out: ${shareLink}` })
+        body: JSON.stringify({ 
+          content: isRally ? `Invited you to a Rally!` : `Check this out: ${shareLink}`,
+          isLobbyInvite: isRally,
+          lobbyLink: isRally ? shareLink : null
+        })
       });
       setSentTo(prev => new Set(prev).add(friendId));
     } catch (err) {
