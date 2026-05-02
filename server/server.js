@@ -88,7 +88,6 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const notificationRoutes = require('./routes/notification');
 const messageRoutes = require('./routes/message');
-const adminRoutes = require('./routes/admin');
 // New API Domains
 const feedRoutes = require('./routes/feed');
 const gamesRoutes = require('./routes/games');
@@ -110,7 +109,6 @@ app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/messages', messageRoutes);
-app.use('/api/admin', adminRoutes);
 
 // New API Endpoints
 app.use('/api/feed', feedRoutes);

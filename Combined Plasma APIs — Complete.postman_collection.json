@@ -228,6 +228,49 @@
                         "description": "Checks if the supplied JWT token is still valid. Returns 200 if valid, 401 if expired or tampered. Useful for the frontend to gate protected routes on page load without fetching the full /me profile."
                     },
                     "response": []
+                },
+                {
+                    "name": "Health Check",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{API_BASE_URL}}/health",
+                            "host": [
+                                "{{API_BASE_URL}}"
+                            ],
+                            "path": [
+                                "health"
+                            ]
+                        },
+                        "description": "Returns precise status of each dependency. Used by monitoring, load balancers, and CI pipelines to determine if the server is truly healthy — not just alive."
+                    },
+                    "response": [
+                        {
+                            "name": "200 OK",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{API_BASE_URL}}/health",
+                                    "host": [
+                                        "{{API_BASE_URL}}"
+                                    ],
+                                    "path": [
+                                        "health"
+                                    ]
+                                },
+                                "description": "Returns precise status of each dependency. Used by monitoring, load balancers, and CI pipelines to determine if the server is truly healthy — not just alive."
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": null,
+                            "cookie": [],
+                            "responseTime": null,
+                            "body": "{\n    \"status\": \"healthy\",\n    \"timestamp\": \"2026-05-01T22:50:00.000Z\",\n    \"uptime\": 120.5,\n    \"checks\": {\n        \"server\": { \"status\": \"online\" },\n        \"database\": { \"status\": \"online\", \"latencyMs\": 15 }\n    }\n}"
+                        }
+                    ]
                 }
             ]
         },
@@ -2373,94 +2416,6 @@
             ],
             "description": "REST endpoints for managing chat history and inbox state. Real-time message delivery is handled via WebSocket connection at ws://localhost:5000/ws/chat?token={{JWT_TOKEN}}."
         },
-        {
-            "name": "10. Admin Dashboard",
-            "item": [
-                {
-                    "name": "Delete User Account (Admin)",
-                    "request": {
-                        "method": "DELETE",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{YOUR_TOKEN_HERE}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "http://localhost:5000/api/admin/user/:userId",
-                            "protocol": "http",
-                            "host": [
-                                "localhost"
-                            ],
-                            "port": "5000",
-                            "path": [
-                                "api",
-                                "admin",
-                                "user",
-                                ":userId"
-                            ],
-                            "variable": [
-                                {
-                                    "key": "userId",
-                                    "value": "12345"
-                                }
-                            ]
-                        },
-                        "description": "Permanently deletes a user account. Restricted to users with 'admin' type in the database. Unlike the self-deletion route, this is an immediate administrative action."
-                    },
-                    "response": []
-                }
-            ]
-        },
-        {
-            "name": "11. System Health",
-            "item": [
-                {
-                    "name": "Health Check",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{API_BASE_URL}}/health",
-                            "host": [
-                                "{{API_BASE_URL}}"
-                            ],
-                            "path": [
-                                "health"
-                            ]
-                        },
-                        "description": "Returns precise status of each dependency. Used by monitoring, load balancers, and CI pipelines to determine if the server is truly healthy."
-                    },
-                    "response": [
-                        {
-                            "name": "200 Healthy",
-                            "originalRequest": {
-                                "method": "GET",
-                                "header": [],
-                                "url": {
-                                    "raw": "{{API_BASE_URL}}/health",
-                                    "host": [
-                                        "{{API_BASE_URL}}"
-                                    ],
-                                    "path": [
-                                        "health"
-                                    ]
-                                }
-                            },
-                            "status": "OK",
-                            "code": 200,
-                            "_postman_previewlanguage": "json",
-                            "header": [
-                                {
-                                    "key": "Content-Type",
-                                    "value": "application/json"
-                                }
-                            ],
-                            "body": "{\n    \"status\": \"healthy\",\n    \"timestamp\": \"2026-05-01T22:50:00.000Z\",\n    \"uptime\": 120.5,\n    \"checks\": {\n        \"server\": {\n            \"status\": \"online\"\n        },\n        \"database\": {\n            \"status\": \"online\",\n            \"latencyMs\": 15\n        }\n    }\n}"
-                        }
-                    ]
-                }
-            ]
         }
     ]
 }
