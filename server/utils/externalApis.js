@@ -58,7 +58,7 @@ async function getIgdbToken(forceRefresh = false) {
     if (!forceRefresh && igdbToken && Date.now() < igdbTokenExpiresAt) {
         return igdbToken;
     }
-    
+
     if (!IGDB_CLIENT_ID || !IGDB_CLIENT_SECRET) {
         throw new Error('IGDB credentials are missing. Set IGDB_CLIENT_ID and IGDB_CLIENT_SECRET in .env');
     }
@@ -112,7 +112,7 @@ async function igdbApiRequest(config, retries = 3, backoff = 1000) {
             igdbToken = null;
             if (retries > 0) return igdbApiRequest(config, retries - 1, backoff);
         }
-        
+
         if (error.response && error.response.data) {
             console.error('[IGDB] API Error Data:', JSON.stringify(error.response.data));
         }
@@ -131,48 +131,34 @@ async function igdbApiRequest(config, retries = 3, backoff = 1000) {
  */
 async function searchIgdbGames(query) {
     try {
-        // Reordering fields to the front and removing newlines.
-        // Removed 'popularity' as it's not a valid field in this context.
-        const body = `fields name,cover.url,url,platforms,first_release_date,category; search "${query}"; limit 50;`;
-        
+        const body = `fields name,cover.image_id,cover.url,artworks.image_id,screenshots.image_id,url,platforms,first_release_date,game_type; where name ~ *"${query}"* & game_type = (0,4,8,9) & parent_game = null; sort total_rating_count desc; limit 15;`;
+
         const response = await igdbApiRequest({
             url: 'https://api.igdb.com/v4/games',
             method: 'POST',
             data: body
         });
-        
+
         if (!response.data || !Array.isArray(response.data)) return [];
 
-        // Filter by category in JS
-        const allowedCategories = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11];
-        
-        const filtered = response.data
-            .filter(game => {
-                const cat = game.category ?? 0; // IGDB omits category if it's 0 (Main Game)
-                return allowedCategories.includes(cat);
-            });
-
-        return filtered
-            .slice(0, 15) 
-            .map(game => {
-                if (game.cover && game.cover.url) {
-                    game.cover.url = game.cover.url.replace('t_thumb', 't_1080p').replace('//', 'https://');
-                }
-                return {
-                    id: game.id,
-                    name: game.name,
-                    cover: game.cover,
-                    url: game.url,
-                    releaseDate: game.first_release_date ? new Date(game.first_release_date * 1000).toISOString().split('T')[0] : null,
-                    platforms: game.platforms
-                };
-            });
+        return response.data.map(game => {
+            if (game.cover && game.cover.url) {
+                game.cover.url = game.cover.url.replace('t_thumb', 't_1080p').replace('//', 'https://');
+            }
+            return {
+                id: game.id,
+                name: game.name,
+                cover: game.cover,
+                url: game.url,
+                releaseDate: game.first_release_date ? new Date(game.first_release_date * 1000).toISOString().split('T')[0] : null,
+                platforms: game.platforms
+            };
+        });
     } catch (error) {
         console.error('[IGDB] Search Error:', error.message);
         throw error;
     }
 }
-
 /**
  * Double-Lookup Strategy: Find an IGDB game based on its Steam AppID
  */
@@ -184,7 +170,7 @@ async function fetchHighResCover(steamAppId) {
             method: 'POST',
             data: `fields game.cover.url; where uid = "${steamAppId}" & category = 1; limit 1;`
         });
-        
+
         if (response.data && response.data.length > 0 && response.data[0].game && response.data[0].game.cover) {
             let url = response.data[0].game.cover.url;
             return url.replace('t_thumb', 't_1080p').replace('//', 'https://');
@@ -210,7 +196,7 @@ async function steamApiRequest(url, retries = 3, backoff = 1000) {
         // - Rate limiting (429)
         const status = error.response?.status;
         const isTransient = !status || (status >= 500 && status <= 599) || status === 429;
-        
+
         if (isTransient && retries > 0) {
             console.log(`Steam API request failed (${status || 'Network Error'}), retrying in ${backoff}ms... (${retries} retries left)`);
             await new Promise(resolve => setTimeout(resolve, backoff));
@@ -285,9 +271,9 @@ async function getIgdbGameById(gameId) {
             method: 'POST',
             data: `fields name,cover.url,summary,first_release_date,platforms.name,genres.name,screenshots.url,videos.video_id; where id = ${gameId};`
         });
-        
+
         if (!response.data || response.data.length === 0) return null;
-        
+
         const game = response.data[0];
         if (game.cover && game.cover.url) {
             game.cover.url = game.cover.url.replace('t_thumb', 't_1080p').replace('//', 'https://');
