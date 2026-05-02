@@ -10,7 +10,10 @@
     "dev": "concurrently \"npm run dev --prefix client\" \"npm run dev --prefix server\"",
     "client": "npm run dev --prefix client",
     "server": "npm run dev --prefix server",
-    "decrypt": "npm run decrypt --prefix server"
+    "encrypt:client": "npm run encrypt --prefix client",
+    "decrypt:client": "npm run decrypt --prefix client",
+    "encrypt:server": "npm run encrypt --prefix server",
+    "decrypt:server": "npm run decrypt --prefix server"
   },
   "keywords": [],
   "author": "",

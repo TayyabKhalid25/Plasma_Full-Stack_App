@@ -36,6 +36,11 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# Vault files
+# IMPORTANT: These files MUST be tracked by Git
+!secrets.enc
+!utils/vault.js
+
 # vercel
 .vercel
 

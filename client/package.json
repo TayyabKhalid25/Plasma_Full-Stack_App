@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "encrypt": "node utils/vault.js encrypt",
+    "decrypt": "node utils/vault.js decrypt"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.8",
