@@ -123,8 +123,32 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated, initialData 
     }));
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm("Are you sure you want to delete this rally? This action cannot be undone.")) return;
+    setLoading(true);
+    try {
+      await apiService.deleteRally(initialData.eventID || initialData.id);
+      if (onRallyCreated) onRallyCreated(); // Trigger refetch
+      onClose();
+    } catch (err) {
+      if (err.errors) setErrors(err.errors);
+      else setErrors({ main: "An unexpected error occurred while deleting." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const footer = (
-    <div className="flex justify-end gap-3">
+    <div className="flex justify-end items-center gap-3 w-full">
+      {initialData && (
+        <button 
+          onClick={handleDelete}
+          disabled={loading}
+          className="mr-auto px-4 py-2 rounded-xl text-sm font-bold text-plasma-error hover:bg-plasma-error/10 transition-colors cursor-pointer disabled:opacity-50"
+        >
+          Delete Rally
+        </button>
+      )}
       <button onClick={onClose} className="px-5 py-2 rounded-xl text-sm font-bold text-plasma-text-secondary hover:text-white transition-colors cursor-pointer">
         Cancel
       </button>

@@ -79,6 +79,18 @@ export const apiService = {
     return data;
   },
 
+  deleteRally: async (eventId) => {
+    const res = await fetch(`${API_BASE}/api/rallies/${eventId}`, {
+      method: "DELETE",
+      headers: authHeaders(),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw { status: res.status, errors: { main: data.message || "Failed to delete rally" } };
+    }
+    return data;
+  },
+
   changePassword: async (payload) => {
     const { isValid, errors } = validationService.validatePasswordChange(payload);
 
