@@ -109,21 +109,6 @@ router.post('/sync/achievements', authenticateToken, async (req, res) => {
         const result = await syncSteamAchievements(req.userId);
 
         if (result.failedGames && result.failedGames.length > 0) {
-            // Enqueue background retries for games that failed due to transient errors
-            // (skip 403 = private profile — retrying won't help)
-            const retryableGames = result.failedGames
-                .filter(g => g.httpStatus !== 403)
-                .map(g => g.appId);
-
-            if (retryableGames.length > 0) {
-                const { enqueueJob } = require('../utils/jobQueue');
-                await enqueueJob('STEAM_ACHIEVEMENT_RETRY', {
-                    userId: req.userId,
-                    appIds: retryableGames
-                }, 5 * 60 * 1000); // Retry in 5 minutes
-                console.log(`[Steam] Enqueued retry for ${retryableGames.length} failed games.`);
-            }
-
             // Check if the profile is private (403 errors on games)
             const privateProfileErrors = result.failedGames.filter(g => g.httpStatus === 403);
             if (privateProfileErrors.length > 0 && result.gamesProcessed === 0) {
@@ -136,8 +121,7 @@ router.post('/sync/achievements', authenticateToken, async (req, res) => {
             message: `Synced ${result.totalSynced} achievements across ${result.gamesProcessed} games`,
             syncedAchievements: result.totalSynced,
             gamesProcessed: result.gamesProcessed,
-            failedGames: result.failedGames ? result.failedGames.map(g => g.appId) : [],
-            retriesEnqueued: result.failedGames ? result.failedGames.filter(g => g.httpStatus !== 403).length : 0
+            failedGames: result.failedGames ? result.failedGames.map(g => g.appId) : []
         });
     } catch (error) {
         console.error('Achievement Sync Error:', error);

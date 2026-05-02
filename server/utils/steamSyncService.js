@@ -183,9 +183,20 @@ async function syncSteamAchievements(userId) {
 
             // 2. Fetch global achievement percentages for this app
             const globalPercentages = await getSteamGlobalAchievementPercentages(appId);
-            const percentageMap = {};
-            globalPercentages.forEach(gp => {
-                percentageMap[gp.name] = gp.percent;
+            
+            // Sort all achievements by percentage descending (most common first)
+            const sortedGlobal = [...globalPercentages].sort((a, b) => b.percent - a.percent);
+            const totalCount = sortedGlobal.length;
+            
+            // Create a rarity map based on quartiles
+            const rarityMap = {};
+            sortedGlobal.forEach((gp, index) => {
+                let rarity = 1;
+                if (index >= totalCount * 0.75) rarity = 4;      // Bottom 25% (Rarest)
+                else if (index >= totalCount * 0.50) rarity = 3; 
+                else if (index >= totalCount * 0.25) rarity = 2;
+                
+                rarityMap[gp.name] = rarity;
             });
 
             gamesProcessed++;
@@ -198,14 +209,14 @@ async function syncSteamAchievements(userId) {
                 const title = ach.name || ach.apiname;
                 const description = ach.description || null;
 
-                // Calculate rarity and XP based on global percentage
-                const p = percentageMap[ach.apiname] || 100; // Default to common if not found
-                let rarity = 4;
-                let xp = 1000;
-
-                if (p > 75) { rarity = 1; xp = 100; }
-                else if (p > 50) { rarity = 2; xp = 250; }
-                else if (p > 25) { rarity = 3; xp = 550; }
+                // Get rarity from the quartile map (default to 1 if not found)
+                const rarity = rarityMap[ach.apiname] || 1;
+                
+                // Set XP based on rarity
+                let xp = 100;
+                if (rarity === 2) xp = 250;
+                else if (rarity === 3) xp = 550;
+                else if (rarity === 4) xp = 1000;
 
                 newAchievements.push({
                     achievementID,
