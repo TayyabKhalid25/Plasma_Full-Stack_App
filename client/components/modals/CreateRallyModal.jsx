@@ -14,8 +14,7 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated, initialData 
     time: "",
     intent: "CHILL",
     roles: [{ id: Date.now(), name: "", totalSlots: 1 }],
-    maxCapacity: 5,
-    description: "",
+    maxCapacity: 1,
     description: ""
   });
   const [hasRoles, setHasRoles] = useState(true);

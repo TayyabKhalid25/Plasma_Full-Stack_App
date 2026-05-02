@@ -23,7 +23,7 @@ export const apiService = {
     if (!isValid) throw { status: 400, errors };
     
     const roleSum = sanitized.roles.reduce((sum, r) => sum + r.totalSlots, 0);
-    const maxCapacity = roleSum > 0 ? roleSum : (parseInt(payload.maxCapacity) || 5);
+    const maxCapacity = roleSum > 0 ? roleSum : (parseInt(payload.maxCapacity) || 1);
 
     const body = {
       title: sanitized.title,
@@ -53,7 +53,7 @@ export const apiService = {
     if (!isValid) throw { status: 400, errors };
 
     const roleSum = sanitized.roles.reduce((sum, r) => sum + r.totalSlots, 0);
-    const maxCapacity = roleSum > 0 ? roleSum : (parseInt(payload.maxCapacity) || 5);
+    const maxCapacity = roleSum > 0 ? roleSum : (parseInt(payload.maxCapacity) || 1);
 
     const body = {
       title: sanitized.title,
