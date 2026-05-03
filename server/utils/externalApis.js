@@ -257,7 +257,7 @@ async function getSteamGlobalAchievementPercentages(appId) {
     if (!STEAM_API_KEY) throw new Error('Steam API Key missing');
     try {
         const response = await steamApiRequest(`https://api.steampowered.com/ISteamUserStats/GetGlobalAchievementPercentagesForApp/v0002/?gameid=${appId}&format=json`);
-        return response.data.achievementpercentages.achievements || [];
+        return response.data?.achievementpercentages?.achievements || [];
     } catch (error) {
         console.error(`Steam Global Achievement Percentages Error for app ${appId}:`, error.message);
         return []; // Return empty array on failure to allow sync to continue

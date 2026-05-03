@@ -6,7 +6,8 @@ async function migrate() {
         console.log('Running migration: Add mediaURL to direct_messages');
         await pool.query(`
             ALTER TABLE "direct_messages" 
-            ADD COLUMN IF NOT EXISTS "mediaURL" TEXT;
+            ADD COLUMN IF NOT EXISTS "mediaURL" TEXT,
+            ADD COLUMN IF NOT EXISTS "parentMessageID" UUID REFERENCES "direct_messages"("messageID") ON DELETE SET NULL;
         `);
         console.log('Migration successful.');
         process.exit(0);

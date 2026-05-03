@@ -4,6 +4,18 @@ const app = express();
 const cors = require('cors'); // Import CORS middleware
 require('dotenv').config(); // Load environment variables from .env file
 const port = parseInt(process.env.PORT, 10); // Convert environment variable to integer or default to 5000
+
+// ── Global Error Guard ────────────────────────────────────────────────────────
+// Catch-all handlers for errors that occur outside of Express routes.
+// Prevents the entire server process from exiting unexpectedly.
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[FATAL] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] Uncaught Exception thrown:', err);
+});
+
 const { globalLimiter, authLimiter, syncLimiter } = require('./middleware/rateLimiter');
 
 app.use(cors({
