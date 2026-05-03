@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth, API_BASE } from "@/context/AuthContext";
+import Image from "next/image";
 import { 
   Search, 
   Gamepad2, 
@@ -31,6 +32,14 @@ const gameFilters = [
 ];
 
 const iconMap = { Gamepad2, Gem, Cloud, Zap, Shield, Sparkles, Dog, Star, Castle, Cpu };
+
+// Prefer Steam's high-res vertical capsule over the tiny icon
+function getHighResImage(appID, fallbackURL, platform) {
+  if (platform === "STEAM" && appID && !appID.startsWith("custom_") && !appID.startsWith("igdb_")) {
+    return `https://steamcdn-a.akamaihd.net/steam/apps/${appID}/library_600x900.jpg`;
+  }
+  return fallbackURL || null;
+}
 
 // --- Skeleton Card ---
 function GameCardSkeleton() {
@@ -61,7 +70,7 @@ export default function Library() {
   };
 
   // Fetch local library
-  const fetchLibrary = async () => {
+  const fetchLibrary = useCallback(async () => {
     if (!token) return;
     try {
       const res = await fetch(`${API_BASE}/api/games?filter=${activeFilter}&q=${searchQuery}`, {
@@ -84,19 +93,11 @@ export default function Library() {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Prefer Steam's high-res vertical capsule over the tiny icon
-  function getHighResImage(appID, fallbackURL, platform) {
-    if (platform === "STEAM" && appID && !appID.startsWith("custom_") && !appID.startsWith("igdb_")) {
-      return `https://steamcdn-a.akamaihd.net/steam/apps/${appID}/library_600x900.jpg`;
-    }
-    return fallbackURL || null;
-  }
+  }, [token, activeFilter, searchQuery]);
 
   useEffect(() => {
     fetchLibrary();
-  }, [token, activeFilter, searchQuery]);
+  }, [fetchLibrary]);
 
   const togglePlaying = async (gameId, e, currentPlaying) => {
     e.preventDefault();
@@ -314,10 +315,9 @@ export default function Library() {
                         }`}
                       >
                         {game.image ? (
-                          <div 
-                            className="w-full h-full bg-cover bg-center"
-                            style={{ backgroundImage: `url(${game.image})` }}
-                          />
+                          <div className="absolute inset-0">
+                            <Image src={game.image} alt={game.title} fill className="object-cover transition-transform duration-500 group-hover:scale-110" sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />
+                          </div>
                         ) : (
                           <div className="w-full h-full bg-plasma-slate flex items-center justify-center">
                             <Gamepad2 className="w-12 h-12 text-plasma-text-secondary/30" />

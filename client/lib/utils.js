@@ -81,3 +81,10 @@ export function getRarityProps(rarity) {
       };
   }
 }
+export function getHeroImage(appID, fallbackURL, platform) {
+  if (platform === "STEAM" && appID && !appID.startsWith("custom_") && !appID.startsWith("igdb_")) {
+    // Use Steam's official 1920x620 hero banner for the detail page
+    return `https://steamcdn-a.akamaihd.net/steam/apps/${appID}/library_hero.jpg`;
+  }
+  return fallbackURL || null;
+}

@@ -4,14 +4,29 @@ import { use, useState, useEffect, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ArrowLeft, Clock, Trophy, Users, Play, Calendar, Loader2, Cloud, Gamepad2, Plus, ExternalLink, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Lock, Sparkles, Leaf, Flag, Gem, Zap, Activity } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { useSocket } from "@/context/SocketContext";
 import { useModal } from "@/hooks/useModal";
 import { AddMilestoneModal } from "@/components/modals/AddMilestoneModal";
-import { getRarityProps } from "@/lib/utils";
+import { AchievementIcon } from "@/components/ui/AchievementIcon";
+import { getRarityProps, getHeroImage } from "@/lib/utils";
 
-const iconMap = { Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Gem, Zap, Activity };
+const formatLastPlayed = (dateString) => {
+  if (!dateString) return "Never";
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+};
 
 export default function GameDetailPage({ params }) {
   const resolvedParams = params instanceof Promise ? use(params) : params;
@@ -48,19 +63,21 @@ export default function GameDetailPage({ params }) {
       });
       const achievementJson = await res.json();
       if (achievementJson.success) {
-        setAchievements(achievementJson.data.achievements.map(ach => {
-          const rarityProps = getRarityProps(ach.rarityWeight);
-          return {
-            id: ach.achievementID,
-            title: ach.title,
-            description: ach.description,
-            proofUrl: ach.proofUrl,
-            xp: `${ach.plasmaXP} XP`,
-            unlockedAt: ach.unlockedAt ? new Date(ach.unlockedAt).toLocaleDateString() : null,
-            unlocked: !!ach.unlockedAt,
-            ...rarityProps
-          };
-        }));
+        setAchievements(achievementJson.data.achievements
+          .filter(ach => !!ach.unlockedAt)
+          .map(ach => {
+            const rarityProps = getRarityProps(ach.rarityWeight);
+            return {
+              id: ach.achievementID,
+              title: ach.title,
+              description: ach.description,
+              proofUrl: ach.proofUrl,
+              xp: `${ach.plasmaXP} XP`,
+              unlockedAt: ach.unlockedAt ? new Date(ach.unlockedAt).toLocaleDateString() : null,
+              unlocked: !!ach.unlockedAt,
+              ...rarityProps
+            };
+          }));
       }
     } catch (err) {
       console.error("Failed to fetch achievements:", err);
@@ -89,13 +106,6 @@ export default function GameDetailPage({ params }) {
 
   const [isOwned, setIsOwned] = useState(false);
 
-  const getHeroImage = (appID, fallbackURL, platform) => {
-    if (platform === "STEAM" && appID && !appID.startsWith("custom_") && !appID.startsWith("igdb_")) {
-      // Use Steam's official 1920x620 hero banner for the detail page
-      return `https://steamcdn-a.akamaihd.net/steam/apps/${appID}/library_hero.jpg`;
-    }
-    return fallbackURL || null;
-  };
 
   useEffect(() => {
     let ignore = false;
@@ -185,20 +195,6 @@ export default function GameDetailPage({ params }) {
     return () => { ignore = true; };
   }, [id, token]);
 
-  const formatLastPlayed = (dateString) => {
-    if (!dateString) return "Never";
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-  };
 
   const togglePlaying = async () => {
     const newStatus = !isPlaying;
@@ -279,7 +275,7 @@ export default function GameDetailPage({ params }) {
         {/* Hero Banner */}
         <div className="relative w-full h-[320px] rounded-2xl overflow-hidden mb-8 shadow-2xl border border-white/5">
           {game.image ? (
-            <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105" style={{ backgroundImage: `url(${game.image})` }} />
+            <Image src={game.image} alt={game.title} fill className="object-cover transition-transform duration-700 hover:scale-105" priority sizes="100vw" />
           ) : (
             <div className="absolute inset-0 bg-plasma-slate flex items-center justify-center">
               <Play className="w-20 h-20 text-white/5" />
@@ -392,42 +388,16 @@ export default function GameDetailPage({ params }) {
                   <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <span className="text-xs text-plasma-text-secondary font-medium">{achievements.length} Unlocked</span>
+              <div className="flex items-center gap-4">
+                <span className="text-xs text-plasma-text-secondary font-medium">{achievements.length} Unlocked</span>
+              </div>
             </div>
 
             {achievements.length > 0 ? (
               <div className="flex flex-wrap gap-8">
-                {achievements.map((ach) => {
-                  const Icon = iconMap[ach.iconName] || Trophy;
-                  return (
-                    <div key={ach.id} className={`flex flex-col items-center gap-3 w-[84px] text-center transition-all group ${!ach.unlocked ? 'opacity-40 grayscale' : ''}`}>
-                      <div className={`relative w-[72px] h-[72px] rounded-full border-2 ${ach.border} bg-white/5 flex items-center justify-center transition-all ${ach.unlocked ? ach.shadow + " group-hover:" + ach.glow : ""}`}>
-                        <Icon className={`w-8 h-8 ${ach.color} transition-all group-hover:scale-110`} />
-                        {!ach.unlocked && <Lock className="absolute bottom-0 right-0 w-4 h-4 text-plasma-text-secondary bg-plasma-bg rounded-full p-0.5" />}
-                      </div>
-                      <div className="min-w-0 w-full">
-                        <p className={`text-[10px] font-bold truncate leading-tight ${ach.unlocked ? 'text-plasma-text-primary' : 'text-plasma-text-secondary'}`}>
-                          {ach.title}
-                        </p>
-                        <p className={`text-[9px] font-mono mt-0.5 ${ach.color}`}>{ach.xp}</p>
-                      </div>
-
-                      {/* Tooltip-like hover state for info */}
-                      {ach.unlocked && (
-                        <div className="absolute z-10 hidden group-hover:block pointer-events-none">
-                          <div className="mt-24 p-3 rounded-xl bg-plasma-slate border border-white/10 shadow-2xl min-w-[200px] -translate-x-1/2 left-1/2 text-left">
-                            <p className="text-xs font-bold text-plasma-text-primary mb-1">{ach.title}</p>
-                            {ach.description && <p className="text-[10px] text-plasma-text-secondary leading-relaxed mb-2 italic">"{ach.description}"</p>}
-                            <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
-                              <span className="text-[9px] font-bold text-plasma-primary uppercase tracking-tighter">Unlocked {ach.unlockedAt}</span>
-                              <span className={`text-[9px] font-mono ${ach.color}`}>{ach.xp}</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                {achievements.map((ach) => (
+                  <AchievementIcon key={ach.id} achievement={ach} />
+                ))}
               </div>
             ) : (
               <div className="bg-plasma-slate/30 border border-dashed border-white/10 rounded-2xl p-12 text-center">
@@ -437,11 +407,27 @@ export default function GameDetailPage({ params }) {
             )}
           </div>
 
-          {/* Friends Playing Placeholder */}
+          {/* Friends Playing Activity */}
           <div>
             <h2 className="font-display font-bold text-xl text-plasma-text-primary mb-4">Activity</h2>
             <div className="bg-plasma-slate/60 backdrop-blur-md rounded-2xl border border-white/5 p-6">
-              <p className="text-sm text-plasma-text-secondary text-center py-8 italic">No recent activity found for this title.</p>
+              {friendsPlaying.length > 0 ? (
+                <div className="space-y-4">
+                  {friendsPlaying.map(friend => (
+                    <div key={friend.id} className="flex items-center gap-3">
+                      <Link href={`/profile/${friend.id}`} className="shrink-0 relative w-10 h-10">
+                        <Image src={friend.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + friend.username} alt={friend.username} fill className="rounded-full border border-white/10 hover:border-plasma-primary transition-colors object-cover" sizes="40px" />
+                      </Link>
+                      <div className="min-w-0 flex-1">
+                        <Link href={`/profile/${friend.id}`} className="text-sm font-bold text-plasma-text-primary truncate hover:text-plasma-primary transition-colors block">{friend.username}</Link>
+                        <p className="text-xs text-plasma-text-secondary truncate">Unlocked {friend.unlockedCount} achievements</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-plasma-text-secondary text-center py-8 italic">No friends have played this yet.</p>
+              )}
             </div>
           </div>
         </div>

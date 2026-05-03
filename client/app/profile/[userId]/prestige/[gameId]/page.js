@@ -11,22 +11,24 @@ import { AchievementCard } from "@/components/ui/AchievementCard";
 import { FriendAchievementCard } from "@/components/ui/FriendAchievementCard";
 import Link from "next/link";
 
-export default function GamePrestigePage({ params }) {
-  const { gameId } = use(params);
+export default function UserGamePrestigePage({ params }) {
+  const { userId, gameId } = use(params);
   const { token } = useAuth();
   const [loading, setLoading] = useState(true);
   const [pageData, setPageData] = useState(null);
   const [friends, setFriends] = useState([]);
   const [activeTab, setActiveTab] = useState("all");
+  const [privacyError, setPrivacyError] = useState(false);
 
   useEffect(() => {
-    if (!token || !gameId) return;
+    if (!token || !gameId || !userId) return;
 
     const fetchData = async () => {
       setLoading(true);
+      setPrivacyError(false);
       try {
         const [achRes, friendsRes] = await Promise.all([
-          fetch(`${API_BASE}/api/achievements/game/${gameId}`, {
+          fetch(`${API_BASE}/api/achievements/game/${gameId}?userId=${userId}`, {
             headers: { Authorization: `Bearer ${token}` }
           }),
           fetch(`${API_BASE}/api/achievements/game/${gameId}/friends`, {
@@ -37,7 +39,12 @@ export default function GamePrestigePage({ params }) {
         const achJson = await achRes.json();
         const friendsJson = await friendsRes.json();
 
-        if (achJson.success) setPageData(achJson.data);
+        if (achJson.success) {
+          setPageData(achJson.data);
+        } else if (achJson.isPrivate) {
+          setPrivacyError(true);
+        }
+        
         if (friendsJson.success) setFriends(friendsJson.data);
       } catch (err) {
         console.error("Failed to fetch game prestige data", err);
@@ -47,7 +54,7 @@ export default function GamePrestigePage({ params }) {
     };
 
     fetchData();
-  }, [token, gameId]);
+  }, [token, gameId, userId]);
 
   if (loading) {
     return (
@@ -59,13 +66,35 @@ export default function GamePrestigePage({ params }) {
     );
   }
 
+  if (privacyError) {
+    return (
+      <DashboardLayout showRightRail={false}>
+        <div className="p-12 text-center max-w-xl mx-auto">
+          <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 border border-white/10">
+            <Lock className="w-10 h-10 text-plasma-text-secondary/50" />
+          </div>
+          <h2 className="text-2xl font-black text-white uppercase tracking-tight mb-4">Private Profile</h2>
+          <p className="text-plasma-text-secondary leading-relaxed mb-8">
+            This user has set their Steam profile to private. You can only view their achievements if you are mutual friends on Plasma.
+          </p>
+          <Link 
+            href={`/profile/${userId}`} 
+            className="px-8 py-3 rounded-full bg-plasma-primary text-white font-bold uppercase tracking-widest text-xs hover:shadow-[0_0_20px_rgba(255,42,122,0.4)] transition-all"
+          >
+            Back to Profile
+          </Link>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   if (!pageData) {
     return (
       <DashboardLayout showRightRail={false}>
         <div className="p-8 text-center">
           <p className="text-plasma-text-secondary">Game not found or error loading data.</p>
-          <Link href="/prestige" className="text-plasma-primary hover:underline mt-4 inline-block">
-            Back to Prestige
+          <Link href={`/profile/${userId}`} className="text-plasma-primary hover:underline mt-4 inline-block font-bold uppercase tracking-widest text-xs">
+            Back to Profile
           </Link>
         </div>
       </DashboardLayout>
@@ -81,7 +110,6 @@ export default function GamePrestigePage({ params }) {
     : 0;
 
   // Group unlocked by date — backend already sorted unlockedAt DESC
-  // Recent: fuzzy labels. Older: specific date per unique day.
   const groupedAchievements = {};
   const groupOrder = [];
 
@@ -89,11 +117,14 @@ export default function GamePrestigePage({ params }) {
     const date = new Date(ach.unlockedAt);
     const now = new Date();
     let group;
-
+    
     const isToday = date.toDateString() === now.toDateString();
+    
+    // Simple "This Week" check (within last 7 days)
     const diffTime = Math.abs(now - date);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     const isThisWeek = diffDays <= 7 && !isToday;
+    
     const isThisMonth = date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear() && diffDays > 7;
 
     if (isToday) group = "Today";
@@ -103,7 +134,7 @@ export default function GamePrestigePage({ params }) {
 
     if (!groupedAchievements[group]) {
       groupedAchievements[group] = [];
-      groupOrder.push(group); // preserves insertion order from sorted backend data
+      groupOrder.push(group);
     }
     groupedAchievements[group].push(ach);
   });
@@ -114,11 +145,11 @@ export default function GamePrestigePage({ params }) {
 
         {/* Header */}
         <div className="relative group">
-          <Link href="/prestige" className="flex items-center gap-2 text-plasma-text-secondary hover:text-white transition-colors mb-6 group/back">
+          <Link href={`/profile/${userId}`} className="flex items-center gap-2 text-plasma-text-secondary hover:text-white transition-colors mb-6 group/back">
             <div className="p-2 rounded-full bg-white/5 group-hover/back:bg-plasma-primary transition-colors">
               <ArrowLeft className="w-4 h-4" />
             </div>
-            <span className="text-sm font-bold uppercase tracking-widest">Back to Prestige</span>
+            <span className="text-sm font-bold uppercase tracking-widest">Back to Profile</span>
           </Link>
 
           <div className="flex flex-col md:flex-row gap-8 items-center md:items-end">
@@ -194,93 +225,89 @@ export default function GamePrestigePage({ params }) {
         {/* Content */}
         <div className="space-y-12">
 
-          {activeTab !== "friends" && (
-            <>
-              {/* Unlocked — grouped by date */}
-              {(activeTab === "all" || activeTab === "unlocked") && groupOrder.map(group => (
-                groupedAchievements[group]?.length > 0 && (
-                  <div key={group} className="space-y-5">
-                    {/* Date divider */}
-                    <div className="flex items-center gap-4">
-                      <h2 className="text-xs font-black text-plasma-text-secondary uppercase tracking-[0.3em] shrink-0">
-                        {group}
-                      </h2>
-                      <div className="h-px w-full bg-white/5" />
-                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/5 border border-white/5 shrink-0">
-                        <span className="text-[11px] font-bold text-plasma-text-primary">
-                          {groupedAchievements[group].length}
-                        </span>
-                        <Medal className="w-3.5 h-3.5 text-plasma-gold" />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {groupedAchievements[group].map(ach => (
-                        <AchievementCard key={ach.achievementID} achievement={ach} />
-                      ))}
-                    </div>
-                  </div>
-                )
-              ))}
-
-              {/* Locked */}
-              {(activeTab === "all" || activeTab === "locked") && (
-                <div className="space-y-5">
+          <>
+            {/* Unlocked — grouped by date */}
+            {(activeTab === "all" || activeTab === "unlocked") && groupOrder.map(group => (
+              groupedAchievements[group]?.length > 0 && (
+                <div key={group} className="space-y-5">
+                  {/* Date divider */}
                   <div className="flex items-center gap-4">
                     <h2 className="text-xs font-black text-plasma-text-secondary uppercase tracking-[0.3em] shrink-0">
-                      Locked
+                      {group}
                     </h2>
                     <div className="h-px w-full bg-white/5" />
-                    {locked.length > 0 && (
-                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/5 border border-white/5 shrink-0">
-                        <span className="text-[11px] font-bold text-plasma-text-primary">
-                          {locked.length}
-                        </span>
-                        <Lock className="w-3.5 h-3.5 text-plasma-text-secondary" />
-                      </div>
-                    )}
+                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/5 border border-white/5 shrink-0">
+                      <span className="text-[11px] font-bold text-plasma-text-primary">
+                        {groupedAchievements[group].length}
+                      </span>
+                      <Medal className="w-3.5 h-3.5 text-plasma-gold" />
+                    </div>
                   </div>
 
-                  {locked.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 opacity-60">
-                      {locked.map(ach => (
-                        <AchievementCard key={ach.achievementID} achievement={ach} isLocked />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="py-10 px-6 rounded-3xl bg-white/5 border border-dashed border-white/10 text-center">
-                      <Info className="w-8 h-8 mx-auto text-plasma-text-secondary/30 mb-3" />
-                      <p className="text-sm text-plasma-text-secondary font-medium">
-                        {game.isManualEntry
-                          ? "Locked achievements unavailable for manual entries. Steam-linked titles only."
-                          : "Congratulations! Every achievement unlocked for this game."}
-                      </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {groupedAchievements[group].map(ach => (
+                      <AchievementCard key={ach.achievementID} achievement={ach} />
+                    ))}
+                  </div>
+                </div>
+              )
+            ))}
+
+            {/* Locked */}
+            {(activeTab === "all" || activeTab === "locked") && (
+              <div className="space-y-5">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-xs font-black text-plasma-text-secondary uppercase tracking-[0.3em] shrink-0">
+                    Locked
+                  </h2>
+                  <div className="h-px w-full bg-white/5" />
+                  {locked.length > 0 && (
+                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/5 border border-white/5 shrink-0">
+                      <span className="text-[11px] font-bold text-plasma-text-primary">
+                        {locked.length}
+                      </span>
+                      <Lock className="w-3.5 h-3.5 text-plasma-text-secondary" />
                     </div>
                   )}
                 </div>
-              )}
-            </>
-          )}
 
-          {activeTab === "friends" && (
-            <div className="space-y-8">
-              {friends.length === 0 ? (
-                <div className="text-center py-20 bg-white/5 rounded-3xl border border-white/5">
-                  <Users className="w-12 h-12 mx-auto text-plasma-text-secondary/20 mb-4" />
-                  <p className="text-plasma-text-secondary font-medium">No friends unlocked achievements in this game yet.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-4">
-                  {friends.map(friend => (
+                {locked.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 opacity-60">
+                    {locked.map(ach => (
+                      <AchievementCard key={ach.achievementID} achievement={ach} isLocked />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-10 px-6 rounded-3xl bg-white/5 border border-dashed border-white/10 text-center">
+                    <Info className="w-8 h-8 mx-auto text-plasma-text-secondary/30 mb-3" />
+                    <p className="text-sm text-plasma-text-secondary font-medium">
+                      {game.isManualEntry
+                        ? "Locked achievements unavailable for manual entries. Steam-linked titles only."
+                        : "Congratulations! Every achievement unlocked for this game."}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Friends */}
+            {activeTab === "friends" && (
+              <div className="space-y-4">
+                {friends.length > 0 ? (
+                  friends.map(friend => (
                     <FriendAchievementCard key={friend.id} friend={friend} />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                  ))
+                ) : (
+                  <div className="py-16 text-center border-t border-white/5">
+                    <p className="text-sm text-plasma-text-secondary">No friends have unlocked achievements here yet.</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+
         </div>
       </div>
     </DashboardLayout>
   );
 }
-

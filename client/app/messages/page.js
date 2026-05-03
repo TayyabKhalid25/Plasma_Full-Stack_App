@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { useSocket } from "@/context/SocketContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import Image from "next/image";
 import { getAvatarUrl } from "@/lib/utils";
 import {
   Search, Send, MoreVertical, Phone, Video, Info, User,
@@ -249,82 +250,84 @@ function MessagesContent() {
   }, [messages]);
 
   // Fetch inbox / conversation list
-  useEffect(() => {
+  const fetchInbox = useCallback(async () => {
     if (!token) return;
-    const fetchInbox = async () => {
-      setLoadingConversations(true);
-      try {
-        const res = await fetch(`${API_BASE}/api/messages`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (data.success) {
-          setConversations(data.data.map(c => ({
-            id: c.contactID,
-            friend: {
-              name: c.contactUsername,
-              avatar: getAvatarUrl(c.contactAvatar, c.contactUsername),
-              online: c.online,
-            },
-            lastMessage: c.content,
-            lastMessageTime: new Date(c.timestampUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            unread: c.unreadCount || 0,
-          })));
-        }
-      } catch (err) {
-        console.error("Failed to fetch inbox", err);
-      } finally {
-        setLoadingConversations(false);
+    setLoadingConversations(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/messages`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setConversations(data.data.map(c => ({
+          id: c.contactID,
+          friend: {
+            name: c.contactUsername,
+            avatar: getAvatarUrl(c.contactAvatar, c.contactUsername),
+            online: c.online,
+          },
+          lastMessage: c.content,
+          lastMessageTime: new Date(c.timestampUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          unread: c.unreadCount || 0,
+        })));
       }
-    };
-    fetchInbox();
+    } catch (err) {
+      console.error("Failed to fetch inbox", err);
+    } finally {
+      setLoadingConversations(false);
+    }
   }, [token]);
 
-  // Fetch messages and mark as read when conversation is selected
   useEffect(() => {
-    if (!token || !activeConvId) return;
-    const fetchMessages = async () => {
-      setLoadingChat(true);
-      try {
-        // Fetch the messages
-        const res = await fetch(`${API_BASE}/api/messages/${activeConvId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (data.success) {
-          setMessages(data.data.map(m => ({
-            id: m.messageID,
-            sender: m.senderID,
-            text: m.content,
-            time: new Date(m.timestampUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            timestamp: m.timestampUTC,
-            isLobbyInvite: m.isLobbyInvite,
-            lobbyLink: m.lobbyLink,
-            mediaURL: m.mediaURL,
-            parentMessageID: m.parentMessageID,
-            parentContent: m.parentContent,
-            parentSenderID: m.parentSenderID
-          })));
+    fetchInbox();
+  }, [fetchInbox]);
 
-          // Mark as read in the background
-          fetch(`${API_BASE}/api/messages/${activeConvId}/read`, {
-            method: 'PUT',
-            headers: { Authorization: `Bearer ${token}` }
-          }).then(() => {
-            // Update local state to clear unread count for this conversation
-            setConversations(prev => prev.map(c =>
-              c.id === activeConvId ? { ...c, unread: 0 } : c
-            ));
-          });
-        }
-      } catch (err) {
-        console.error("Failed to fetch messages", err);
-      } finally {
-        setLoadingChat(false);
+  // Fetch messages and mark as read when conversation is selected
+  const fetchMessages = useCallback(async () => {
+    if (!token || !activeConvId) return;
+    setLoadingChat(true);
+    try {
+      // Fetch the messages
+      const res = await fetch(`${API_BASE}/api/messages/${activeConvId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessages(data.data.map(m => ({
+          id: m.messageID,
+          sender: m.senderID,
+          text: m.content,
+          time: new Date(m.timestampUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          timestamp: m.timestampUTC,
+          isLobbyInvite: m.isLobbyInvite,
+          lobbyLink: m.lobbyLink,
+          mediaURL: m.mediaURL,
+          parentMessageID: m.parentMessageID,
+          parentContent: m.parentContent,
+          parentSenderID: m.parentSenderID
+        })));
+
+        // Mark as read in the background
+        fetch(`${API_BASE}/api/messages/${activeConvId}/read`, {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${token}` }
+        }).then(() => {
+          // Update local state to clear unread count for this conversation
+          setConversations(prev => prev.map(c =>
+            c.id === activeConvId ? { ...c, unread: 0 } : c
+          ));
+        });
       }
-    };
-    fetchMessages();
+    } catch (err) {
+      console.error("Failed to fetch messages", err);
+    } finally {
+      setLoadingChat(false);
+    }
   }, [token, activeConvId]);
+
+  useEffect(() => {
+    fetchMessages();
+  }, [fetchMessages]);
 
   // Keep a ref so the WS handler always sees the latest activeConvId
   const activeConvIdRef = useRef(activeConvId);
@@ -487,11 +490,12 @@ function MessagesContent() {
                     : "hover:bg-white/5 border-l-4 border-transparent"
                     }`}
                 >
-                  <div className="relative shrink-0">
-                    <img
+                  <div className="relative shrink-0 w-10 h-10">
+                    <Image
                       src={conv.friend.avatar}
                       alt={conv.friend.name}
-                      className="w-10 h-10 rounded-full bg-plasma-slate"
+                      fill
+                      className="rounded-full bg-plasma-slate object-cover"
                     />
                     {conv.friend.online && (
                       <div className="absolute bottom-0 right-0 w-3 h-3 bg-plasma-success rounded-full border-2 border-plasma-slate" />
@@ -527,7 +531,9 @@ function MessagesContent() {
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </button>
-                <img src={activeConv.friend.avatar} alt="" className="w-9 h-9 rounded-full bg-plasma-slate" />
+                <div className="relative w-9 h-9 shrink-0">
+                  <Image src={activeConv.friend.avatar} alt={activeConv.friend.name} fill className="rounded-full bg-plasma-slate object-cover" />
+                </div>
                 <div>
                   <p className="text-sm font-bold text-plasma-text-primary">{activeConv.friend.name}</p>
                   <p className="text-[11px] text-plasma-text-secondary">
@@ -601,7 +607,16 @@ function MessagesContent() {
                                 {msg.mediaURL.match(/\.(mp4|webm|ogg|mov)$/i) ? (
                                   <video src={msg.mediaURL} controls className="w-full h-auto max-h-60 object-contain" />
                                 ) : (
-                                  <img src={msg.mediaURL} alt="Shared media" className="w-full h-auto max-h-60 object-contain hover:scale-[1.02] transition-transform cursor-pointer" onClick={() => window.open(msg.mediaURL, '_blank')} />
+                                  <div className="relative w-full h-60">
+                                    <Image 
+                                      src={msg.mediaURL} 
+                                      alt="Shared media" 
+                                      fill 
+                                      className="object-contain hover:scale-[1.02] transition-transform cursor-pointer" 
+                                      onClick={() => window.open(msg.mediaURL, '_blank')}
+                                      sizes="(max-width: 768px) 100vw, 50vw"
+                                    />
+                                  </div>
                                 )}
                               </div>
                             )}
@@ -641,7 +656,7 @@ function MessagesContent() {
                     {mediaUrl.match(/\.(mp4|webm|ogg|mov)$/i) ? (
                       <video src={mediaUrl} className="w-full h-full object-cover" />
                     ) : (
-                      <img src={mediaUrl} alt="Preview" className="w-full h-full object-cover" />
+                      <Image src={mediaUrl} alt="Preview" fill className="object-cover" />
                     )}
                     <button
                       onClick={() => setMediaUrl(null)}

@@ -92,6 +92,7 @@ export default function UserProfile({ params }) {
             const rarityProps = getRarityProps(item.rarityWeight);
             return {
               id: item.achievementID,
+              gameId: item.appID,
               title: item.title,
               xp: `${item.plasmaXP} XP`,
               ...rarityProps
@@ -148,6 +149,7 @@ export default function UserProfile({ params }) {
           const data = await res.json();
           if (data.success) {
             const formattedGames = data.data.gamesProgress.map(g => ({
+              id: g.appID,
               title: g.gameTitle,
               achievements: g.achievements.map(a => {
                 const rarityProps = getRarityProps(a.rarityWeight);
@@ -308,15 +310,19 @@ export default function UserProfile({ params }) {
               {hofData.length > 0 ? hofData.map((item) => {
                 const Icon = iconMap[item.iconName] || Trophy;
                 return (
-                  <div key={item.id} className="flex flex-col items-center gap-2 shrink-0">
-                    <div className={`w-[72px] h-[72px] rounded-full bg-plasma-slate/60 backdrop-blur-md border-2 ${item.border} flex items-center justify-center overflow-hidden ${item.shadow}`}>
-                      <Icon className={`w-8 h-8 ${item.color} opacity-80`} />
+                  <Link 
+                    key={item.id} 
+                    href={`/profile/${targetUserId}/prestige/${item.gameId}`}
+                    className="flex flex-col items-center gap-2 shrink-0 group cursor-pointer hover:scale-105 transition-transform"
+                  >
+                    <div className={`w-[72px] h-[72px] rounded-full bg-plasma-slate/60 backdrop-blur-md border-2 ${item.border} flex items-center justify-center overflow-hidden ${item.shadow} group-hover:border-plasma-primary transition-colors`}>
+                      <Icon className={`w-8 h-8 ${item.color} opacity-80 group-hover:opacity-100 transition-opacity`} />
                     </div>
                     <div className="text-center w-[72px]">
                       <p className="text-[10px] font-bold text-plasma-text-primary truncate">{item.title}</p>
                       <p className={`text-[10px] font-mono ${item.color}`}>{item.xp}</p>
                     </div>
-                  </div>
+                  </Link>
                 );
               }) : (
                 <p className="text-sm text-plasma-text-secondary">No pinned achievements.</p>
@@ -366,7 +372,7 @@ export default function UserProfile({ params }) {
                 ) : libraryGames.length > 0 ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
                     {libraryGames.slice(0, 12).map((game) => (
-                      <div key={game.id} className="relative aspect-[3/4] rounded-xl overflow-hidden group cursor-pointer hover:scale-[1.03] transition-transform">
+                      <Link href={`/profile/${targetUserId}/library/${game.id}`} key={game.id} className="relative aspect-[3/4] rounded-xl overflow-hidden group hover:scale-[1.03] transition-transform block">
                         <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${game.image})` }} />
                         {game.isCurrentlyPlaying && (
                           <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 bg-plasma-secondary text-white text-[8px] font-bold rounded z-10">LIVE</div>
@@ -374,7 +380,7 @@ export default function UserProfile({ params }) {
                         <div className="absolute bottom-0 left-0 right-0 p-2 bg-plasma-slate/80 backdrop-blur-sm">
                           <span className="text-[11px] font-semibold text-plasma-text-primary truncate block">{game.title}</span>
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 ) : (
@@ -408,7 +414,7 @@ export default function UserProfile({ params }) {
                         return (
                           <div key={index} className="animate-fade-in">
                             <div className="flex items-center justify-between mb-4">
-                              <h3 className="text-[11px] font-bold text-plasma-text-secondary tracking-[0.2em] uppercase">{game.title}</h3>
+                              <Link href={`/profile/${targetUserId}/prestige/${game.id}`} className="text-[11px] font-bold text-plasma-text-secondary tracking-[0.2em] uppercase hover:text-plasma-primary transition-colors block cursor-pointer">{game.title}</Link>
                               {game.achievements.length > 1 && (
                                 <button 
                                   onClick={() => toggleExpand(index)}
@@ -426,7 +432,11 @@ export default function UserProfile({ params }) {
                               {game.achievements.map((ach, aIdx) => {
                                 const Icon = iconMap[ach.iconName] || Lock;
                                 return (
-                                  <div key={aIdx} className={`flex flex-col items-center gap-2 w-[72px] text-center ${!ach.unlocked ? 'opacity-50 grayscale' : ''}`}>
+                                  <Link 
+                                    key={aIdx} 
+                                    href={`/profile/${targetUserId}/prestige/${game.id}`}
+                                    className={`flex flex-col items-center gap-2 w-[72px] text-center cursor-pointer hover:scale-105 transition-transform ${!ach.unlocked ? 'opacity-50 grayscale' : ''}`}
+                                  >
                                     <div className={`w-[72px] h-[72px] rounded-full border-2 ${ach.border} flex items-center justify-center bg-white/5 relative ${ach.unlocked ? ach.shadow : ''}`}>
                                       <Icon className={`w-8 h-8 ${ach.color}`} />
                                     </div>
@@ -434,7 +444,7 @@ export default function UserProfile({ params }) {
                                       {ach.title}
                                     </p>
                                     <p className={`text-[9px] font-mono ${ach.color}`}>{ach.xp}</p>
-                                  </div>
+                                  </Link>
                                 )
                               })}
                             </div>

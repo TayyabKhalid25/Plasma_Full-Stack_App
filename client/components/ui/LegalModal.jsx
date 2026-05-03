@@ -12,7 +12,7 @@ export default function LegalModal({ isOpen, onClose, type }) {
       <p className="font-bold text-plasma-text-primary">Last Updated: 20/04/2026</p>
       
       <p>
-        Welcome to Plasma! These Terms of Service ("Terms") govern your access to and use of the Plasma website, applications, and services (collectively, the "Service"), operated by Tayyab Co. ("we," "us," or "our").
+        Welcome to Plasma! These Terms of Service (&quot;Terms&quot;) govern your access to and use of the Plasma website, applications, and services (collectively, the &quot;Service&quot;), operated by Tayyab Co. (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;).
       </p>
       
       <p>
@@ -29,7 +29,7 @@ export default function LegalModal({ isOpen, onClose, type }) {
         <strong className="text-plasma-text-primary">Account Creation:</strong> To use Plasma, you must authenticate using a valid third-party gaming account (e.g., Steam via OpenID). You are responsible for maintaining the security of your third-party accounts.
       </p>
       <p>
-        <strong className="text-plasma-text-primary">Eligibility:</strong> You must be at least 13 years old to use the Service. If you are under 18, you represent that you have your parent or guardian’s permission to use the Service.
+        <strong className="text-plasma-text-primary">Eligibility:</strong> You must be at least 13 years old to use the Service. If you are under 18, you represent that you have your parent or guardian&apos;s permission to use the Service.
       </p>
       <p>
         <strong className="text-plasma-text-primary">Account Termination:</strong> We reserve the right to suspend or terminate your access to the Service at any time, without notice, for conduct that we believe violates these Terms or is harmful to other users, us, or third parties.
@@ -37,16 +37,16 @@ export default function LegalModal({ isOpen, onClose, type }) {
 
       <h3 className="text-plasma-text-primary font-bold text-base mt-6 mb-2">3. User Conduct and Content</h3>
       <p>
-        <strong className="text-plasma-text-primary">User-Generated Content:</strong> You retain ownership of any text, images, videos, or other content you post to The Pulse or other areas of the Service ("User Content"). By posting User Content, you grant us a non-exclusive, worldwide, royalty-free license to use, display, and distribute that content within the Service.
+        <strong className="text-plasma-text-primary">User-Generated Content:</strong> You retain ownership of any text, images, videos, or other content you post to The Pulse or other areas of the Service (&quot;User Content&quot;). By posting User Content, you grant us a non-exclusive, worldwide, royalty-free license to use, display, and distribute that content within the Service.
       </p>
       <p>
         <strong className="text-plasma-text-primary">Prohibited Conduct:</strong> You agree not to:
       </p>
       <ul className="list-disc pl-5 space-y-1">
         <li>Harass, abuse, or threaten other users.</li>
-        <li>Bypass our "Double Opt-In" security measures for direct interaction.</li>
+        <li>Bypass our &quot;Double Opt-In&quot; security measures for direct interaction.</li>
         <li>Post false, misleading, or inappropriate content.</li>
-        <li>Attempt to manipulate the "Plasma XP" or Prestige achievement tracking systems.</li>
+        <li>Attempt to manipulate the &quot;Plasma XP&quot; or Prestige achievement tracking systems.</li>
         <li>Use the Service for any illegal or unauthorized purpose.</li>
       </ul>
 
@@ -83,7 +83,7 @@ export default function LegalModal({ isOpen, onClose, type }) {
       <p className="font-bold text-plasma-text-primary">Last Updated: 20/04/2026</p>
       
       <p>
-        This Privacy Policy explains how Tayyab Co. ("Plasma," "we," "us," or "our") collects, uses, and discloses information about you when you access or use our website and platform.
+        This Privacy Policy explains how Tayyab Co. (&quot;Plasma,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) collects, uses, and discloses information about you when you access or use our website and platform.
       </p>
 
       <h3 className="text-plasma-text-primary font-bold text-base mt-6 mb-2">1. Information We Collect</h3>

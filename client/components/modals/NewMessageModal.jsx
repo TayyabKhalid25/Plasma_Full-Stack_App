@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ModalWrapper } from "../ui/ModalWrapper";
 import { Loader2, Search, MessageSquare } from "lucide-react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { getAvatarUrl } from "@/lib/utils";
+import Image from "next/image";
 
 export function NewMessageModal({ isOpen, onClose, onStartChat }) {
   const { token, user } = useAuth();
@@ -12,35 +13,36 @@ export function NewMessageModal({ isOpen, onClose, onStartChat }) {
   const [loadingFriends, setLoadingFriends] = useState(true);
 
   // Fetch mutual friends when modal opens
-  useEffect(() => {
+  const fetchFriends = useCallback(async () => {
     if (!isOpen || !token || !user) return;
-    const fetchFriends = async () => {
-      setLoadingFriends(true);
-      try {
-        const res = await fetch(`${API_BASE}/api/users/${user.id}/following`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (data.success) {
-          // Only show mutual follows (they can DM each other)
-          setFriends(data.data
-            .filter(f => f.isMutual)
-            .map(f => ({
-              id: f.plasmaUserID,
-              name: f.username,
-              avatar: getAvatarUrl(f.avatarURL, f.username),
-              online: f.online,
-            }))
-          );
-        }
-      } catch (err) {
-        console.error("Failed to fetch friends", err);
-      } finally {
-        setLoadingFriends(false);
+    setLoadingFriends(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/users/${user.id}/following`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Only show mutual follows (they can DM each other)
+        setFriends(data.data
+          .filter(f => f.isMutual)
+          .map(f => ({
+            id: f.plasmaUserID,
+            name: f.username,
+            avatar: getAvatarUrl(f.avatarURL, f.username),
+            online: f.online,
+          }))
+        );
       }
-    };
-    fetchFriends();
+    } catch (err) {
+      console.error("Failed to fetch friends", err);
+    } finally {
+      setLoadingFriends(false);
+    }
   }, [isOpen, token, user]);
+
+  useEffect(() => {
+    fetchFriends();
+  }, [fetchFriends]);
 
   const filtered = friends.filter(f => f.name.toLowerCase().includes(search.toLowerCase()));
 
@@ -89,8 +91,8 @@ export function NewMessageModal({ isOpen, onClose, onStartChat }) {
                 className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-colors group cursor-pointer text-left disabled:opacity-50"
               >
                 <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <img src={friend.avatar} alt="" className="w-10 h-10 rounded-full bg-plasma-slate" />
+                  <div className="relative w-10 h-10 shrink-0">
+                    <Image src={friend.avatar} alt={friend.name} fill className="rounded-full bg-plasma-slate object-cover" />
                     {friend.online && <div className="absolute bottom-0 right-0 w-3 h-3 bg-plasma-success rounded-full border-2 border-plasma-slate" />}
                   </div>
                   <span className="text-sm font-bold text-plasma-text-primary">{friend.name}</span>

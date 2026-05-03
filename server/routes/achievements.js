@@ -93,6 +93,7 @@ router.get('/', authenticateToken, async (req, res) => {
         const hallOfFameResult = await pool.query(`
             SELECT 
                 a."achievementID",
+                a."appID",
                 a."title" AS "achievementTitle",
                 a."description",
                 a."proofUrl",
@@ -131,10 +132,28 @@ router.get('/:userId', authenticateToken, async (req, res) => {
     const { type = 'all', orderBy, direction } = req.query;
 
     try {
-        // Ensure user exists
-        const userExists = await pool.query('SELECT "plasmaUserID" FROM "users" WHERE "plasmaUserID" = $1', [userId]);
-        if (userExists.rows.length === 0) {
-            return res.status(404).json({ success: false, message: 'User not found' });
+        // 1. Privacy Check
+        if (userId !== req.userId) {
+            const privacyCheck = await pool.query(`
+                SELECT p."isSteamProfilePrivate", fr."isMutual"
+                FROM "profiles" p
+                LEFT JOIN "follow_relationships" fr ON (
+                    (fr."followerID" = $1 AND fr."followedID" = $2) OR
+                    (fr."followerID" = $2 AND fr."followedID" = $1)
+                ) AND fr."isMutual" = TRUE
+                WHERE p."plasmaUserID" = $2
+            `, [req.userId, userId]);
+
+            if (privacyCheck.rows.length > 0) {
+                const { isSteamProfilePrivate, isMutual } = privacyCheck.rows[0];
+                if (isSteamProfilePrivate && !isMutual) {
+                    return res.status(403).json({ 
+                        success: false, 
+                        message: 'This user profile is private.', 
+                        isPrivate: true 
+                    });
+                }
+            }
         }
 
         const gamesProgress = await fetchUserAchievements(userId, { type, orderBy, direction });
@@ -152,13 +171,37 @@ router.get('/:userId', authenticateToken, async (req, res) => {
 });
 
 // GET /api/achievements/game/:appID
-// Returns all achievements for a game, indicating which ones the current user has unlocked
+// Returns all achievements for a game, indicating which ones the target user has unlocked
 router.get('/game/:appID', authenticateToken, async (req, res) => {
     const { appID } = req.params;
-    const userId = req.userId;
+    const userId = req.query.userId || req.userId;
 
     try {
-        // 1. Get Game Metadata
+        // 1. Privacy Check
+        if (userId !== req.userId) {
+            const privacyCheck = await pool.query(`
+                SELECT p."isSteamProfilePrivate", fr."isMutual"
+                FROM "profiles" p
+                LEFT JOIN "follow_relationships" fr ON (
+                    (fr."followerID" = $1 AND fr."followedID" = $2) OR
+                    (fr."followerID" = $2 AND fr."followedID" = $1)
+                ) AND fr."isMutual" = TRUE
+                WHERE p."plasmaUserID" = $2
+            `, [req.userId, userId]);
+
+            if (privacyCheck.rows.length > 0) {
+                const { isSteamProfilePrivate, isMutual } = privacyCheck.rows[0];
+                if (isSteamProfilePrivate && !isMutual) {
+                    return res.status(403).json({ 
+                        success: false, 
+                        message: 'This user profile is private.', 
+                        isPrivate: true 
+                    });
+                }
+            }
+        }
+
+        // 2. Get Game Metadata
         const gameResult = await pool.query(`
             SELECT "appID", "title", "platform", "coverArtURL", "isManualEntry"
             FROM "games" WHERE "appID" = $1
@@ -170,7 +213,7 @@ router.get('/game/:appID', authenticateToken, async (req, res) => {
 
         // 2. Get All Achievements for this game with user unlock status
         const achievementsResult = await pool.query(`
-            SELECT 
+            SELECT DISTINCT ON (a."achievementID")
                 a."achievementID",
                 a."title",
                 a."description",
@@ -182,7 +225,7 @@ router.get('/game/:appID', authenticateToken, async (req, res) => {
             FROM "achievements" a
             LEFT JOIN "user_achievements" ua ON a."achievementID" = ua."achievementID" AND ua."userID" = $1
             WHERE a."appID" = $2
-            ORDER BY ua."unlockedAt" DESC NULLS LAST, a."title" ASC
+            ORDER BY a."achievementID", ua."unlockedAt" DESC NULLS LAST, a."title" ASC
         `, [userId, appID]);
 
         res.json({ 
@@ -207,7 +250,7 @@ router.get('/game/:appID/friends', authenticateToken, async (req, res) => {
     try {
         // Fetch mutual friends' achievements for this game
         const result = await pool.query(`
-            SELECT 
+            SELECT DISTINCT ON (u."plasmaUserID", a."achievementID")
                 u."plasmaUserID" AS "friendID",
                 u."username",
                 p."avatarURL",
@@ -215,13 +258,15 @@ router.get('/game/:appID/friends', authenticateToken, async (req, res) => {
                 a."title" AS "achievementTitle",
                 ua."unlockedAt"
             FROM "follow_relationships" fr
-            JOIN "users" u ON (fr."followedID" = u."plasmaUserID" AND fr."followerID" = $1)
-                           OR (fr."followerID" = u."plasmaUserID" AND fr."followedID" = $1)
+            JOIN "users" u ON (fr."followedID" = u."plasmaUserID" OR fr."followerID" = u."plasmaUserID")
             JOIN "profiles" p ON u."plasmaUserID" = p."plasmaUserID"
             JOIN "user_achievements" ua ON u."plasmaUserID" = ua."userID"
             JOIN "achievements" a ON ua."achievementID" = a."achievementID"
-            WHERE fr."isMutual" = TRUE AND a."appID" = $2
-            ORDER BY ua."unlockedAt" DESC
+            WHERE (fr."followerID" = $1 OR fr."followedID" = $1)
+              AND u."plasmaUserID" != $1
+              AND fr."isMutual" = TRUE 
+              AND a."appID" = $2
+            ORDER BY u."plasmaUserID", a."achievementID", ua."unlockedAt" DESC
         `, [userId, appID]);
 
         // Group by friend
@@ -244,7 +289,12 @@ router.get('/game/:appID/friends', authenticateToken, async (req, res) => {
             });
         });
 
-        res.json({ success: true, data: Object.values(friendsMap) });
+        const friendsList = Object.values(friendsMap).map(f => {
+            f.achievements.sort((a, b) => new Date(b.unlockedAt) - new Date(a.unlockedAt));
+            return f;
+        });
+
+        res.json({ success: true, data: friendsList });
     } catch (error) {
         console.error('Error fetching friends game achievements:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });

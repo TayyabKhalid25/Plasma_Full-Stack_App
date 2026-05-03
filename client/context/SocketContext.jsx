@@ -103,7 +103,7 @@ export const SocketProvider = ({ children }) => {
             }
             if (heartbeatInterval) clearInterval(heartbeatInterval);
         };
-    }, [token, reconnectTrigger]);
+    }, [token, reconnectTrigger, reconnectCount]);
 
     const sendMessage = (type, data) => {
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
