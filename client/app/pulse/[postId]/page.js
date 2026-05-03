@@ -11,6 +11,10 @@ import {
 import Link from "next/link";
 import { getIntentStyle } from "@/lib/intentStyles";
 import { getAvatarUrl } from "@/lib/utils";
+import { useModal } from "@/hooks/useModal";
+import { ShareModal } from "@/components/modals/ShareModal";
+import { ConfirmDeleteModal } from "@/components/modals/ConfirmDeleteModal";
+import { EditPostModal } from "@/components/modals/EditPostModal";
 
 export default function PostPage() {
   const { postId } = useParams();
@@ -23,6 +27,20 @@ export default function PostPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(false);
+  const shareModal = useModal();
+  const deleteModal = useModal();
+  const editModal = useModal();
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (openDropdown && !e.target.closest('.dropdown-trigger')) {
+        setOpenDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [openDropdown]);
 
   useEffect(() => {
     if (!token || !postId) return;
@@ -127,6 +145,40 @@ export default function PostPage() {
     }
   };
 
+  const handleDeletePost = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/pulse/posts/${postId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        router.push('/pulse');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleEditPost = async (id, content, mediaURL) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/pulse/posts/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ content, mediaURL })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPost(prev => ({
+          ...prev,
+          content: data.data.content,
+          media: data.data.mediaURL
+        }));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout showRightRail={false}>
@@ -199,32 +251,39 @@ export default function PostPage() {
               </div>
             </Link>
             
-            <div className="relative">
-              <button 
-                onClick={() => setOpenDropdown(!openDropdown)}
-                className="w-10 h-10 rounded-full hover:bg-white/5 flex items-center justify-center text-plasma-text-secondary hover:text-white transition-all cursor-pointer"
-              >
-                <MoreHorizontal className="w-5 h-5" />
-              </button>
-              
-              {openDropdown && (
-                <div className="absolute right-0 mt-2 w-48 bg-plasma-slate border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden animate-fade-in">
-                  <button className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-colors text-left text-plasma-text-primary text-sm font-semibold">
-                    <Share2 className="w-4 h-4" /> Copy Link
-                  </button>
-                  {post.userID === user?.id && (
-                    <>
-                      <button className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-colors text-left text-plasma-text-primary text-sm font-semibold border-t border-white/5">
-                        <Edit2 className="w-4 h-4" /> Edit Post
-                      </button>
-                      <button className="w-full flex items-center gap-3 p-4 hover:bg-plasma-error/10 transition-colors text-left text-plasma-error text-sm font-semibold border-t border-white/5">
-                        <Trash2 className="w-4 h-4" /> Delete Post
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
+            {post.userID === user?.id && (
+              <div className="relative dropdown-trigger">
+                <button 
+                  onClick={() => setOpenDropdown(!openDropdown)}
+                  className="w-10 h-10 rounded-full hover:bg-white/5 flex items-center justify-center text-plasma-text-secondary hover:text-white transition-all cursor-pointer"
+                >
+                  <MoreHorizontal className="w-5 h-5" />
+                </button>
+                
+                {openDropdown && (
+                  <div className="absolute right-0 mt-2 w-48 bg-plasma-slate border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden animate-fade-in">
+                    <button 
+                      onClick={() => {
+                        setOpenDropdown(false);
+                        editModal.open(post);
+                      }}
+                      className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-colors text-left text-plasma-text-primary text-sm font-semibold"
+                    >
+                      <Edit2 className="w-4 h-4" /> Edit Post
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setOpenDropdown(false);
+                        deleteModal.open(post);
+                      }}
+                      className="w-full flex items-center gap-3 p-4 hover:bg-plasma-error/10 transition-colors text-left text-plasma-error text-sm font-semibold border-t border-white/5"
+                    >
+                      <Trash2 className="w-4 h-4" /> Delete Post
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Content */}
@@ -268,7 +327,10 @@ export default function PostPage() {
               </div>
             </div>
 
-            <button className="p-2 rounded-full text-plasma-text-secondary hover:bg-white/5 hover:text-white transition-all cursor-pointer">
+            <button 
+              onClick={() => shareModal.open({ type: 'post', id: post.id })}
+              className="p-2 rounded-full text-plasma-text-secondary hover:bg-white/5 hover:text-white transition-all cursor-pointer"
+            >
               <Share2 className="w-5 h-5" />
             </button>
           </div>
@@ -338,8 +400,25 @@ export default function PostPage() {
             )}
           </div>
         </div>
-
       </div>
+
+      <ShareModal
+        isOpen={shareModal.isOpen}
+        onClose={shareModal.close}
+        shareType="post"
+        shareId={post.id}
+      />
+      <ConfirmDeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={deleteModal.close}
+        onConfirm={handleDeletePost}
+      />
+      <EditPostModal
+        isOpen={editModal.isOpen}
+        onClose={editModal.close}
+        post={editModal.modalData}
+        onSave={handleEditPost}
+      />
     </DashboardLayout>
   );
 }

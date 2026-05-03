@@ -332,7 +332,7 @@ export default function Prestige() {
                   const Icon = iconMap[item.iconName] || Trophy;
                   return (
                     <div key={item.id} className="flex flex-col items-center gap-2 shrink-0">
-                      <div className={`w-[72px] h-[72px] rounded-full bg-plasma-slate/60 backdrop-blur-md border-2 ${item.border} flex items-center justify-center hover:border-plasma-secondary/40 transition-all overflow-hidden ${item.shadow}`}>
+                      <div className={`w-[72px] h-[72px] rounded-full bg-plasma-slate/60 backdrop-blur-md border-2 ${item.border} flex items-center justify-center overflow-hidden ${item.shadow}`}>
                         <Icon className={`w-8 h-8 ${item.color} opacity-80`} />
                       </div>
                       <div className="text-center w-[72px]">

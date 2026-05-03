@@ -1,24 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
   User, Mail, Lock, Bell, BellOff, Eye, EyeOff, Link2, Unlink, Shield,
-  Trash2, Download, Save, Check, ChevronRight, Camera
+  Trash2, Download, Save, Check, ChevronRight, ChevronDown, ChevronUp, Camera, Loader2
 } from "lucide-react";
-import Image from "next/image";
 import { useModal } from "@/hooks/useModal";
 import { ChangePasswordModal } from "@/components/modals/ChangePasswordModal";
 import { UploadAvatarModal } from "@/components/modals/UploadAvatarModal";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { useAuth, API_BASE } from "@/context/AuthContext";
-import { useEffect } from "react";
 import { getAvatarUrl } from "@/lib/utils";
 
 const sectionNav = [
-  { id: "account", label: "Account", icon: User },
-  { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "privacy", label: "Privacy", icon: Shield },
+  { id: "general", label: "General", icon: User },
   { id: "danger", label: "Danger Zone", icon: Trash2 },
 ];
 
@@ -46,12 +42,15 @@ function SettingRow({ label, description, children }) {
 }
 
 export default function SettingsPage() {
-  const [activeSection, setActiveSection] = useState("account");
+  const [activeSection, setActiveSection] = useState("general");
   const [saved, setSaved] = useState(false);
   const { token, logout, user, fetchUser } = useAuth();
   const [isFetching, setIsFetching] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [isSelectOpen, setIsSelectOpen] = useState(false);
 
-  // Account state — populated from auth context
+  // Account state
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [avatar, setAvatar] = useState("");
@@ -60,14 +59,20 @@ export default function SettingsPage() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [privacy, setPrivacy] = useState({
     profileVisibility: "public",
-    activityVisibility: "friends",
-    showOnlineStatus: true,
   });
+
+  const mapPrivacyFromDb = (val) => {
+    const v = (val || "Public").toLowerCase();
+    return v === "friends only" ? "friends" : v;
+  };
+
+  const mapPrivacyToDb = (val) => {
+    return val === "friends" ? "Friends Only" : val.charAt(0).toUpperCase() + val.slice(1);
+  };
 
   const passwordModal = useModal();
   const avatarModal = useModal();
   const dangerModal = useModal();
-
 
   // Populate account from auth context user
   useEffect(() => {
@@ -88,11 +93,7 @@ export default function SettingsPage() {
         const data = await res.json();
         if (data.success) {
           setNotificationsEnabled(data.data.notificationsEnabled ?? true);
-          const privacyVal = (data.data.privacy || "Public").toLowerCase();
-          setPrivacy(p => ({
-            ...p,
-            profileVisibility: privacyVal === "friends only" ? "friends" : privacyVal,
-          }));
+          setPrivacy({ profileVisibility: mapPrivacyFromDb(data.data.privacy) });
         }
       } catch (err) {
         console.error("Failed to fetch settings", err);
@@ -103,82 +104,75 @@ export default function SettingsPage() {
     loadSettings();
   }, [token]);
 
-  const handleAvatarUpload = (newAvatar) => {
-    setAvatar(newAvatar);
-  };
-
-  const toggleNotif = () => {
-    setNotificationsEnabled(prev => !prev);
-  };
-
-  const togglePrivacy = (key) => {
-    setPrivacy(prev => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState(null);
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    setSaved(false);
-    setError(null);
-
+  const handleAutoSave = useCallback(async (updates) => {
     try {
-      // 1. Save settings (notifications + privacy)
-      const settingsRes = await fetch(`${API_BASE}/api/settings`, {
+      const currentNotif = updates.notificationsEnabled ?? notificationsEnabled;
+      const currentPrivacy = updates.privacy ?? privacy.profileVisibility;
+      
+      await fetch(`${API_BASE}/api/settings`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          notificationsEnabled,
+          notificationsEnabled: currentNotif,
           timezone: "UTC",
-          privacy: privacy.profileVisibility === "public" ? "Public" : privacy.profileVisibility === "friends" ? "Friends Only" : "Private"
+          privacy: mapPrivacyToDb(currentPrivacy),
         })
       });
+    } catch (err) {
+      console.error("Auto-save failed", err);
+    }
+  }, [token, notificationsEnabled, privacy.profileVisibility]);
 
-      const settingsData = await settingsRes.json();
-      if (!settingsRes.ok || !settingsData.success) {
-        throw new Error(settingsData.message || "Failed to save settings");
+  const toggleNotif = () => {
+    const newValue = !notificationsEnabled;
+    setNotificationsEnabled(newValue);
+    handleAutoSave({ notificationsEnabled: newValue });
+  };
+
+  const handlePrivacyChange = (val) => {
+    setPrivacy({ profileVisibility: val });
+    handleAutoSave({ privacy: val });
+  };
+
+  const handleManualSave = async () => {
+    setIsSaving(true);
+    setSaved(false);
+    setError(null);
+
+    try {
+      // Manual save only handles Username/Profile updates
+      const profileRes = await fetch(`${API_BASE}/api/users/me/profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          username: username || undefined,
+          avatarURL: avatar || undefined,
+        })
+      });
+      
+      const profileData = await profileRes.json();
+      if (!profileRes.ok || !profileData.success) {
+        throw new Error(profileData.message || "Failed to update profile");
       }
 
-      // 2. Save account changes (username, avatar) via profile endpoint
-      if (activeSection === "account") {
-        const profileRes = await fetch(`${API_BASE}/api/users/me/profile`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            username: username || undefined,
-            avatarURL: avatar || undefined,
-          })
-        });
-        
-        const profileData = await profileRes.json();
-        if (!profileRes.ok || !profileData.success) {
-          throw new Error(profileData.message || "Failed to update profile");
-        }
-
-        // Re-fetch user so the context updates globally
-        if (fetchUser && token) await fetchUser(token);
-      }
-
+      if (fetchUser && token) await fetchUser(token);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
       console.error("Save error:", err);
       setError(err.message);
     } finally {
-      setIsSaving(true); // Wait, should be false
       setIsSaving(false);
     }
   };
 
   const handleDeleteAccount = async () => {
-    if (!confirm("Are you sure you want to permanently delete your account? This action cannot be undone.")) return;
     try {
       const res = await fetch(`${API_BASE}/api/users/me`, {
         method: "DELETE",
@@ -192,6 +186,16 @@ export default function SettingsPage() {
       console.error("Failed to delete account", err);
     }
   };
+
+  if (isFetching) {
+    return (
+      <DashboardLayout showRightRail={false}>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="w-8 h-8 text-plasma-primary animate-spin" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout showRightRail={false}>
@@ -225,100 +229,116 @@ export default function SettingsPage() {
 
           {/* Right Content */}
           <div className="flex-1 min-w-0">
-            {/* Account */}
-            {activeSection === "account" && (
-              <section className="bg-plasma-slate rounded-2xl border border-white/5 p-6 animate-fade-in">
-                <h2 className="font-display font-bold text-lg text-plasma-text-primary mb-6">Account Settings</h2>
+            {activeSection === "general" && (
+              <div className="space-y-6">
+                {/* Account Section */}
+                <section className="bg-plasma-slate rounded-2xl border border-white/5 p-6 animate-fade-in">
+                  <h2 className="font-display font-bold text-lg text-plasma-text-primary mb-6">General Settings</h2>
 
-                {/* Avatar */}
-                <div className="flex items-center gap-6 mb-8">
-                  <div className="relative">
-                    <img
-                      src={getAvatarUrl(avatar, username)}
-                      alt="Avatar"
-                      className="w-20 h-20 rounded-full border-2 border-plasma-primary bg-plasma-slate"
+                  {/* Avatar */}
+                  <div className="flex items-center gap-6 mb-8 pb-8 border-b border-white/5">
+                    <div className="relative">
+                      <img
+                        src={getAvatarUrl(avatar, username)}
+                        alt="Avatar"
+                        className="w-20 h-20 rounded-full border-2 border-plasma-primary bg-plasma-slate"
+                      />
+                      <button 
+                        onClick={() => avatarModal.open()}
+                        className="absolute bottom-0 right-0 p-1.5 bg-plasma-primary rounded-full text-white border-2 border-plasma-slate hover:bg-plasma-primary/90 transition-colors cursor-pointer"
+                      >
+                        <Camera className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <div>
+                      <button onClick={() => avatarModal.open()} className="px-5 py-2 rounded-xl bg-plasma-primary/15 text-plasma-primary text-sm font-bold hover:bg-plasma-primary/25 transition-colors cursor-pointer">
+                        Change Avatar
+                      </button>
+                      <p className="text-xs text-plasma-text-secondary mt-1.5">JPG, PNG. Max 2MB.</p>
+                    </div>
+                  </div>
+
+                  {/* Username + Save Button */}
+                  <div className="flex items-center gap-4 py-4 border-b border-white/5">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-plasma-text-primary">Username</p>
+                      <input
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="bg-plasma-bg border border-white/10 rounded-lg px-4 py-2 mt-2 text-sm text-plasma-text-primary outline-none focus:border-plasma-primary transition-colors w-full max-w-md"
+                      />
+                    </div>
+                    <div className="pt-6">
+                      <button
+                        onClick={handleManualSave}
+                        disabled={isSaving}
+                        className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all cursor-pointer disabled:opacity-50 ${
+                          saved
+                            ? "bg-plasma-success text-white"
+                            : "bg-primary-gradient text-white hover:shadow-card-glow hover:scale-[1.02]"
+                        }`}
+                      >
+                        {isSaving ? "Saving..." : saved ? <><Check className="w-4 h-4" /> Saved!</> : <><Save className="w-4 h-4" /> Save</>}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <SettingRow label="Email Address" description="Email cannot be changed here.">
+                    <input
+                      type="email"
+                      value={email}
+                      disabled
+                      className="bg-plasma-bg/50 border border-white/5 rounded-lg px-4 py-2 text-sm text-plasma-text-secondary outline-none cursor-not-allowed w-64"
                     />
-                    <button 
-                      onClick={() => avatarModal.open()}
-                      className="absolute bottom-0 right-0 p-1.5 bg-plasma-primary rounded-full text-white border-2 border-plasma-slate hover:bg-plasma-primary/90 transition-colors cursor-pointer"
-                    >
-                      <Camera className="w-3.5 h-3.5" />
+                  </SettingRow>
+
+                  {/* Password */}
+                  <SettingRow label="Password" description="Last changed 30 days ago">
+                    <button onClick={() => passwordModal.open()} className="px-4 py-2 rounded-lg border border-white/10 text-sm text-plasma-text-secondary hover:text-white hover:border-white/20 transition-colors cursor-pointer">
+                      Change Password
                     </button>
+                  </SettingRow>
+
+                  {/* Notifications (Merged) */}
+                  <div className="pt-6 mt-6 border-t border-white/10">
+                    <h3 className="text-xs font-bold text-plasma-text-secondary uppercase tracking-widest mb-4">Preferences</h3>
+                    <SettingRow label="Global Notifications" description="Enable or disable all notifications across Plasma">
+                      <ToggleSwitch enabled={notificationsEnabled} onToggle={toggleNotif} />
+                    </SettingRow>
+
+                    <SettingRow label="Profile Visibility" description="Who can see your profile page">
+                      <div className="relative">
+                        <select
+                          value={privacy.profileVisibility}
+                          onMouseDown={() => setIsSelectOpen(!isSelectOpen)}
+                          onBlur={() => setIsSelectOpen(false)}
+                          onChange={(e) => {
+                            handlePrivacyChange(e.target.value);
+                            setIsSelectOpen(false);
+                            e.target.blur();
+                          }}
+                          className="bg-plasma-bg border border-white/10 rounded-lg pl-4 pr-10 py-2 text-sm text-plasma-text-primary outline-none cursor-pointer appearance-none focus:border-plasma-primary transition-colors"
+                        >
+                          <option value="public">Public</option>
+                          <option value="friends">Friends Only</option>
+                          <option value="private">Private</option>
+                        </select>
+                        <ChevronDown className={`w-4 h-4 text-plasma-text-secondary absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none transition-transform duration-200 ${isSelectOpen ? 'rotate-180' : ''}`} />
+                      </div>
+                    </SettingRow>
                   </div>
-                  <div>
-                    <button onClick={() => avatarModal.open()} className="px-5 py-2 rounded-xl bg-plasma-primary/15 text-plasma-primary text-sm font-bold hover:bg-plasma-primary/25 transition-colors cursor-pointer">
-                      Change Avatar
-                    </button>
-                    <p className="text-xs text-plasma-text-secondary mt-1.5">JPG, PNG. Max 2MB.</p>
-                  </div>
-                </div>
+                </section>
 
-                <SettingRow label="Username">
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="bg-plasma-bg border border-white/10 rounded-lg px-4 py-2 text-sm text-plasma-text-primary outline-none focus:border-plasma-primary transition-colors w-48"
-                  />
-                </SettingRow>
-
-                <SettingRow label="Password" description="Last changed 30 days ago">
-                  <button onClick={() => passwordModal.open()} className="px-4 py-2 rounded-lg border border-white/10 text-sm text-plasma-text-secondary hover:text-white hover:border-white/20 transition-colors cursor-pointer">
-                    Change Password
-                  </button>
-                </SettingRow>
-              </section>
+                {error && (
+                  <p className="text-xs font-bold text-plasma-error bg-plasma-error/10 px-4 py-2 rounded-lg border border-plasma-error/20 animate-fade-in">
+                    {error}
+                  </p>
+                )}
+              </div>
             )}
 
-            {/* Notifications */}
-            {activeSection === "notifications" && (
-              <section className="bg-plasma-slate rounded-2xl border border-white/5 p-6 animate-fade-in">
-                <h2 className="font-display font-bold text-lg text-plasma-text-primary mb-6">Notification Preferences</h2>
-
-                <SettingRow label="Global Notifications" description="Enable or disable all notifications across Plasma">
-                  <ToggleSwitch enabled={notificationsEnabled} onToggle={toggleNotif} />
-                </SettingRow>
-              </section>
-            )}
-
-            {/* Privacy */}
-            {activeSection === "privacy" && (
-              <section className="bg-plasma-slate rounded-2xl border border-white/5 p-6 animate-fade-in">
-                <h2 className="font-display font-bold text-lg text-plasma-text-primary mb-6">Privacy & Visibility</h2>
-
-                <SettingRow label="Profile Visibility" description="Who can see your profile page">
-                  <select
-                    value={privacy.profileVisibility}
-                    onChange={(e) => setPrivacy(prev => ({ ...prev, profileVisibility: e.target.value }))}
-                    className="bg-plasma-bg border border-white/10 rounded-lg px-4 py-2 text-sm text-plasma-text-primary outline-none cursor-pointer"
-                  >
-                    <option value="public">Public</option>
-                    <option value="friends">Friends Only</option>
-                    <option value="private">Private</option>
-                  </select>
-                </SettingRow>
-
-                <SettingRow label="Activity Visibility" description="Who can see your gaming activity">
-                  <select
-                    value={privacy.activityVisibility}
-                    onChange={(e) => setPrivacy(prev => ({ ...prev, activityVisibility: e.target.value }))}
-                    className="bg-plasma-bg border border-white/10 rounded-lg px-4 py-2 text-sm text-plasma-text-primary outline-none cursor-pointer"
-                  >
-                    <option value="public">Public</option>
-                    <option value="friends">Friends Only</option>
-                    <option value="private">Private</option>
-                  </select>
-                </SettingRow>
-
-                <SettingRow label="Show Online Status" description="Let others see when you're online">
-                  <ToggleSwitch enabled={privacy.showOnlineStatus} onToggle={() => togglePrivacy("showOnlineStatus")} />
-                </SettingRow>
-              </section>
-            )}
-
-
-
-            {/* Removed Connections Section */}
             {/* Danger Zone */}
             {activeSection === "danger" && (
               <section className="bg-plasma-slate rounded-2xl border border-plasma-error/20 p-6 animate-fade-in">
@@ -345,28 +365,6 @@ export default function SettingsPage() {
                 </div>
               </section>
             )}
-
-            {/* Save Button */}
-            {activeSection !== "danger" && (
-              <div className="flex flex-col items-end mt-6 gap-3">
-                {error && (
-                  <p className="text-xs font-bold text-plasma-error bg-plasma-error/10 px-4 py-2 rounded-lg border border-plasma-error/20">
-                    {error}
-                  </p>
-                )}
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className={`flex items-center gap-2 px-8 py-3 rounded-full font-bold text-sm transition-all cursor-pointer disabled:opacity-50 ${
-                    saved
-                      ? "bg-plasma-success text-white"
-                      : "bg-primary-gradient text-white hover:shadow-card-glow hover:scale-[1.02]"
-                  }`}
-                >
-                  {isSaving ? "Saving..." : saved ? <><Check className="w-4 h-4" /> Saved!</> : <><Save className="w-4 h-4" /> Save Changes</>}
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -379,7 +377,15 @@ export default function SettingsPage() {
         isOpen={avatarModal.isOpen} 
         onClose={avatarModal.close} 
         currentAvatar={avatar}
-        onUpload={handleAvatarUpload}
+        onUpload={(newAvatar) => {
+          setAvatar(newAvatar);
+          // Auto-save avatar when uploaded
+          fetch(`${API_BASE}/api/users/me/profile`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ avatarURL: newAvatar })
+          }).then(() => fetchUser && fetchUser(token));
+        }}
       />
       <ConfirmActionModal 
         isOpen={dangerModal.isOpen} 

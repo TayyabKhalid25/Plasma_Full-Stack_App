@@ -31,11 +31,11 @@ CREATE TABLE "profiles" (
     "profileID" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "plasmaUserID" UUID UNIQUE NOT NULL REFERENCES "users"("plasmaUserID") ON DELETE CASCADE,
     "bio" TEXT,
-    "avatarURL" VARCHAR(255),
+    "avatarURL" TEXT,
     "totalPlasmaXP" INTEGER DEFAULT 0,
     -- Steam-synced fields from GetPlayerSummaries
     "steamPersonaName" VARCHAR(255),
-    "steamProfileURL" VARCHAR(500),
+    "steamProfileURL" TEXT,
     "lastLogoff" TIMESTAMP WITH TIME ZONE,
     "steamMemberSince" TIMESTAMP WITH TIME ZONE,
     "countryCode" VARCHAR(2),
@@ -77,7 +77,7 @@ CREATE TABLE "games" (
     "title" VARCHAR(255) NOT NULL,
     "platform" platform_type NOT NULL,
     "isManualEntry" BOOLEAN DEFAULT FALSE,
-    "coverArtURL" VARCHAR(255)
+    "coverArtURL" TEXT
 );
 
 CREATE TABLE "library_entries" (
@@ -114,7 +114,7 @@ CREATE TABLE "peer_endorsements" (
     "endorsementID" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "claimID" UUID NOT NULL REFERENCES "user_achievements"("claimID") ON DELETE CASCADE,
     "endorserID" UUID NOT NULL REFERENCES "users"("plasmaUserID") ON DELETE CASCADE,
-    "screenshotProofURL" VARCHAR(255),
+    "screenshotProofURL" TEXT,
     "status" claim_state DEFAULT 'PENDING',
     "submittedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -124,9 +124,9 @@ CREATE TABLE "posts" (
     "userID" UUID NOT NULL REFERENCES "users"("plasmaUserID") ON DELETE CASCADE,
     "type" post_type NOT NULL,
     "content" TEXT,
-    "mediaURL" VARCHAR(255),
+    "mediaURL" TEXT,
     "timestampUTC" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    "deepLinkURI" VARCHAR(255),
+    "deepLinkURI" TEXT,
     "isVisible" BOOLEAN DEFAULT TRUE
 );
 
@@ -181,6 +181,6 @@ CREATE TABLE "direct_messages" (
     "receiverID" UUID NOT NULL REFERENCES "users"("plasmaUserID") ON DELETE CASCADE,
     "content" TEXT,
     "isLobbyInvite" BOOLEAN DEFAULT FALSE,
-    "lobbyLink" VARCHAR(255),
+    "lobbyLink" TEXT,
     "timestampUTC" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

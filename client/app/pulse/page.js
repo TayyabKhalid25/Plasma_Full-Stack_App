@@ -44,6 +44,17 @@ export const ActivityFeedSection = () => {
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [loadingFeed, setLoadingFeed] = useState(true);
 
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (openDropdownId && !e.target.closest('.dropdown-trigger')) {
+        setOpenDropdownId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [openDropdownId]);
+
   const { token, user } = useAuth();
   const shareModal = useModal();
   const deleteModal = useModal();
@@ -307,11 +318,14 @@ export const ActivityFeedSection = () => {
             // Use the historical intent captured with the post
             const style = getIntentStyle(post.rawIntent);
             return (
-            <div key={post.id} className="flex flex-col items-start gap-4 p-5 relative self-stretch w-full bg-plasma-slate rounded-xl border border-white/5">
-              <div className="flex items-start justify-between relative self-stretch w-full">
+            <div key={post.id} className="flex flex-col items-start gap-4 p-5 relative self-stretch w-full bg-plasma-slate rounded-xl border border-white/5 cursor-pointer transition-all hover:border-white/20 hover:bg-plasma-slate/80 group/card">
+              {/* Main link overlay that makes the whole card clickable */}
+              <Link href={`/pulse/${post.id}`} className="absolute inset-0 z-0" />
+
+              <div className="flex items-start justify-between relative self-stretch w-full z-10 pointer-events-none">
                 <Link 
                   href={String(post.userID) === String(user?.id) ? "/profile" : `/profile/${post.userID}`}
-                  className="inline-flex items-start gap-3 hover:opacity-80 transition-opacity group"
+                  className="inline-flex items-start gap-3 hover:opacity-80 transition-opacity group pointer-events-auto"
                 >
                   <div
                     className={`w-10 h-10 shrink-0 rounded-full border-2 bg-cover bg-center ${style.border} group-hover:scale-105 transition-transform`}
@@ -327,7 +341,7 @@ export const ActivityFeedSection = () => {
                     <span className="font-sans font-bold text-[10px]">{style.label}</span>
                   </div>
                   {post.userID === user?.id && (
-                    <div className="relative">
+                    <div className="relative dropdown-trigger pointer-events-auto">
                       <button
                         onClick={() => setOpenDropdownId(openDropdownId === post.id ? null : post.id)}
                         className="p-1 text-plasma-text-secondary hover:text-white transition-colors cursor-pointer"
@@ -360,8 +374,8 @@ export const ActivityFeedSection = () => {
                   )}
                 </div>
               </div>
-              <Link href={`/pulse/${post.id}`} className="block w-full group/content">
-                <p className="font-sans text-plasma-text-primary text-[15px] group-hover/content:text-white transition-colors">
+              <div className="block w-full z-10 pointer-events-none">
+                <p className="font-sans text-plasma-text-primary text-[15px] transition-colors group-hover/card:text-white">
                   {post.text}
                 </p>
                 {post.image && (
@@ -372,15 +386,15 @@ export const ActivityFeedSection = () => {
                         className="w-full max-h-[500px] object-contain"
                       />
                     ) : (
-                      <img src={post.image} alt="Post media" className="w-full max-h-[500px] object-contain group-hover/content:scale-[1.02] transition-transform duration-500" />
+                      <img src={post.image} alt="Post media" className="w-full max-h-[500px] object-contain transition-transform duration-500" />
                     )}
                   </div>
                 )}
-              </Link>
-              <div className="flex items-center gap-8 pt-2">
+              </div>
+              <div className="flex items-center gap-8 pt-2 z-10 pointer-events-none">
                 <button
                   onClick={() => toggleLike(post.id)}
-                  className={`flex items-center gap-2 transition-colors cursor-pointer ${post.liked ? "text-plasma-secondary" : "text-plasma-text-secondary hover:text-plasma-text-primary"
+                  className={`flex items-center gap-2 transition-colors cursor-pointer pointer-events-auto ${post.liked ? "text-plasma-secondary" : "text-plasma-text-secondary hover:text-plasma-text-primary"
                     }`}
                 >
                   <Heart className={`w-4 h-4 ${post.liked ? "fill-plasma-secondary" : ""}`} />
@@ -388,14 +402,14 @@ export const ActivityFeedSection = () => {
                 </button>
                 <Link
                   href={`/pulse/${post.id}`}
-                  className="flex items-center gap-2 text-plasma-text-secondary hover:text-plasma-text-primary transition-colors cursor-pointer"
+                  className="flex items-center gap-2 text-plasma-text-secondary hover:text-plasma-text-primary transition-colors cursor-pointer pointer-events-auto"
                 >
                   <MessageSquare className="w-4 h-4" />
                   <span className="text-xs">{post.comments}</span>
                 </Link>
                 <button
                   onClick={() => shareModal.open({ type: 'post', id: post.id })}
-                  className="text-plasma-text-secondary hover:text-plasma-text-primary transition-colors cursor-pointer"
+                  className="text-plasma-text-secondary hover:text-plasma-text-primary transition-colors cursor-pointer pointer-events-auto"
                 >
                   <Share2 className="w-4 h-4" />
                 </button>
