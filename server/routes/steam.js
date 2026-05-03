@@ -1,7 +1,8 @@
 const express = require('express');
 const { pool } = require('../config/dbConfig');
 const { authenticateToken } = require('../middleware/authMiddleware');
-const { getSteamPlayerSummaries, getSteamPlayerAchievements, getSteamOwnedGames } = require('../utils/externalApis');
+const { getSteamPlayerSummaries, getSteamPlayerAchievements } = require('../utils/externalApis');
+const { syncSteamLibrary, syncSteamAchievements, syncSteamProfile, getUserSteamId } = require('../utils/steamSyncService');
 
 const router = express.Router();
 
@@ -105,7 +106,6 @@ router.get('/achievements/:appId', authenticateToken, async (req, res) => {
 // Designed to be called by a cron job or manually.
 router.post('/sync/achievements', authenticateToken, async (req, res) => {
     try {
-        const { syncSteamAchievements } = require('../utils/steamSyncService');
         const result = await syncSteamAchievements(req.userId);
 
         if (result.failedGames && result.failedGames.length > 0) {
@@ -133,63 +133,52 @@ router.post('/sync/achievements', authenticateToken, async (req, res) => {
 });
 
 // POST /api/steam/sync/library (Unified Library Sync)
-// Migrated from /api/library/sync/steam
 router.post('/sync/library', authenticateToken, async (req, res) => {
     try {
-        // 1. Get user's steamId64
-        const user = await pool.query('SELECT "steamID64" FROM "users" WHERE "plasmaUserID" = $1', [req.userId]);
-        if (user.rows.length === 0 || !user.rows[0].steamID64) {
-            return res.status(400).json({ success: false, message: 'Steam account not linked' });
-        }
-        const steamId = user.rows[0].steamID64;
+        const result = await syncSteamLibrary(req.userId);
 
-        // 2. Fetch Player Summary (Profile Update)
-        const summaries = await getSteamPlayerSummaries(steamId);
-        if (summaries && summaries.length > 0) {
-            const avatarURL = summaries[0].avatarfull;
-            await pool.query('UPDATE "profiles" SET "avatarURL" = $1 WHERE "plasmaUserID" = $2', [avatarURL, req.userId]);
-        }
-
-        // 3. Fetch Owned Games (Library Sync)
-        const games = await getSteamOwnedGames(steamId);
-
-        let addedCount = 0;
-        if (games && games.length > 0) {
-            addedCount = games.length;
-
-            const appIds = games.map(g => g.appid.toString());
-            const titles = games.map(g => g.name);
-            const coverArts = appIds.map(appId => `https://steamcdn-a.akamaihd.net/steam/apps/${appId}/library_600x900.jpg`);
-
-            // Batch insert missing games into the global games table
-            await pool.query(`
-                INSERT INTO "games" ("appID", "title", "platform", "coverArtURL")
-                SELECT id, title, 'STEAM', cover
-                FROM unnest($1::text[], $2::text[], $3::text[]) AS t(id, title, cover)
-                ON CONFLICT ("appID") DO UPDATE SET
-                    "coverArtURL" = EXCLUDED."coverArtURL"
-            `, [appIds, titles, coverArts]);
-
-            // Batch insert/update user library entries
-            const userIds = Array(games.length).fill(req.userId);
-            const hoursPlayed = games.map(g => (g.playtime_forever / 60).toFixed(2));
-
-            await pool.query(`
-                INSERT INTO "library_entries" ("userID", "appID", "hoursPlayed")
-                SELECT uid, aid, hrs::numeric
-                FROM unnest($1::uuid[], $2::text[], $3::text[]) AS t(uid, aid, hrs)
-                ON CONFLICT ("userID", "appID") DO UPDATE SET
-                    "hoursPlayed" = EXCLUDED."hoursPlayed"
-            `, [userIds, appIds, hoursPlayed]);
-        }
-
-        res.json({ success: true, message: 'Steam library and profile synced successfully', syncedGames: addedCount });
+        res.json({ 
+            success: true, 
+            message: 'Steam library and profile synced successfully', 
+            syncedGames: result.syncedGames 
+        });
     } catch (error) {
         if (error.response && error.response.status === 403) {
             return res.status(403).json({ success: false, message: "User's profile is private" });
         }
         console.error('Steam Library Sync Error:', error.message);
+        if (error.message === 'Steam account not linked') {
+            return res.status(400).json({ success: false, message: error.message });
+        }
         res.status(500).json({ success: false, message: 'Failed to sync with Steam' });
+    }
+});
+
+// POST /api/steam/sync/avatar-force (Destructive Profile Update)
+// Specifically overwrites the user's avatar with their current Steam avatar.
+router.post('/sync/avatar-force', authenticateToken, async (req, res) => {
+    try {
+        // 1. Get user's steamId64
+        const steamId = await getUserSteamId(req.userId);
+
+        // 2. Run profile sync with forceAvatar = true
+        const result = await syncSteamProfile(steamId, req.userId, true);
+
+        if (!result.synced) {
+            return res.status(500).json({ success: false, message: 'Failed to fetch Steam profile' });
+        }
+
+        res.json({ 
+            success: true, 
+            message: 'Avatar updated from Steam successfully',
+            isPrivate: result.isPrivate
+        });
+    } catch (error) {
+        console.error('Steam Avatar Force Sync Error:', error.message);
+        if (error.message === 'Steam account not linked') {
+            return res.status(400).json({ success: false, message: error.message });
+        }
+        res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
 
