@@ -91,26 +91,8 @@ router.post('/register', async (req, res) => {
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '60d' });
 
         // 6. Trigger background Steam sync
-        // Run sync without awaiting to keep response times fast
-        (async () => {
-            try {
-                await syncSteamLibrary(user.plasmaUserID);
-                console.log(`[Auth] Post-registration library sync succeeded for ${user.plasmaUserID}`);
-            } catch (libErr) {
-                console.error(`[Auth] Post-registration library sync failed for ${user.plasmaUserID}: ${libErr.message}`);
-                await enqueueJob('STEAM_LIBRARY_SYNC', { userId: user.plasmaUserID }, 5 * 60 * 1000);
-            }
-
-            try {
-                await syncSteamAchievements(user.plasmaUserID);
-                console.log(`[Auth] Post-registration achievement sync succeeded for ${user.plasmaUserID}`);
-            } catch (achErr) {
-                console.error(`[Auth] Post-registration achievement sync failed for ${user.plasmaUserID}: ${achErr.message}`);
-                await enqueueJob('STEAM_ACHIEVEMENT_SYNC', { userId: user.plasmaUserID }, 5 * 60 * 1000);
-            }
-        })().catch(err => {
-            console.error('[Auth] Global background sync task error:', err.message);
-        });
+        await enqueueJob('STEAM_LIBRARY_SYNC', { userId: user.plasmaUserID });
+        await enqueueJob('STEAM_ACHIEVEMENT_SYNC', { userId: user.plasmaUserID });
 
         return res.status(201).json({
             success: true,
@@ -161,6 +143,10 @@ router.post('/login', async (req, res) => {
         // 3. Generate JWT
         const payload = { userId: user.plasmaUserID };
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '60d' });
+
+        // 4. Trigger background sync
+        await enqueueJob('STEAM_LIBRARY_SYNC', { userId: user.plasmaUserID });
+        await enqueueJob('STEAM_ACHIEVEMENT_SYNC', { userId: user.plasmaUserID });
 
         return res.json({
             success: true,
@@ -222,6 +208,10 @@ router.post('/dev-login', async (req, res) => {
         const payload = { userId: user.plasmaUserID };
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '60d' });
 
+        // 5. Trigger background sync
+        await enqueueJob('STEAM_LIBRARY_SYNC', { userId: user.plasmaUserID });
+        await enqueueJob('STEAM_ACHIEVEMENT_SYNC', { userId: user.plasmaUserID });
+
         return res.json({
             success: true,
             message: 'Dev authentication successful',
@@ -269,9 +259,15 @@ router.get('/steam/callback', (req, res, next) => {
 
         if (result.rows.length > 0) {
             // Already registered, automatically log them in
-            const payload = { userId: result.rows[0].plasmaUserID };
+            const userId = result.rows[0].plasmaUserID;
+            const payload = { userId };
             const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '60d' });
             
+            // Trigger background sync for returning user
+            await enqueueJob('STEAM_LIBRARY_SYNC', { userId });
+            await enqueueJob('STEAM_ACHIEVEMENT_SYNC', { userId });
+
+            // Redirect to frontend dashboard or login success page with token
             return res.redirect(`${frontendUrl}/login?token=${token}`);
         } else {
             // New user, needs full registration

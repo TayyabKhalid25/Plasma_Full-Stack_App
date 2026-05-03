@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "install:all": "npm install --prefix client && npm install --prefix server",
+    "install:all": "npm install && npm install --prefix client && npm install --prefix server",
     "update:all": "npm update && npm update --prefix client && npm update --prefix server",
     "audit_fix:all": "npm audit fix --force && npm audit fix --force --prefix client && npm audit fix --force --prefix server",
     "dev": "concurrently \"npm run dev --prefix client\" \"npm run dev --prefix server\"",

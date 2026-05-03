@@ -3,6 +3,7 @@ const { pool } = require('../config/dbConfig');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { getSteamPlayerSummaries, getSteamPlayerAchievements } = require('../utils/externalApis');
 const { syncSteamLibrary, syncSteamAchievements, syncSteamProfile, getUserSteamId } = require('../utils/steamSyncService');
+const { enqueueJob } = require('../utils/jobQueue');
 
 const router = express.Router();
 
@@ -137,19 +138,25 @@ router.post('/sync/library', authenticateToken, async (req, res) => {
     try {
         const result = await syncSteamLibrary(req.userId);
 
-        res.json({ 
-            success: true, 
-            message: 'Steam library and profile synced successfully', 
-            syncedGames: result.syncedGames 
+        // Enqueue background achievement sync (heavy task)
+        await enqueueJob('STEAM_ACHIEVEMENT_SYNC', { userId: req.userId });
+
+        res.json({
+            success: true,
+            message: result.isPrivate
+                ? 'Library synced (Limited: Profile is Private)'
+                : 'Steam library and profile synced successfully. Achievements are being updated in the background.',
+            syncedGames: result.syncedGames,
+            isPrivate: result.isPrivate
         });
     } catch (error) {
         if (error.response && error.response.status === 403) {
             return res.status(403).json({ success: false, message: "User's profile is private" });
         }
-        console.error('Steam Library Sync Error:', error.message);
         if (error.message === 'Steam account not linked') {
             return res.status(400).json({ success: false, message: error.message });
         }
+        console.error('Steam Library Sync Error:', error.message);
         res.status(500).json({ success: false, message: 'Failed to sync with Steam' });
     }
 });
@@ -168,8 +175,8 @@ router.post('/sync/avatar-force', authenticateToken, async (req, res) => {
             return res.status(500).json({ success: false, message: 'Failed to fetch Steam profile' });
         }
 
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             message: 'Avatar updated from Steam successfully',
             isPrivate: result.isPrivate
         });
