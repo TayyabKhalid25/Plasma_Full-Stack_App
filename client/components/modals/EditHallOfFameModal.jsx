@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { ModalWrapper } from "../ui/ModalWrapper";
-import { Loader2, Check, Trophy, Shield, Target, Medal, Diamond, Lock } from "lucide-react";
+import { Loader2, Check, Trophy, Shield, Target, Medal, Gem, Lock } from "lucide-react";
 import { apiService } from "@/services/apiService";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { getRarityProps } from "@/lib/utils";
 
-const iconMap = { Trophy, Shield, Target, Medal, Diamond, Lock };
+const iconMap = { Trophy, Shield, Target, Medal, Gem, Lock };
 
 export function EditHallOfFameModal({ isOpen, onClose, onUpdate, initialSelectedIds = [] }) {
   const { token } = useAuth();

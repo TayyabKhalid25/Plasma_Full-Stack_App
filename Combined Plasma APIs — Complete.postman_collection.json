@@ -1722,7 +1722,7 @@
           "response": []
         },
         {
-          "name": "Get Game Achievements",
+          "name": "Get Game Achievements (All + Locked)",
           "request": {
             "method": "GET",
             "header": [
@@ -1732,7 +1732,7 @@
               }
             ],
             "url": {
-              "raw": "http://localhost:5000/api/achievements/game/:appId?orderBy=rarityWeight&direction=DESC",
+              "raw": "http://localhost:5000/api/achievements/game/:appId",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -1744,26 +1744,49 @@
                 "game",
                 ":appId"
               ],
-              "query": [
+              "variable": [
                 {
-                  "key": "orderBy",
-                  "value": "rarityWeight",
-                  "description": "Sort field: unlockedAt, rarityWeight, plasmaXP, title"
-                },
-                {
-                  "key": "direction",
-                  "value": "DESC",
-                  "description": "Sort direction: ASC, DESC"
+                  "key": "appId",
+                  "value": "218620"
                 }
+              ]
+            },
+            "description": "Returns ALL achievements for a game (unlocked AND locked), indicating which ones the authenticated user has unlocked via `isUnlocked`. Locked achievements appear with `isUnlocked: false` and `unlockedAt: null`. Achievements sorted by `unlockedAt DESC NULLS LAST` — unlocked most-recently-first, locked at bottom. Response fields per achievement: `achievementID`, `title`, `description`, `rarityWeight` (1–4 quartile), `plasmaXP`, `globalPercentage` (real Steam unlock % from last sync), `unlockedAt`, `isUnlocked`. Completion % and total count computed on frontend from `achievements.length` vs `achievements.filter(a => a.isUnlocked).length`. Locked achievements are only populated after a Steam sync (`POST /api/steam/sync/achievements`)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Game Achievements — Friends Activity",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{YOUR_TOKEN_HERE}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/achievements/game/:appId/friends",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "achievements",
+                "game",
+                ":appId",
+                "friends"
               ],
               "variable": [
                 {
                   "key": "appId",
-                  "value": "304930"
+                  "value": "218620"
                 }
               ]
             },
-            "description": "Fetches all achievements unlocked by the authenticated user for a specific game, sorted by rarity or date."
+            "description": "Returns mutual friends who have unlocked achievements in the specified game. Response is an array of `{ id, username, avatar, unlockedCount, achievements[] }`. Only mutual follow relationships are included (isMutual = TRUE). Used on the prestige game detail page Friends tab."
           },
           "response": []
         },

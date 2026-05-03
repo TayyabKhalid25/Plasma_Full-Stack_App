@@ -3,21 +3,21 @@
 import { useState, useEffect, use } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { 
-  Trophy, Lock, ChevronLeft, Calendar, Users, Target, Shield, Medal, 
-  Sparkles, Zap, Star, Loader2, ArrowLeft, Gamepad2, Info, Activity
+import {
+  Trophy, Lock, Users, Target, Shield, Medal,
+  Sparkles, Zap, Star, Loader2, ArrowLeft, Gamepad2, Info, Gem, Swords, Flame, Skull, Crosshair, Leaf, Flag, Activity
 } from "lucide-react";
 import { getAvatarUrl, getRarityProps } from "@/lib/utils";
 import Link from "next/link";
-import { format, isToday, isThisWeek, isThisMonth } from "date-fns";
+import { isToday, isThisWeek, isThisMonth, format } from "date-fns";
 
-const iconMap = { Trophy, Target, Shield, Medal, Sparkles, Zap, Star, Gamepad2 };
+const iconMap = { Trophy, Target, Shield, Medal, Sparkles, Zap, Star, Gamepad2, Gem, Swords, Flame, Skull, Crosshair, Leaf, Flag, Activity };
 
 export default function GamePrestigePage({ params }) {
   const { gameId } = use(params);
   const { token } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState(null);
+  const [pageData, setPageData] = useState(null);
   const [friends, setFriends] = useState([]);
   const [activeTab, setActiveTab] = useState("all");
 
@@ -39,7 +39,7 @@ export default function GamePrestigePage({ params }) {
         const achJson = await achRes.json();
         const friendsJson = await friendsRes.json();
 
-        if (achJson.success) setData(achJson.data);
+        if (achJson.success) setPageData(achJson.data);
         if (friendsJson.success) setFriends(friendsJson.data);
       } catch (err) {
         console.error("Failed to fetch game prestige data", err);
@@ -61,7 +61,7 @@ export default function GamePrestigePage({ params }) {
     );
   }
 
-  if (!data) {
+  if (!pageData) {
     return (
       <DashboardLayout showRightRail={false}>
         <div className="p-8 text-center">
@@ -74,37 +74,39 @@ export default function GamePrestigePage({ params }) {
     );
   }
 
-  const { game, achievements } = data;
+  const { game, achievements } = pageData;
   const unlocked = achievements.filter(a => a.isUnlocked);
   const locked = achievements.filter(a => !a.isUnlocked);
   const totalXp = unlocked.reduce((acc, a) => acc + a.plasmaXP, 0);
-  const completionPercentage = Math.round((unlocked.length / achievements.length) * 100);
+  const completionPercentage = achievements.length > 0
+    ? Math.round((unlocked.length / achievements.length) * 100)
+    : 0;
 
-  // Group achievements by date
-  const groupedAchievements = unlocked.reduce((acc, ach) => {
+  // Group unlocked by date — backend already sorted unlockedAt DESC
+  // Recent: fuzzy labels. Older: specific date per unique day.
+  const groupedAchievements = {};
+  const groupOrder = [];
+
+  unlocked.forEach(ach => {
     const date = new Date(ach.unlockedAt);
-    let group = "Earlier";
+    let group;
     if (isToday(date)) group = "Today";
     else if (isThisWeek(date)) group = "This Week";
     else if (isThisMonth(date)) group = "This Month";
-    
-    if (!acc[group]) acc[group] = [];
-    acc[group].push(ach);
-    return acc;
-  }, {});
+    else group = format(date, "MMMM d, yyyy");
 
-  const groupOrder = ["Today", "This Week", "This Month", "Earlier"];
-
-  // Calculate actual Rarity Score (average rarity weight of unlocked achievements)
-  const avgRarity = unlocked.length > 0 
-    ? (unlocked.reduce((acc, a) => acc + parseFloat(a.rarityWeight), 0) / unlocked.length).toFixed(1)
-    : "0.0";
+    if (!groupedAchievements[group]) {
+      groupedAchievements[group] = [];
+      groupOrder.push(group); // preserves insertion order from sorted backend data
+    }
+    groupedAchievements[group].push(ach);
+  });
 
   return (
     <DashboardLayout showRightRail={false}>
       <div className="max-w-[1200px] mx-auto p-4 md:p-8 space-y-10 pb-24">
-        
-        {/* Header Section */}
+
+        {/* Header */}
         <div className="relative group">
           <Link href="/prestige" className="flex items-center gap-2 text-plasma-text-secondary hover:text-white transition-colors mb-6 group/back">
             <div className="p-2 rounded-full bg-white/5 group-hover/back:bg-plasma-primary transition-colors">
@@ -116,13 +118,13 @@ export default function GamePrestigePage({ params }) {
           <div className="flex flex-col md:flex-row gap-8 items-center md:items-end">
             <div className="relative shrink-0">
               <div className="absolute inset-0 bg-plasma-primary/20 blur-[60px] rounded-full group-hover:bg-plasma-primary/30 transition-all duration-700" />
-              <img 
-                src={game.coverArtURL || "https://placehold.co/600x900?text=No+Cover"} 
+              <img
+                src={game.coverArtURL || "https://placehold.co/600x900?text=No+Cover"}
                 alt={game.title}
                 className="w-48 h-72 object-cover rounded-2xl border-2 border-white/10 shadow-2xl relative z-10"
               />
             </div>
-            
+
             <div className="flex-1 space-y-4 text-center md:text-left z-10">
               <div className="space-y-1">
                 <h1 className="text-4xl md:text-6xl font-display font-black text-white tracking-tight uppercase">
@@ -143,19 +145,19 @@ export default function GamePrestigePage({ params }) {
                   <p className="text-[48px] font-mono font-black bg-primary-gradient bg-clip-text text-transparent leading-none">
                     {totalXp.toLocaleString()}
                   </p>
-                  <p className="text-[10px] font-bold text-plasma-text-secondary tracking-widest uppercase mt-2">TOTAL PLASMA XP</p>
+                  <p className="text-[10px] font-bold text-plasma-text-secondary tracking-widest uppercase mt-2">Total Plasma XP</p>
                 </div>
-                
+
                 <div className="h-12 w-px bg-white/10 hidden md:block" />
-                
+
                 <div className="space-y-3 min-w-[200px]">
                   <div className="flex justify-between text-xs font-bold uppercase">
                     <span className="text-plasma-text-secondary">Completion</span>
                     <span className="text-plasma-primary">{completionPercentage}%</span>
                   </div>
                   <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
-                    <div 
-                      className="h-full bg-primary-gradient transition-all duration-1000 shadow-[0_0_15px_rgba(255,42,122,0.5)]" 
+                    <div
+                      className="h-full bg-primary-gradient transition-all duration-1000 shadow-[0_0_15px_rgba(255,42,122,0.5)]"
                       style={{ width: `${completionPercentage}%` }}
                     />
                   </div>
@@ -183,152 +185,93 @@ export default function GamePrestigePage({ params }) {
           ))}
         </div>
 
-        {/* Content Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          
-          {/* Achievements List (2/3) */}
-          <div className="lg:col-span-2 space-y-12">
-            
-            {activeTab !== "friends" && (
-              <>
-                {/* Unlocked Achievements Grouped by Date */}
-                {(activeTab === "all" || activeTab === "unlocked") && groupOrder.map(group => (
-                  groupedAchievements[group] && groupedAchievements[group].length > 0 && (
-                    <div key={group} className="space-y-6">
-                      <div className="flex items-center gap-4">
-                        <h2 className="text-xs font-black text-plasma-text-secondary uppercase tracking-[0.3em] shrink-0">
-                          {group}
-                        </h2>
-                        <div className="h-px w-full bg-white/5" />
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {groupedAchievements[group].map(ach => (
-                          <AchievementCard key={ach.achievementID} achievement={ach} />
-                        ))}
-                      </div>
-                    </div>
-                  )
-                ))}
+        {/* Content */}
+        <div className="space-y-12">
 
-                {/* Locked Achievements */}
-                {(activeTab === "all" || activeTab === "locked") && (
-                  <div className="space-y-6">
+          {activeTab !== "friends" && (
+            <>
+              {/* Unlocked — grouped by date */}
+              {(activeTab === "all" || activeTab === "unlocked") && groupOrder.map(group => (
+                groupedAchievements[group]?.length > 0 && (
+                  <div key={group} className="space-y-5">
+                    {/* Date divider */}
                     <div className="flex items-center gap-4">
                       <h2 className="text-xs font-black text-plasma-text-secondary uppercase tracking-[0.3em] shrink-0">
-                        Locked {locked.length > 0 ? `(${locked.length})` : ""}
+                        {group}
                       </h2>
                       <div className="h-px w-full bg-white/5" />
-                    </div>
-                    
-                    {locked.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-60">
-                        {locked.map(ach => (
-                          <AchievementCard key={ach.achievementID} achievement={ach} isLocked />
-                        ))}
+                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/5 border border-white/5 shrink-0">
+                        <span className="text-[11px] font-bold text-plasma-text-primary">
+                          {groupedAchievements[group].length}
+                        </span>
+                        <Medal className="w-3.5 h-3.5 text-plasma-gold" />
                       </div>
-                    ) : (
-                      <div className="py-10 px-6 rounded-3xl bg-white/5 border border-dashed border-white/10 text-center">
-                        <Info className="w-8 h-8 mx-auto text-plasma-text-secondary/30 mb-3" />
-                        <p className="text-sm text-plasma-text-secondary font-medium">
-                          {game.isManualEntry 
-                            ? "Locked achievements are not available for manual entries. This feature is exclusive to Steam-linked titles." 
-                            : "Congratulations! You've unlocked every achievement for this game."}
-                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {groupedAchievements[group].map(ach => (
+                        <AchievementCard key={ach.achievementID} achievement={ach} />
+                      ))}
+                    </div>
+                  </div>
+                )
+              ))}
+
+              {/* Locked */}
+              {(activeTab === "all" || activeTab === "locked") && (
+                <div className="space-y-5">
+                  <div className="flex items-center gap-4">
+                    <h2 className="text-xs font-black text-plasma-text-secondary uppercase tracking-[0.3em] shrink-0">
+                      Locked
+                    </h2>
+                    <div className="h-px w-full bg-white/5" />
+                    {locked.length > 0 && (
+                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/5 border border-white/5 shrink-0">
+                        <span className="text-[11px] font-bold text-plasma-text-primary">
+                          {locked.length}
+                        </span>
+                        <Lock className="w-3.5 h-3.5 text-plasma-text-secondary" />
                       </div>
                     )}
                   </div>
-                )}
-              </>
-            )}
 
-            {activeTab === "friends" && (
-              <div className="space-y-8">
-                {friends.length === 0 ? (
-                  <div className="text-center py-20 bg-white/5 rounded-3xl border border-white/5">
-                    <Users className="w-12 h-12 mx-auto text-plasma-text-secondary/20 mb-4" />
-                    <p className="text-plasma-text-secondary font-medium">None of your friends have unlocked achievements in this game yet.</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-4">
-                    {friends.map(friend => (
-                      <FriendAchievementCard key={friend.id} friend={friend} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Side Stats/Activity (1/3) */}
-          <div className="space-y-8">
-            {/* Global Statistics (Only for Steam Games) */}
-            {!game.isManualEntry && (
-              <div className="bg-plasma-slate/40 backdrop-blur-xl rounded-3xl p-6 border border-white/5 space-y-6">
-                <h3 className="text-xs font-bold text-plasma-text-secondary uppercase tracking-widest">Global Statistics</h3>
-                
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center p-3 rounded-2xl bg-white/5 border border-white/5">
-                    <div className="flex items-center gap-3">
-                      <Zap className="w-4 h-4 text-plasma-primary" />
-                      <span className="text-xs font-medium text-plasma-text-secondary">Avg. Rarity</span>
+                  {locked.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 opacity-60">
+                      {locked.map(ach => (
+                        <AchievementCard key={ach.achievementID} achievement={ach} isLocked />
+                      ))}
                     </div>
-                    <span className="text-sm font-mono font-bold text-white">{avgRarity}%</span>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-white/5">
-                  <p className="text-[10px] text-plasma-text-secondary leading-relaxed">
-                    You've earned <span className="text-white font-bold">{totalXp.toLocaleString()} XP</span> from this game. 
-                    Your average achievement rarity is <span className="text-plasma-primary font-bold">{avgRarity}%</span> among all Plasma players.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Manual Game Stats */}
-            {game.isManualEntry && (
-              <div className="bg-plasma-slate/40 backdrop-blur-xl rounded-3xl p-6 border border-white/5 space-y-4">
-                <h3 className="text-xs font-bold text-plasma-text-secondary uppercase tracking-widest">Milestone Progress</h3>
-                <div className="p-4 rounded-2xl bg-plasma-primary/5 border border-plasma-primary/20">
-                  <p className="text-[32px] font-mono font-black text-white">{unlocked.length}</p>
-                  <p className="text-[10px] font-bold text-plasma-text-secondary uppercase tracking-tighter">Manual Milestones Recorded</p>
-                </div>
-                <p className="text-[10px] text-plasma-text-secondary leading-relaxed italic">
-                  Manual games are tracked personally. Share your milestones in the Feed to earn recognition from the squad!
-                </p>
-              </div>
-            )}
-
-            {/* Quick Friend List */}
-            {activeTab !== "friends" && friends.length > 0 && (
-              <div className="bg-plasma-slate/40 backdrop-blur-xl rounded-3xl p-6 border border-white/5 space-y-6">
-                <h3 className="text-xs font-bold text-plasma-text-secondary uppercase tracking-widest">Friends Playing</h3>
-                <div className="flex -space-x-3">
-                  {friends.slice(0, 5).map(f => (
-                    <img 
-                      key={f.id} 
-                      src={getAvatarUrl(f.avatar, f.username)} 
-                      className="w-10 h-10 rounded-full border-2 border-plasma-bg hover:-translate-y-1 transition-transform cursor-pointer"
-                      title={f.username}
-                    />
-                  ))}
-                  {friends.length > 5 && (
-                    <div className="w-10 h-10 rounded-full bg-plasma-primary border-2 border-plasma-bg flex items-center justify-center text-[10px] font-bold text-white">
-                      +{friends.length - 5}
+                  ) : (
+                    <div className="py-10 px-6 rounded-3xl bg-white/5 border border-dashed border-white/10 text-center">
+                      <Info className="w-8 h-8 mx-auto text-plasma-text-secondary/30 mb-3" />
+                      <p className="text-sm text-plasma-text-secondary font-medium">
+                        {game.isManualEntry
+                          ? "Locked achievements unavailable for manual entries. Steam-linked titles only."
+                          : "Congratulations! Every achievement unlocked for this game."}
+                      </p>
                     </div>
                   )}
                 </div>
-                <button 
-                  onClick={() => setActiveTab("friends")}
-                  className="w-full py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-xs font-bold uppercase tracking-widest transition-colors"
-                >
-                  View All Activity
-                </button>
-              </div>
-            )}
-          </div>
+              )}
+            </>
+          )}
 
+          {activeTab === "friends" && (
+            <div className="space-y-8">
+              {friends.length === 0 ? (
+                <div className="text-center py-20 bg-white/5 rounded-3xl border border-white/5">
+                  <Users className="w-12 h-12 mx-auto text-plasma-text-secondary/20 mb-4" />
+                  <p className="text-plasma-text-secondary font-medium">No friends unlocked achievements in this game yet.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4">
+                  {friends.map(friend => (
+                    <FriendAchievementCard key={friend.id} friend={friend} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>
@@ -337,30 +280,34 @@ export default function GamePrestigePage({ params }) {
 
 function AchievementCard({ achievement, isLocked }) {
   const rarity = getRarityProps(achievement.rarityWeight);
-  const Icon = iconMap[achievement.iconName] || Trophy;
+  const Icon = iconMap[rarity.iconName] || Trophy;
 
   return (
-    <div className={`p-4 rounded-3xl bg-plasma-slate/60 backdrop-blur-md border border-white/5 hover:border-white/10 transition-all group hover:scale-[1.02] cursor-pointer relative overflow-hidden ${isLocked ? 'grayscale opacity-75' : ''}`}>
+    <div className={`p-4 rounded-3xl bg-plasma-slate/60 backdrop-blur-md border border-white/5 transition-all relative overflow-hidden ${isLocked ? "grayscale opacity-90" : ""}`}>
       {!isLocked && (
-        <div className={`absolute -right-4 -bottom-4 w-24 h-24 blur-[40px] opacity-20 group-hover:opacity-40 transition-opacity ${rarity.bg}`} />
+        <div className={`absolute -right-4 -bottom-4 w-24 h-24 blur-[40px] opacity-20 transition-opacity ${rarity.bg}`} />
       )}
-      
+
       <div className="flex gap-4 items-center">
-        <div className={`w-16 h-16 rounded-2xl border-2 flex items-center justify-center shrink-0 relative z-10 transition-transform group-hover:scale-110 ${isLocked ? 'bg-white/5 border-white/10' : `${rarity.border} ${rarity.shadow} bg-white/5`}`}>
-          {isLocked ? <Lock className="w-6 h-6 text-plasma-text-secondary" /> : <Icon className={`w-8 h-8 ${rarity.color}`} />}
+        {/* Circle icon container */}
+        <div className={`w-14 h-14 rounded-full border-2 flex items-center justify-center shrink-0 relative z-10 ${isLocked ? "bg-white/5 border-white/10" : `${rarity.border} ${rarity.shadow} bg-white/5`}`}>
+          {isLocked
+            ? <Lock className="w-5 h-5 text-plasma-text-secondary" />
+            : <Icon className={`w-6 h-6 ${rarity.color}`} />
+          }
         </div>
-        
+
         <div className="flex-1 min-w-0 space-y-1">
-          <h4 className="text-sm font-bold text-white truncate group-hover:text-plasma-primary transition-colors">{achievement.title}</h4>
+          <h4 className="text-sm font-bold text-white truncate transition-colors">{achievement.title}</h4>
           <p className="text-[11px] text-plasma-text-secondary line-clamp-2 leading-snug">
-            {isLocked ? "Connect to Steam to unlock this hidden achievement." : achievement.description || "No description available."}
+            {achievement.description || "No description available."}
           </p>
           <div className="flex items-center gap-3 pt-1">
-            <span className={`text-[10px] font-mono font-bold ${isLocked ? 'text-plasma-text-secondary' : rarity.color}`}>
+            <span className={`text-[10px] font-mono font-bold ${isLocked ? "text-plasma-text-secondary" : rarity.color}`}>
               +{achievement.plasmaXP} XP
             </span>
             <span className="text-[10px] font-bold text-plasma-text-secondary/50 uppercase tracking-tighter">
-              {achievement.rarityWeight}% Players
+              {achievement.globalPercentage != null ? achievement.globalPercentage.toFixed(1) : achievement.rarityWeight}% of players have this achievement
             </span>
           </div>
         </div>
@@ -373,8 +320,8 @@ function FriendAchievementCard({ friend }) {
   return (
     <div className="p-5 rounded-3xl bg-plasma-slate/60 backdrop-blur-md border border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-6 hover:border-white/10 transition-colors">
       <div className="flex items-center gap-4">
-        <img 
-          src={getAvatarUrl(friend.avatar, friend.username)} 
+        <img
+          src={getAvatarUrl(friend.avatar, friend.username)}
           className="w-12 h-12 rounded-full border-2 border-plasma-primary/30"
           alt=""
         />
@@ -390,7 +337,7 @@ function FriendAchievementCard({ friend }) {
         {friend.achievements.slice(0, 8).map(ach => {
           const rarity = getRarityProps(ach.rarityWeight || 10);
           return (
-            <div 
+            <div
               key={ach.id}
               className={`w-10 h-10 rounded-full border-2 border-plasma-bg bg-plasma-slate flex items-center justify-center ${rarity.border} ${rarity.shadow}`}
               title={ach.title}
@@ -406,7 +353,7 @@ function FriendAchievementCard({ friend }) {
         )}
       </div>
 
-      <Link 
+      <Link
         href={`/profile/${friend.id}`}
         className="px-6 py-3 rounded-2xl bg-white/5 hover:bg-plasma-primary text-xs font-bold uppercase tracking-widest transition-all text-center"
       >

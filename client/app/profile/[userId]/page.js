@@ -4,13 +4,13 @@ import { useState, useEffect, use } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
-  Gamepad2, Play, Medal, Trophy, Calendar, Users, UserPlus, UserMinus, Swords, Shield, Target, Diamond, Lock, ChevronDown, ChevronUp
+  Gamepad2, Play, Medal, Trophy, Calendar, Users, UserPlus, UserMinus, Swords, Shield, Target, Gem, Lock, ChevronDown, ChevronUp
 } from "lucide-react";
 import Link from "next/link";
 import { getIntentStyle } from "@/lib/intentStyles";
 import { getAvatarUrl, getRarityProps } from "@/lib/utils";
 
-const iconMap = { Trophy, Swords, Shield, Target, Medal, Diamond, Lock };
+const iconMap = { Trophy, Swords, Shield, Target, Medal, Gem, Lock };
 
 function ProfileHeaderSkeleton() {
   return (

@@ -94,8 +94,10 @@ CREATE TABLE "achievements" (
     "achievementID" VARCHAR(100) PRIMARY KEY,
     "appID" VARCHAR(50) NOT NULL REFERENCES "games"("appID") ON DELETE CASCADE,
     "title" VARCHAR(255) NOT NULL,
+    "description" TEXT,
     "rarityWeight" REAL NOT NULL,
-    "plasmaXP" INTEGER NOT NULL
+    "plasmaXP" INTEGER NOT NULL,
+    "globalPercentage" REAL
 );
 
 CREATE TABLE "user_achievements" (

@@ -45,7 +45,7 @@ export function getRarityProps(rarity) {
       return {
         tier: "Platinum",
         color: "text-plasma-platinum",
-        iconName: "Diamond",
+        iconName: "Gem",
         border: "border-plasma-platinum/30",
         shadow: "shadow-[0_0_10px_rgba(229,228,226,0.2)]",
         glow: "shadow-[0_0_20px_rgba(229,228,226,0.4)]"

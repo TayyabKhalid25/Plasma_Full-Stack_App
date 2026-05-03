@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
-  Gamepad2, Play, Medal, Trophy, Swords, Shield, Target, Calendar, Users, User, Cloud, Zap, Loader2, ChevronDown, ChevronUp, Lock, Diamond
+  Gamepad2, Play, Medal, Trophy, Swords, Shield, Target, Calendar, Users, User, Cloud, Zap, Loader2, ChevronDown, ChevronUp, Lock, Gem
 } from "lucide-react";
 import Link from "next/link";
 import { getIntentStyle } from "@/lib/intentStyles";
@@ -14,7 +14,7 @@ import { useModal } from "@/hooks/useModal";
 import { SyncSuccessModal } from "@/components/modals/SyncSuccessModal";
 import { EditHallOfFameModal } from "@/components/modals/EditHallOfFameModal";
 
-const iconMap = { Trophy, Swords, Shield, Target, Medal, Diamond, Lock };
+const iconMap = { Trophy, Swords, Shield, Target, Medal, Gem, Lock };
 
 // Prefer Steam's high-res vertical capsule over the tiny icon
 function getHighResImage(appID, fallbackURL, platform) {

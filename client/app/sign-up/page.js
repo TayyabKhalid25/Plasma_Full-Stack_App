@@ -165,7 +165,7 @@ const SectionLeftSideSubsection = () => {
             </button>
 
             <p className="text-[11px] text-plasma-text-secondary text-center mt-2">
-              Redirecting to Steam for secure authentication.
+              Redirects to Steam for secure authentication.
             </p>
           </div>
         )}

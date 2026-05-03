@@ -74,6 +74,7 @@ async function fetchUserAchievements(userId, options = {}) {
             proofUrl: row.proofUrl,
             rarityWeight: row.rarityWeight,
             plasmaXP: row.plasmaXP,
+            globalPercentage: row.globalPercentage ?? null,
             unlockedAt: row.unlockedAt
         });
     });
@@ -173,15 +174,15 @@ router.get('/game/:appID', authenticateToken, async (req, res) => {
                 a."achievementID",
                 a."title",
                 a."description",
-                a."proofUrl",
                 a."rarityWeight",
                 a."plasmaXP",
+                a."globalPercentage",
                 ua."unlockedAt",
                 CASE WHEN ua."achievementID" IS NOT NULL THEN TRUE ELSE FALSE END AS "isUnlocked"
             FROM "achievements" a
             LEFT JOIN "user_achievements" ua ON a."achievementID" = ua."achievementID" AND ua."userID" = $1
             WHERE a."appID" = $2
-            ORDER BY a."plasmaXP" DESC, a."title" ASC
+            ORDER BY ua."unlockedAt" DESC NULLS LAST, a."title" ASC
         `, [userId, appID]);
 
         res.json({ 

@@ -2,7 +2,7 @@
 
 import { use, useState, useEffect, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { ArrowLeft, Clock, Trophy, Users, Play, Calendar, Loader2, Cloud, Gamepad2, Plus, ExternalLink, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Lock, Sparkles, Leaf, Flag, Diamond, Zap, Activity } from "lucide-react";
+import { ArrowLeft, Clock, Trophy, Users, Play, Calendar, Loader2, Cloud, Gamepad2, Plus, ExternalLink, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Lock, Sparkles, Leaf, Flag, Gem, Zap, Activity } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth, API_BASE } from "@/context/AuthContext";
@@ -11,7 +11,7 @@ import { useModal } from "@/hooks/useModal";
 import { AddMilestoneModal } from "@/components/modals/AddMilestoneModal";
 import { getRarityProps } from "@/lib/utils";
 
-const iconMap = { Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Diamond, Zap, Activity };
+const iconMap = { Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Gem, Zap, Activity };
 
 export default function GameDetailPage({ params }) {
   const resolvedParams = params instanceof Promise ? use(params) : params;
@@ -25,6 +25,7 @@ export default function GameDetailPage({ params }) {
   const { sendMessage } = useSocket();
   const router = useRouter();
   const milestoneModal = useModal();
+  const [friendsPlaying, setFriendsPlaying] = useState([]);
 
   // Heartbeat for 'Currently Playing' status
   useEffect(() => {
@@ -45,9 +46,9 @@ export default function GameDetailPage({ params }) {
       const res = await fetch(`${API_BASE}/api/achievements/game/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      const data = await res.json();
-      if (data.success) {
-        setAchievements(data.data.map(ach => {
+      const achievementJson = await res.json();
+      if (achievementJson.success) {
+        setAchievements(achievementJson.data.achievements.map(ach => {
           const rarityProps = getRarityProps(ach.rarityWeight);
           return {
             id: ach.achievementID,
@@ -66,9 +67,25 @@ export default function GameDetailPage({ params }) {
     }
   }, [id, token]);
 
+  const fetchFriendsPlaying = useCallback(async () => {
+    if (!token || !id) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/achievements/game/${id}/friends`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const friendsJson = await res.json();
+      if (friendsJson.success) {
+        setFriendsPlaying(friendsJson.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch friends playing:", err);
+    }
+  }, [id, token]);
+
   useEffect(() => {
     fetchAchievements();
-  }, [fetchAchievements]);
+    fetchFriendsPlaying();
+  }, [fetchAchievements, fetchFriendsPlaying]);
 
   const [isOwned, setIsOwned] = useState(false);
 
@@ -96,13 +113,13 @@ export default function GameDetailPage({ params }) {
         const res = await fetch(`${API_BASE}/api/library/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        const data = await res.json();
+        const libraryJson = await res.json();
 
         if (ignore) return;
 
-        if (data.success) {
+        if (libraryJson.success) {
           console.log("[GameDetail] Found in library:", id);
-          const g = data.data;
+          const g = libraryJson.data;
           setGame({
             id: g.appID,
             title: g.title,
@@ -123,13 +140,13 @@ export default function GameDetailPage({ params }) {
           const igdbRes = await fetch(`${API_BASE}/api/library/igdb/${igdbId}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
-          const igdbData = await igdbRes.json();
+          const igdbJson = await igdbRes.json();
 
           if (ignore) return;
-          console.log("[GameDetail] IGDB API Response:", igdbData);
+          console.log("[GameDetail] IGDB API Response:", igdbJson);
 
-          if (igdbData.success) {
-            const g = igdbData.data;
+          if (igdbJson.success) {
+            const g = igdbJson.data;
             const newGame = {
               id: `igdb_${g.id}`,
               title: g.name,
@@ -147,7 +164,7 @@ export default function GameDetailPage({ params }) {
             setGame(newGame);
             setIsOwned(false);
           } else {
-            console.error("[GameDetail] IGDB fetch failed:", igdbData.message);
+            console.error("[GameDetail] IGDB fetch failed:", igdbJson.message);
             setGame(null);
           }
         } else {
@@ -240,8 +257,6 @@ export default function GameDetailPage({ params }) {
       </DashboardLayout>
     );
   }
-
-  const friendsPlaying = []; // Placeholder for now
 
   const formatPlaytime = (hours) => {
     if (!hours || hours === 0) return "0m";
@@ -348,7 +363,7 @@ export default function GameDetailPage({ params }) {
           {[
             { label: "Hours Played", value: formatPlaytime(game.hoursPlayed), icon: Clock },
             { label: "Achievements", value: `${achievements.length}`, icon: Trophy },
-            { label: "Friends Playing", value: "0", icon: Users },
+            { label: "Friends Playing", value: `${friendsPlaying.length}`, icon: Users },
             { label: "Last Played", value: isPlaying ? "Now" : game.lastPlayed, icon: Calendar },
           ].map((stat) => {
             const Icon = stat.icon;

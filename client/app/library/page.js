@@ -6,7 +6,7 @@ import { useAuth, API_BASE } from "@/context/AuthContext";
 import { 
   Search, 
   Gamepad2, 
-  Diamond, 
+  Gem, 
   Cloud, 
   Zap, 
   Shield, 
@@ -30,7 +30,7 @@ const gameFilters = [
   { id: "non-steam", label: "Non-Steam" },
 ];
 
-const iconMap = { Gamepad2, Diamond, Cloud, Zap, Shield, Sparkles, Dog, Star, Castle, Cpu };
+const iconMap = { Gamepad2, Gem, Cloud, Zap, Shield, Sparkles, Dog, Star, Castle, Cpu };
 
 // --- Skeleton Card ---
 function GameCardSkeleton() {

@@ -167,6 +167,9 @@ async function syncSteamAchievements(userId) {
         WHERE le."userID" = $1 AND g."platform" = 'STEAM'
     `, [userId]);
 
+    console.log(`[SteamSync] Starting achievement sync for user: ${userId}`);
+    console.log(`[SteamSync] Found ${libraryResult.rows.length} games in user library to process.`);
+
     let totalSynced = 0;
     let gamesProcessed = 0;
     let newAchievements = [];
@@ -188,46 +191,46 @@ async function syncSteamAchievements(userId) {
             const sortedGlobal = [...globalPercentages].sort((a, b) => b.percent - a.percent);
             const totalCount = sortedGlobal.length;
             
-            // Create a rarity map based on quartiles
+            // Build rarity + globalPct maps from quartile analysis
             const rarityMap = {};
+            const globalPctMap = {};
             sortedGlobal.forEach((gp, index) => {
                 let rarity = 1;
                 if (index >= totalCount * 0.75) rarity = 4;      // Bottom 25% (Rarest)
-                else if (index >= totalCount * 0.50) rarity = 3; 
+                else if (index >= totalCount * 0.50) rarity = 3;
                 else if (index >= totalCount * 0.25) rarity = 2;
-                
+
                 rarityMap[gp.name] = rarity;
+                
+                // Safety check: Ensure percent is a number before calling toFixed
+                const rawPct = typeof gp.percent === 'number' ? gp.percent : parseFloat(gp.percent);
+                globalPctMap[gp.name] = !isNaN(rawPct) ? parseFloat(rawPct.toFixed(2)) : 0;
             });
 
             gamesProcessed++;
 
             for (const ach of achievementData.achievements) {
-                if (ach.achieved !== 1) continue;
-
                 const achievementID = `steam_${appId}_${ach.apiname}`;
-                const unlockedAt = ach.unlocktime || Math.floor(Date.now() / 1000);
                 const title = ach.name || ach.apiname;
                 const description = ach.description || null;
-
-                // Get rarity from the quartile map (default to 1 if not found)
                 const rarity = rarityMap[ach.apiname] || 1;
-                
+                const globalPct = globalPctMap[ach.apiname] ?? null;
+
                 // Set XP based on rarity
                 let xp = 100;
                 if (rarity === 2) xp = 250;
                 else if (rarity === 3) xp = 550;
                 else if (rarity === 4) xp = 1000;
 
-                newAchievements.push({
-                    achievementID,
-                    appId,
-                    title,
-                    description,
-                    rarityWeight: rarity,
-                    plasmaXP: xp
-                });
-                newUserAchievements.push({ userID: userId, achievementID, unlockedAt });
-                totalSynced++;
+                // ALL achievements (locked + unlocked) go into achievements table
+                newAchievements.push({ achievementID, appId, title, description, rarityWeight: rarity, plasmaXP: xp, globalPercentage: globalPct });
+
+                // Only unlocked go into user_achievements
+                if (ach.achieved === 1) {
+                    const unlockedAt = ach.unlocktime || Math.floor(Date.now() / 1000);
+                    newUserAchievements.push({ userID: userId, achievementID, unlockedAt });
+                    totalSynced++;
+                }
             }
         } catch (gameErr) {
             // Steam returns 400 for apps that don't support stats/achievements — skip silently
@@ -245,34 +248,39 @@ async function syncSteamAchievements(userId) {
 
     // Execute bulk inserts if any achievements were found
     if (newAchievements.length > 0) {
-        const achIds = newAchievements.map(a => a.achievementID);
-        const appIds = newAchievements.map(a => a.appId);
-        const titles = newAchievements.map(a => a.title);
+        const achIds       = newAchievements.map(a => a.achievementID);
+        const appIds2      = newAchievements.map(a => a.appId);
+        const titles       = newAchievements.map(a => a.title);
         const descriptions = newAchievements.map(a => a.description);
-        const rarities = newAchievements.map(a => a.rarityWeight);
-        const xps = newAchievements.map(a => a.plasmaXP);
+        const rarities     = newAchievements.map(a => a.rarityWeight);
+        const xps          = newAchievements.map(a => a.plasmaXP);
+        const globalPcts   = newAchievements.map(a => a.globalPercentage);
 
         await pool.query(`
-            INSERT INTO "achievements" ("achievementID", "appID", "title", "description", "rarityWeight", "plasmaXP")
-            SELECT id, app, title, descr, rarity, xp
-            FROM unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::numeric[], $6::integer[]) AS t(id, app, title, descr, rarity, xp)
+            INSERT INTO "achievements" ("achievementID", "appID", "title", "description", "rarityWeight", "plasmaXP", "globalPercentage")
+            SELECT id, app, title, descr, rarity, xp, gpct
+            FROM unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::numeric[], $6::integer[], $7::real[]) AS t(id, app, title, descr, rarity, xp, gpct)
             ON CONFLICT ("achievementID") DO UPDATE SET
-                "title"          = EXCLUDED."title",
-                "description"    = EXCLUDED."description",
-                "rarityWeight"   = EXCLUDED."rarityWeight",
-                "plasmaXP"       = EXCLUDED."plasmaXP"
-        `, [achIds, appIds, titles, descriptions, rarities, xps]);
+                "title"             = EXCLUDED."title",
+                "description"       = EXCLUDED."description",
+                "rarityWeight"      = EXCLUDED."rarityWeight",
+                "plasmaXP"          = EXCLUDED."plasmaXP",
+                "globalPercentage"  = EXCLUDED."globalPercentage"
+        `, [achIds, appIds2, titles, descriptions, rarities, xps, globalPcts]);
 
-        const userIds = newUserAchievements.map(a => a.userID);
-        const uAchIds = newUserAchievements.map(a => a.achievementID);
-        const unlockedAts = newUserAchievements.map(a => a.unlockedAt);
+        // Only insert user_achievements if there are unlocked ones
+        if (newUserAchievements.length > 0) {
+            const userIds    = newUserAchievements.map(a => a.userID);
+            const uAchIds    = newUserAchievements.map(a => a.achievementID);
+            const unlockedAts = newUserAchievements.map(a => a.unlockedAt);
 
-        await pool.query(`
-            INSERT INTO "user_achievements" ("userID", "achievementID", "unlockedAt")
-            SELECT uid, aid, to_timestamp(ts)
-            FROM unnest($1::uuid[], $2::text[], $3::bigint[]) AS t(uid, aid, ts)
-            ON CONFLICT ("userID", "achievementID") DO NOTHING
-        `, [userIds, uAchIds, unlockedAts]);
+            await pool.query(`
+                INSERT INTO "user_achievements" ("userID", "achievementID", "unlockedAt")
+                SELECT uid, aid, to_timestamp(ts)
+                FROM unnest($1::uuid[], $2::text[], $3::bigint[]) AS t(uid, aid, ts)
+                ON CONFLICT ("userID", "achievementID") DO NOTHING
+            `, [userIds, uAchIds, unlockedAts]);
+        }
     }
 
     // Update profile XP

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
-  Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Diamond, Zap, Activity, Loader2, CheckCircle2, ChevronDown, ChevronUp
+  Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Gem, Zap, Activity, Loader2, CheckCircle2, ChevronDown, ChevronUp
 } from "lucide-react";
 import { useModal } from "@/hooks/useModal";
 import { EditHallOfFameModal } from "@/components/modals/EditHallOfFameModal";
@@ -14,7 +14,7 @@ import { getIntentStyle } from "@/lib/intentStyles";
 import { getAvatarUrl, getRarityProps } from "@/lib/utils";
 import Link from "next/link";
 
-const iconMap = { Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Diamond, Zap, Activity };
+const iconMap = { Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Gem, Zap, Activity };
 
 const achievementTabs = [
   { id: "all", label: "All" },

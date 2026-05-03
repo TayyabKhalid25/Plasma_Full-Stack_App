@@ -34,7 +34,7 @@ module.exports = {
           error: "#E74C3C",
           platinum: "#E5E4E2",
           gold: "#FFD700",
-          silver: "#C0C0C0",
+          silver: "#c0c0c091",
           bronze: "#CD7F32",
         },
       },

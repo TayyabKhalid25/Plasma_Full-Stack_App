@@ -33,7 +33,6 @@ const intentModes = [
   {
     title: "Competitive",
     description: "Locked in. Absolute Tunnel Vision. No distractions. Ready for ranked grinds and high-stakes tournament play.",
-    icon: "/images/intent-1.png",
     barBg: "bg-[#dc262633]",
     barFill: "bg-red-600 shadow-[0px_0px_10px_#ef4444]",
     glowBg: "bg-[#dc26261a]",
@@ -42,7 +41,6 @@ const intentModes = [
   {
     title: "Chill",
     description: "Just vibing. Open to talk, exploring new\nworlds, or completing daily quests at a\nrelaxed pace.",
-    icon: "/images/intent-2.png",
     barBg: "bg-[#05966933]",
     barFill: "bg-emerald-600 shadow-[0px_0px_10px_#10b981]",
     glowBg: "bg-[#0596691a]",
@@ -51,7 +49,6 @@ const intentModes = [
   {
     title: "Offline",
     description: "Going dark. AFK, handling real-world side quests, or deep in a solo campaign. Catch you on the next respawn.",
-    icon: "/images/intent-3.png",
     barBg: "bg-[#0e0e0eff]",
     barFill: "bg-neutral-600 shadow-[0px_0px_10px_#f59e0b]",
     glowBg: "bg-[#ca8a041a]",
@@ -59,7 +56,11 @@ const intentModes = [
   },
 ];
 
-const avatarColors = ["bg-slate-500", "bg-slate-600", "bg-slate-700"];
+const streamerAvatars = [
+  "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?q=80&w=200&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=200&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200&auto=format&fit=crop"
+];
 
 const TopNavBarSubsection = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -314,12 +315,16 @@ const MainSubsection = () => (
               </div>
               {/* Avatars */}
               <div className="flex items-start pt-6">
-                {avatarColors.map((color, i) => (
-                  <div
+                {streamerAvatars.map((url, i) => (
+                  <img
                     key={i}
-                    className={`w-10 h-10 ${color} rounded-full border-2 border-solid border-[#1a1726] ${i > 0 ? "-ml-2" : ""}`} />
+                    src={url}
+                    alt={`Streamer ${i}`}
+                    className={`w-10 h-10 object-cover rounded-full border-2 border-solid border-[#1a1726] ${i > 0 ? "-ml-3" : ""} hover:scale-110 hover:translate-y-[-4px] transition-all duration-300 cursor-pointer relative`}
+                    style={{ zIndex: 10 - i }}
+                  />
                 ))}
-                <div className="flex w-10 h-10 items-center justify-center -ml-2 bg-[#1a172699] rounded-full border-2 border-solid border-[#1a1726] backdrop-blur [-webkit-backdrop-filter:blur(8px)_brightness(100%)]">
+                <div className="flex w-10 h-10 items-center justify-center -ml-3 bg-[#1a172699] rounded-full border-2 border-solid border-[#1a1726] backdrop-blur [-webkit-backdrop-filter:blur(8px)_brightness(100%)]">
                   <span className="font-sans font-bold text-plasma-text-primary text-[10px] text-center leading-[15px] whitespace-nowrap">
                     +5
                   </span>
