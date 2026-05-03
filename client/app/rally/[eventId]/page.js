@@ -33,14 +33,28 @@ export default function RallyDetail({ params }) {
 
     const fetchRallyDetails = async () => {
         if (!token || !eventId) return;
-        setLoading(true);
+        if (!rally) setLoading(true);
         try {
             const res = await fetch(`${API_BASE}/api/rallies/${eventId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const data = await res.json();
             if (data.success) {
-                setRally(data.data);
+                const e = data.data;
+                // Normalize data to match the format used in rally/page.js and expected by modals
+                const formattedRally = {
+                    ...e,
+                    id: e.eventID,
+                    slotsFilled: parseInt(e.currentAttendees) || 0,
+                    slotsTotal: e.maxCapacity,
+                    roles: e.roles?.map(r => ({
+                        ...r,
+                        filled: e.roleCounts?.[r.name] || 0,
+                        total: r.totalSlots,
+                        percent: r.totalSlots > 0 ? Math.min(100, Math.round(((e.roleCounts?.[r.name] || 0) / r.totalSlots) * 100)) : 0
+                    }))
+                };
+                setRally(formattedRally);
             } else {
                 setError(data.message || "Rally not found");
             }
@@ -59,14 +73,26 @@ export default function RallyDetail({ params }) {
     const toggleRSVP = async () => {
         if (!rally) return;
         if (rally.hasRsvpd) {
+            // Optimistic update
+            const oldRally = { ...rally };
+            setRally(prev => ({ 
+                ...prev, 
+                hasRsvpd: false, 
+                currentAttendees: Math.max(0, prev.currentAttendees - 1),
+                slotsFilled: Math.max(0, prev.slotsFilled - 1)
+            }));
+
             try {
-                await fetch(`${API_BASE}/api/rallies/${eventId}/rsvp`, {
+                const res = await fetch(`${API_BASE}/api/rallies/${eventId}/rsvp`, {
                     method: "DELETE",
                     headers: { Authorization: `Bearer ${token}` }
                 });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message);
                 fetchRallyDetails();
             } catch (err) {
                 console.error("RSVP cancel failed", err);
+                setRally(oldRally);
             }
         } else {
             rsvpModal.open(rally);
@@ -254,8 +280,12 @@ export default function RallyDetail({ params }) {
                                                 </div>
                                                 <div className="flex gap-3">
                                                     {slots.map((att, sIdx) => (
-                                                        <div key={sIdx} className={`w-10 h-10 rounded-full border-2 transition-all flex items-center justify-center overflow-hidden ${att ? 'border-plasma-primary/50' : 'border-dashed border-white/10 bg-white/5'
-                                                            }`}>
+                                                        <div 
+                                                            key={sIdx} 
+                                                            onClick={() => !rally.hasRsvpd && !att && rsvpModal.open({ ...rally, preselectedRoleIdx: idx })}
+                                                            className={`w-10 h-10 rounded-full border-2 transition-all flex items-center justify-center overflow-hidden ${att ? 'border-plasma-primary/50' : `border-dashed border-white/10 bg-white/5 ${!rally.hasRsvpd ? 'hover:border-plasma-primary/50 cursor-pointer' : ''}`
+                                                            }`}
+                                                        >
                                                             {att ? (
                                                                 <img src={getAvatarUrl(att.avatarURL, att.username)} className="w-full h-full object-cover" />
                                                             ) : (
@@ -276,8 +306,12 @@ export default function RallyDetail({ params }) {
                                                 {Array(rally.maxCapacity).fill(null).map((_, i) => {
                                                     const att = rally.attendees?.[i];
                                                     return (
-                                                        <div key={i} className={`w-10 h-10 rounded-full border-2 transition-all flex items-center justify-center overflow-hidden ${att ? 'border-plasma-primary/50' : 'border-dashed border-white/10 bg-white/5'
-                                                            }`}>
+                                                        <div 
+                                                            key={i} 
+                                                            onClick={() => !rally.hasRsvpd && !att && rsvpModal.open({ ...rally, preselectedRoleIdx: -1 })}
+                                                            className={`w-10 h-10 rounded-full border-2 transition-all flex items-center justify-center overflow-hidden ${att ? 'border-plasma-primary/50' : `border-dashed border-white/10 bg-white/5 ${!rally.hasRsvpd ? 'hover:border-plasma-primary/50 cursor-pointer' : ''}`
+                                                            }`}
+                                                        >
                                                             {att ? (
                                                                 <img src={getAvatarUrl(att.avatarURL, att.username)} className="w-full h-full object-cover" />
                                                             ) : (
@@ -368,7 +402,7 @@ export default function RallyDetail({ params }) {
             <RsvpRoleModal
                 isOpen={rsvpModal.isOpen}
                 onClose={rsvpModal.close}
-                event={rally}
+                event={rsvpModal.modalData ? { ...rally, preselectedRoleIdx: rsvpModal.modalData.preselectedRoleIdx } : rally}
                 onRsvp={fetchRallyDetails}
             />
 

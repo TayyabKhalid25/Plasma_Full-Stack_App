@@ -69,7 +69,7 @@ export default function Rally() {
   // Fetch rallies from API
   const fetchRallies = async () => {
     if (!token) return;
-    setLoading(true);
+    if (events.length === 0) setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/rallies`, {
         headers: { Authorization: `Bearer ${token}` }

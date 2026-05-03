@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ModalWrapper } from "../ui/ModalWrapper";
 import { Loader2, Check, CheckCircle2 } from "lucide-react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
@@ -15,12 +15,21 @@ export function RsvpRoleModal({ isOpen, onClose, event, onRsvp }) {
     }
   }, [isOpen, event]);
 
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
   const handleConfirm = async () => {
     if (selectedRole === null) return;
     setLoading(true);
     try {
       const roleName = event.roles?.[selectedRole]?.name || null;
-      const res = await fetch(`${API_BASE}/api/rallies/${event.id}/rsvp`, {
+      const eventId = event.id || event.eventID;
+      const res = await fetch(`${API_BASE}/api/rallies/${eventId}/rsvp`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ declaredRole: roleName })
@@ -28,9 +37,10 @@ export function RsvpRoleModal({ isOpen, onClose, event, onRsvp }) {
       const data = await res.json();
       if (data.success) {
         setConfirmed(true);
-        if (onRsvp) onRsvp(event.id, selectedRole);
+        if (onRsvp) onRsvp(eventId, selectedRole);
+        
         // Auto-close after showing confirmation
-        setTimeout(() => {
+        timerRef.current = setTimeout(() => {
           setConfirmed(false);
           setSelectedRole(null);
           onClose();
@@ -50,6 +60,9 @@ export function RsvpRoleModal({ isOpen, onClose, event, onRsvp }) {
   };
 
   if (!event) return null;
+
+  const slotsFilled = event.slotsFilled ?? event.currentAttendees ?? 0;
+  const slotsTotal = event.slotsTotal ?? event.maxCapacity ?? 0;
 
   return (
     <ModalWrapper isOpen={isOpen} onClose={handleClose} title="Select Role" maxWidth="max-w-md">
@@ -71,7 +84,9 @@ export function RsvpRoleModal({ isOpen, onClose, event, onRsvp }) {
             <div className="space-y-3">
               <label className="text-xs font-bold text-plasma-text-secondary uppercase tracking-wider block">Available Roles</label>
               {event.roles?.map((role, idx) => {
-                const isFull = role.filled >= role.total;
+                const filled = role.filled ?? event.roleCounts?.[role.name] ?? 0;
+                const total = role.total ?? role.totalSlots ?? 0;
+                const isFull = filled >= total;
                 const isSelected = selectedRole === idx;
                 
                 return (
@@ -89,7 +104,7 @@ export function RsvpRoleModal({ isOpen, onClose, event, onRsvp }) {
                   >
                     <div>
                       <span className="text-sm font-bold text-plasma-text-primary">{role.name}</span>
-                      <p className="text-xs text-plasma-text-secondary mt-0.5">{role.filled} / {role.total} filled</p>
+                      <p className="text-xs text-plasma-text-secondary mt-0.5">{filled} / {total} filled</p>
                     </div>
                     {isSelected && <Check className="w-5 h-5 text-plasma-primary" />}
                     {isFull && <span className="text-[10px] font-bold text-plasma-error uppercase">Full</span>}
@@ -99,11 +114,11 @@ export function RsvpRoleModal({ isOpen, onClose, event, onRsvp }) {
               {(!event.roles || event.roles.length === 0) && (
                 <button
                   onClick={() => {
-                    if (event.slotsFilled < event.slotsTotal) setSelectedRole(-1);
+                    if (slotsFilled < slotsTotal) setSelectedRole(-1);
                   }}
-                  disabled={event.slotsFilled >= event.slotsTotal}
+                  disabled={slotsFilled >= slotsTotal}
                   className={`w-full flex items-center justify-between p-4 rounded-xl transition-all border-2 text-left ${
-                    event.slotsFilled >= event.slotsTotal 
+                    slotsFilled >= slotsTotal 
                       ? "opacity-50 bg-white/5 border-transparent cursor-not-allowed"
                       : selectedRole === -1 
                         ? "border-plasma-primary bg-plasma-primary/10"
@@ -112,10 +127,10 @@ export function RsvpRoleModal({ isOpen, onClose, event, onRsvp }) {
                 >
                   <div>
                     <span className="text-sm font-bold text-plasma-text-primary">Open Slots</span>
-                    <p className="text-xs text-plasma-text-secondary mt-0.5">{event.slotsFilled} / {event.slotsTotal} filled</p>
+                    <p className="text-xs text-plasma-text-secondary mt-0.5">{slotsFilled} / {slotsTotal} filled</p>
                   </div>
                   {selectedRole === -1 && <Check className="w-5 h-5 text-plasma-primary" />}
-                  {event.slotsFilled >= event.slotsTotal && <span className="text-[10px] font-bold text-plasma-error uppercase">Full</span>}
+                  {slotsFilled >= slotsTotal && <span className="text-[10px] font-bold text-plasma-error uppercase">Full</span>}
                 </button>
               )}
             </div>
