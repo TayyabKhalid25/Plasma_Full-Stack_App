@@ -422,10 +422,9 @@ export default function Prestige() {
                         ))}
                       </div>
                       </div>
-                    </div>
-                  );
-                })
-              ) : (
+                    );
+                  })
+                ) : (
                 <div className="text-center py-12">
                   <p className="text-plasma-text-secondary text-sm">No achievements in this category yet.</p>
                 </div>

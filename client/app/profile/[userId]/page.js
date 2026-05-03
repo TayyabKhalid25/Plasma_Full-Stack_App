@@ -28,7 +28,7 @@ function ProfileHeaderSkeleton() {
             <div className="w-40 h-8 rounded bg-plasma-slate-hover" />
             <div className="w-24 h-4 rounded bg-plasma-slate-hover" />
             <div className="flex gap-3 mt-4">
-              {[1,2,3].map(i => <div key={i} className="w-[100px] h-[56px] rounded-lg bg-plasma-slate-hover" />)}
+              {[1, 2, 3].map(i => <div key={i} className="w-[100px] h-[56px] rounded-lg bg-plasma-slate-hover" />)}
             </div>
           </div>
         </div>
@@ -45,7 +45,7 @@ export default function UserProfile({ params }) {
   const [activeTab, setActiveTab] = useState("Activity");
   const [loading, setLoading] = useState(true);
   const [followLoading, setFollowLoading] = useState(false);
-  
+
   const [profileData, setProfileData] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isMutual, setIsMutual] = useState(false);
@@ -53,7 +53,7 @@ export default function UserProfile({ params }) {
   const [hofData, setHofData] = useState([]);
   const [squad, setSquad] = useState([]);
   const [prestigeData, setPrestigeData] = useState(null);
-  
+
   const [activityPosts, setActivityPosts] = useState([]);
   const [libraryGames, setLibraryGames] = useState([]);
   const [rallies, setRallies] = useState([]);
@@ -73,18 +73,18 @@ export default function UserProfile({ params }) {
       setLibraryGames([]);
       setRallies([]);
       setExpandedGames({});
-      
+
       try {
         const [userRes, prestigeRes, squadRes] = await Promise.all([
           fetch(`${API_BASE}/api/users/${targetUserId}`, { headers: { Authorization: `Bearer ${token}` } }),
           fetch(`${API_BASE}/api/prestige/${targetUserId}`, { headers: { Authorization: `Bearer ${token}` } }),
           fetch(`${API_BASE}/api/users/${targetUserId}/followers`, { headers: { Authorization: `Bearer ${token}` } }),
         ]);
-        
+
         const userData = await userRes.json();
         const prestigeJson = await prestigeRes.json();
         const squadJson = await squadRes.json();
-        
+
         if (userData.success) {
           const p = userData.data.profile;
           setProfileData({
@@ -111,7 +111,7 @@ export default function UserProfile({ params }) {
           }));
           setHofData(mappedHOF);
         }
-        
+
         if (squadJson.success) {
           setSquad(squadJson.data.filter(u => u.isMutual));
         }
@@ -252,7 +252,7 @@ export default function UserProfile({ params }) {
   return (
     <DashboardLayout showRightRail={false}>
       <div className="pb-20 animate-fade-in min-h-screen">
-        
+
         {/* PROFILE HEADER */}
         {loading ? <ProfileHeaderSkeleton /> : profileData && (
           <header className="relative min-h-[280px] w-full flex items-center px-8 md:px-20 overflow-hidden py-10 md:py-0">
@@ -260,7 +260,7 @@ export default function UserProfile({ params }) {
               <div className="absolute inset-0 bg-gradient-to-br from-plasma-primary/30 to-plasma-secondary/15 backdrop-blur-3xl"></div>
               <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-plasma-bg to-transparent"></div>
             </div>
-            
+
             <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center w-full justify-between gap-6 md:gap-0 mt-8 md:mt-0">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
                 <div className="relative shrink-0">
@@ -268,7 +268,7 @@ export default function UserProfile({ params }) {
                     <img src={getAvatarUrl(profileData.avatar, profileData.username)} alt="User Profile" className="w-full h-full object-cover rounded-full" />
                   </div>
                 </div>
-                
+
                 <div>
                   <div className="flex items-center gap-4 flex-wrap">
                     <h1 className="font-display font-bold text-[32px] text-plasma-text-primary leading-tight">{profileData.username}</h1>
@@ -281,7 +281,7 @@ export default function UserProfile({ params }) {
                       </span>
                     )}
                   </div>
-                  
+
                   <div className="flex gap-3 mt-4 flex-wrap">
                     {userStats.map((stat, idx) => (
                       <div key={idx} className="bg-plasma-slate/60 backdrop-blur-md rounded-lg px-4 py-3 min-w-[100px] border border-white/5">
@@ -292,15 +292,14 @@ export default function UserProfile({ params }) {
                   </div>
                 </div>
               </div>
-              
-              <button 
+
+              <button
                 onClick={handleFollow}
                 disabled={followLoading}
-                className={`flex items-center gap-2 px-8 py-3 rounded-full font-bold text-sm transition-all shrink-0 cursor-pointer disabled:opacity-50 ${
-                  isFollowing 
+                className={`flex items-center gap-2 px-8 py-3 rounded-full font-bold text-sm transition-all shrink-0 cursor-pointer disabled:opacity-50 ${isFollowing
                     ? "bg-plasma-slate border border-white/10 text-plasma-text-primary hover:bg-plasma-error/20 hover:text-plasma-error hover:border-plasma-error/30"
                     : "bg-primary-gradient text-white hover:shadow-card-glow hover:scale-[1.02]"
-                }`}
+                  }`}
               >
                 {isMutual ? (
                   <><UserMinus className="w-4 h-4" /> Remove Friend</>
@@ -337,14 +336,13 @@ export default function UserProfile({ params }) {
           <section className="px-8 md:px-20 mt-2 relative z-20">
             <div className="flex gap-8 border-b border-white/5 overflow-x-auto hide-scrollbar">
               {["Activity", "Library", "Achievements", "Squad", "Rallies"].map(tab => (
-                <button 
+                <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`pb-4 text-sm font-semibold font-sans whitespace-nowrap transition-colors cursor-pointer ${
-                    activeTab === tab 
-                      ? "border-b-2 border-plasma-primary text-plasma-text-primary" 
+                  className={`pb-4 text-sm font-semibold font-sans whitespace-nowrap transition-colors cursor-pointer ${activeTab === tab
+                      ? "border-b-2 border-plasma-primary text-plasma-text-primary"
                       : "border-b-2 border-transparent text-plasma-text-secondary hover:text-plasma-text-primary"
-                  }`}
+                    }`}
                 >
                   {tab}
                 </button>
@@ -366,7 +364,7 @@ export default function UserProfile({ params }) {
               <div className="py-8 animate-fade-in">
                 {loadingTab ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
-                    {[1,2,3,4,5,6].map(i => (
+                    {[1, 2, 3, 4, 5, 6].map(i => (
                       <div key={i} className="aspect-[3/4] rounded-xl bg-plasma-slate-hover animate-pulse" />
                     ))}
                   </div>
@@ -403,7 +401,7 @@ export default function UserProfile({ params }) {
                     </div>
                   </div>
                 )}
-                
+
                 {loadingTab ? (
                   <div className="text-center py-12"><div className="w-6 h-6 border-2 border-t-transparent border-plasma-primary rounded-full animate-spin mx-auto" /></div>
                 ) : (
@@ -417,7 +415,7 @@ export default function UserProfile({ params }) {
                             <div className="flex items-center justify-between mb-4">
                               <Link href={`/profile/${targetUserId}/prestige/${game.id}`} className="text-[11px] font-bold text-plasma-text-secondary tracking-[0.2em] uppercase hover:text-plasma-primary transition-colors block cursor-pointer">{game.title}</Link>
                               {game.achievements.length > 1 && (
-                                <button 
+                                <button
                                   onClick={() => toggleExpand(index)}
                                   className="text-[10px] font-bold text-plasma-primary hover:text-plasma-secondary transition-colors uppercase tracking-[0.15em] flex items-center gap-1 cursor-pointer"
                                 >
@@ -454,15 +452,15 @@ export default function UserProfile({ params }) {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {squad.length > 0 ? squad.map((member) => (
-                    <Link 
-                      key={member.plasmaUserID} 
+                    <Link
+                      key={member.plasmaUserID}
                       href={`/profile/${member.plasmaUserID}`}
                       className="flex items-center gap-4 p-4 bg-plasma-slate/60 rounded-xl border border-white/5 hover:bg-white/5 transition-colors group"
                     >
                       <div className="relative shrink-0">
-                        <img 
-                          src={getAvatarUrl(member.avatarURL, member.username)} 
-                          alt="" 
+                        <img
+                          src={getAvatarUrl(member.avatarURL, member.username)}
+                          alt=""
                           className="w-12 h-12 rounded-full border border-white/10"
                         />
                         {member.online && (
@@ -488,7 +486,7 @@ export default function UserProfile({ params }) {
               <div className="py-8 animate-fade-in max-w-[680px]">
                 {loadingTab ? (
                   <div className="space-y-3">
-                    {[1,2].map(i => (
+                    {[1, 2].map(i => (
                       <div key={i} className="flex items-center justify-between p-4 bg-plasma-slate/60 rounded-xl border border-white/5 animate-pulse">
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 rounded-xl bg-plasma-slate-hover" />
@@ -503,8 +501,8 @@ export default function UserProfile({ params }) {
                 ) : rallies.length > 0 ? (
                   <div className="space-y-3">
                     {rallies.map((event) => (
-                      <Link 
-                        key={event.id} 
+                      <Link
+                        key={event.id}
                         href={`/rally/${event.id}`}
                         className="flex items-center justify-between p-4 bg-plasma-slate/60 rounded-xl border border-white/5 hover:bg-white/10 hover:scale-[1.01] transition-all cursor-pointer group"
                       >
