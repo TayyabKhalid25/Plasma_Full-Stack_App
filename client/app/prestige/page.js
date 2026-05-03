@@ -378,9 +378,6 @@ export default function Prestige() {
               {gamesProgress.length > 0 ? (
                 gamesProgress.map((game, index) => {
                   const isExpanded = expandedGames[index];
-                  const itemsPerRow = 8;
-                  const hasMore = game.achievements.length > itemsPerRow;
-                  const displayedAchievements = isExpanded ? game.achievements : game.achievements.slice(0, itemsPerRow);
 
                   return (
                     <div key={index} className="animate-fade-in">
@@ -391,7 +388,7 @@ export default function Prestige() {
                             <ChevronDown className="w-3 h-3 -rotate-90 opacity-0 group-hover/title:opacity-100 transition-all translate-x-[-4px] group-hover/title:translate-x-0" />
                           </h3>
                         </Link>
-                        {hasMore && (
+                        {game.achievements.length > 1 && (
                           <button
                             onClick={() => toggleExpand(index)}
                             className="text-[10px] font-bold text-plasma-primary hover:text-plasma-secondary transition-colors uppercase tracking-[0.15em] flex items-center gap-1 cursor-pointer"
@@ -401,8 +398,12 @@ export default function Prestige() {
                           </button>
                         )}
                       </div>
-                      <div className="flex flex-wrap gap-[32px]">
-                        {displayedAchievements.map((ach, aIdx) => {
+                      {/* Single-row overflow: max-height clips to one row of badges when collapsed */}
+                      <div
+                        className="flex flex-wrap gap-[32px] overflow-hidden transition-[max-height] duration-300 ease-in-out"
+                        style={{ maxHeight: isExpanded ? `${Math.ceil(game.achievements.length / 4) * 120}px` : '108px' }}
+                      >
+                        {game.achievements.map((ach, aIdx) => {
                           const Icon = iconMap[ach.iconName] || Lock;
                           return (
                             <div key={aIdx} className={`flex flex-col items-center gap-2 w-[72px] text-center ${!ach.unlocked ? 'opacity-50 grayscale' : ''}`}>

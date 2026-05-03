@@ -418,15 +418,12 @@ export default function Profile() {
                     {gamesProgress.length > 0 ? (
                       gamesProgress.map((game, index) => {
                         const isExpanded = expandedGames[index];
-                        const itemsPerRow = 8;
-                        const hasMore = game.achievements.length > itemsPerRow;
-                        const displayedAchievements = isExpanded ? game.achievements : game.achievements.slice(0, itemsPerRow);
 
                         return (
                           <div key={index} className="animate-fade-in">
                             <div className="flex items-center justify-between mb-4">
                               <h3 className="text-[11px] font-bold text-plasma-text-secondary tracking-[0.2em] uppercase">{game.title}</h3>
-                              {hasMore && (
+                              {game.achievements.length > 1 && (
                                 <button
                                   onClick={() => toggleExpand(index)}
                                   className="text-[10px] font-bold text-plasma-primary hover:text-plasma-secondary transition-colors uppercase tracking-[0.15em] flex items-center gap-1 cursor-pointer"
@@ -436,8 +433,11 @@ export default function Profile() {
                                 </button>
                               )}
                             </div>
-                            <div className="flex flex-wrap gap-[32px]">
-                              {displayedAchievements.map((ach, aIdx) => {
+                            <div
+                              className="flex flex-wrap gap-[32px] overflow-hidden transition-[max-height] duration-300 ease-in-out"
+                              style={{ maxHeight: isExpanded ? `${Math.ceil(game.achievements.length / 4) * 120}px` : '100px' }}
+                            >
+                              {game.achievements.map((ach, aIdx) => {
                                 const Icon = iconMap[ach.iconName] || Lock;
                                 return (
                                   <div key={aIdx} className={`flex flex-col items-center gap-2 w-[72px] text-center ${!ach.unlocked ? 'opacity-50 grayscale' : ''}`}>
