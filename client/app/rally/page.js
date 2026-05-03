@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PlusCircle, ChevronLeft, ChevronRight, ChevronDown, Calendar, Settings, MapPin, Clock, Users as UsersIcon, CheckCircle2, UserPlus } from "lucide-react";
@@ -67,7 +68,7 @@ export default function Rally() {
   const rsvpModal = useModal();
 
   // Fetch rallies from API
-  const fetchRallies = async () => {
+  const fetchRallies = useCallback(async () => {
     if (!token) return;
     if (events.length === 0) setLoading(true);
     try {
@@ -119,9 +120,9 @@ export default function Rally() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
-  useEffect(() => { fetchRallies(); }, [token]);
+  useEffect(() => { fetchRallies(); }, [fetchRallies]);
 
   const toggleRSVP = async (eventId) => {
     const event = events.find(e => e.id === eventId);
@@ -349,7 +350,7 @@ export default function Rally() {
                   >
                     <div className="flex flex-col sm:flex-row gap-6">
                       <div className="w-full sm:w-32 h-40 rounded-lg overflow-hidden flex-shrink-0 relative block group/img">
-                        <div className="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover/img:scale-110" style={{ backgroundImage: `url(${event.image})` }} />
+                        <Image src={event.image} alt={event.title} fill className="object-cover transition-transform duration-500 group-hover/img:scale-110" sizes="(max-width: 640px) 100vw, 128px" />
                         <div className="absolute inset-0 bg-gradient-to-t from-plasma-bg/80 to-transparent"></div>
                       </div>
                       <div className="flex-1">
@@ -483,7 +484,7 @@ export default function Rally() {
                         <div className="flex items-center gap-6 relative w-full md:w-auto">
                           <div className="w-14 h-14 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 bg-plasma-slate-hover border border-white/5 relative group/img">
                             {item.image ? (
-                              <img src={item.image} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-110" />
+                              <Image src={item.image} alt={item.title} fill className="object-cover transition-transform duration-500 group-hover/img:scale-110" sizes="56px" />
                             ) : (
                               <Calendar className="w-6 h-6 text-plasma-primary" />
                             )}

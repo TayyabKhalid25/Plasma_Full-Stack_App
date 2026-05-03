@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect, useLayoutEffect } from "react";
-import { Search, Bell, Trophy, UserPlus, Calendar, AlertCircle, Loader2 } from "lucide-react";
+import { Bell, Trophy, UserPlus, Calendar, AlertCircle, Loader2, Search } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { LogOut } from "lucide-react";
 import { getAvatarUrl } from "@/lib/utils";
@@ -319,9 +320,9 @@ export const TopNav = () => {
                             onClick={() => setShowSearchDropdown(false)}
                             className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/5 transition-colors group"
                           >
-                            <div className="w-10 h-14 rounded-lg bg-plasma-bg border border-white/10 overflow-hidden flex-shrink-0">
+                            <div className="w-10 h-14 rounded-lg bg-plasma-bg border border-white/10 overflow-hidden flex-shrink-0 relative">
                               {g.coverArtURL ? (
-                                <img src={g.coverArtURL} alt="" className="w-full h-full object-cover" />
+                                <Image src={g.coverArtURL} alt={g.title} fill className="object-cover" sizes="40px" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-[10px] text-plasma-text-secondary font-bold">GAME</div>
                               )}
@@ -440,9 +441,9 @@ export const TopNav = () => {
                             }}
                             className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity"
                           >
-                            <div className={`w-full h-full rounded-lg flex items-center justify-center ${colorClass}`}>
+                            <div className={`w-full h-full rounded-lg flex items-center justify-center relative overflow-hidden ${colorClass}`}>
                               {notif.avatar ? (
-                                <img src={getAvatarUrl(notif.avatar, notif.senderName)} alt="" className="w-full h-full rounded-lg object-cover" />
+                                <Image src={getAvatarUrl(notif.avatar, notif.senderName)} alt={notif.senderName} fill className="object-cover" sizes="32px" />
                               ) : (
                                 <Icon className="w-4 h-4" />
                               )}

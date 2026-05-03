@@ -27,7 +27,7 @@ async function fetchPrestige(userId) {
     `, [userId]);
 
     const hallOfFame = await pool.query(`
-        SELECT a."achievementID", a."title", a."plasmaXP", a."rarityWeight"
+        SELECT a."achievementID", a."appID", a."title", a."plasmaXP", a."rarityWeight"
         FROM "user_achievements" ua
         JOIN "achievements" a ON ua."achievementID" = a."achievementID"
         WHERE ua."userID" = $1 AND ua."isPinned" = TRUE
@@ -65,14 +65,36 @@ router.get('/me', authenticateToken, async (req, res) => {
 // GET /api/prestige/:userId
 router.get('/:userId', authenticateToken, async (req, res) => {
     try {
-        // Ensure user exists
-        const userExists = await pool.query('SELECT "plasmaUserID" FROM "users" WHERE "plasmaUserID" = $1', [req.params.userId]);
-        if (userExists.rows.length === 0) return res.status(404).json({ success: false, message: 'User not found' });
+        const { userId } = req.params;
+        const currentUserId = req.userId;
 
-        const data = await fetchPrestige(req.params.userId);
+        // 1. Fetch target user's privacy status
+        const userQuery = await pool.query('SELECT "isSteamProfilePrivate" FROM "profiles" WHERE "plasmaUserID" = $1', [userId]);
+        if (userQuery.rows.length === 0) return res.status(404).json({ success: false, message: 'User not found' });
 
+        const isPrivate = userQuery.rows[0].isSteamProfilePrivate;
+
+        // 2. If private, check if they are mutual friends
+        if (isPrivate && userId !== currentUserId) {
+            const friendshipQuery = await pool.query(`
+                SELECT 1 FROM "follow_relationships" 
+                WHERE (("followerID" = $1 AND "followedID" = $2) OR ("followerID" = $2 AND "followedID" = $1))
+                  AND "isMutual" = TRUE
+            `, [currentUserId, userId]);
+
+            if (friendshipQuery.rows.length === 0) {
+                return res.status(403).json({ 
+                    success: false, 
+                    message: 'This profile is private. You must be mutual friends to view prestige data.',
+                    isPrivate: true 
+                });
+            }
+        }
+
+        const data = await fetchPrestige(userId);
         res.json({ success: true, data });
     } catch (error) {
+        console.error('Error fetching prestige:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });

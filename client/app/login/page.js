@@ -234,7 +234,7 @@ function LoginContent() {
                   href="/sign-up"
                   className="font-sans font-medium text-plasma-primary text-[13px] text-center tracking-[0] leading-[19.5px] whitespace-nowrap hover:underline hover:text-plasma-secondary transition-colors"
                 >
-                  Don't have an Account? Sign Up
+                  Don&apos;t have an Account? Sign Up
                 </Link>
               </div>
             </div>

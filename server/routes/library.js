@@ -144,6 +144,81 @@ router.post('/manual', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/library/user/:userId/:gameId
+router.get('/user/:userId/:gameId', authenticateToken, async (req, res) => {
+    const { userId, gameId } = req.params;
+
+    try {
+        // 1. Privacy Check
+        if (userId !== req.userId) {
+            const privacyCheck = await pool.query(`
+                SELECT p."isSteamProfilePrivate", fr."isMutual"
+                FROM "profiles" p
+                LEFT JOIN "follow_relationships" fr ON (
+                    (fr."followerID" = $1 AND fr."followedID" = $2) OR
+                    (fr."followerID" = $2 AND fr."followedID" = $1)
+                ) AND fr."isMutual" = TRUE
+                WHERE p."plasmaUserID" = $2
+            `, [req.userId, userId]);
+
+            if (privacyCheck.rows.length > 0) {
+                const { isSteamProfilePrivate, isMutual } = privacyCheck.rows[0];
+                if (isSteamProfilePrivate && !isMutual) {
+                    return res.status(403).json({ 
+                        success: false, 
+                        message: 'This user profile is private.', 
+                        isPrivate: true 
+                    });
+                }
+            }
+        }
+
+        const result = await pool.query(`
+            SELECT 
+                le."appID", 
+                le."hoursPlayed", 
+                le."isCurrentlyPlaying", 
+                le."lastPlayedAt",
+                g."title", 
+                g."platform", 
+                g."coverArtURL"
+            FROM "library_entries" le
+            JOIN "games" g ON le."appID" = g."appID"
+            WHERE le."userID" = $1 AND le."appID" = $2
+        `, [userId, gameId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Game not found in user library' });
+        }
+
+        res.json({ success: true, data: result.rows[0] });
+    } catch (error) {
+        console.error('Error fetching user game details:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+// GET /api/library/user/:userId
+router.get('/user/:userId', authenticateToken, async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        const result = await pool.query(`
+            SELECT le."appID", le."hoursPlayed", le."isCurrentlyPlaying", le."lastPlayedAt",
+                   g."title", g."platform", g."coverArtURL"
+            FROM "library_entries" le
+            JOIN "games" g ON le."appID" = g."appID"
+            WHERE le."userID" = $1
+            ORDER BY le."lastPlayedAt" DESC NULLS LAST
+        `, [userId]);
+
+        res.json({ success: true, data: result.rows });
+    } catch (error) {
+        console.error('Error fetching user library:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
 // GET /api/library/:gameId
 router.get('/:gameId', authenticateToken, async (req, res) => {
     const { gameId } = req.params;
@@ -269,7 +344,8 @@ router.put('/:gameId/status', authenticateToken, async (req, res) => {
             const gameCheck = await pool.query('SELECT "title", "platform" FROM "games" WHERE "appID" = $1', [gameId]);
             if (gameCheck.rows.length > 0) {
                 const platform = gameCheck.rows[0].platform;
-                const content = `Started playing ${title}`;
+                const gameTitle = gameCheck.rows[0].title;
+                const content = `Started playing ${gameTitle}`;
                 const deepLinkURI = platform === 'STEAM' ? `steam://run/${gameId}` : null;
 
                 await pool.query(`
@@ -282,27 +358,6 @@ router.put('/:gameId/status', authenticateToken, async (req, res) => {
         res.json({ success: true, message: 'Library entry updated and playtime tracked successfully' });
     } catch (error) {
         console.error('Error updating game status/playtime:', error);
-        res.status(500).json({ success: false, message: 'Internal server error' });
-    }
-});
-
-// GET /api/library/user/:userId
-router.get('/user/:userId', authenticateToken, async (req, res) => {
-    const { userId } = req.params;
-
-    try {
-        const result = await pool.query(`
-            SELECT le."appID", le."hoursPlayed", le."isCurrentlyPlaying", le."lastPlayedAt",
-                   g."title", g."platform", g."coverArtURL"
-            FROM "library_entries" le
-            JOIN "games" g ON le."appID" = g."appID"
-            WHERE le."userID" = $1
-            ORDER BY le."lastPlayedAt" DESC NULLS LAST
-        `, [userId]);
-
-        res.json({ success: true, data: result.rows });
-    } catch (error) {
-        console.error('Error fetching user library:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
