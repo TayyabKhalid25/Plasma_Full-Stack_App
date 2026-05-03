@@ -9,6 +9,7 @@ import {
 import Link from "next/link";
 import { getIntentStyle } from "@/lib/intentStyles";
 import { getAvatarUrl, getRarityProps } from "@/lib/utils";
+import { ActivityFeedTab, mapActivityPost } from "@/components/ui/ActivityFeedTab";
 
 import { useModal } from "@/hooks/useModal";
 import { EditHallOfFameModal } from "@/components/modals/EditHallOfFameModal";
@@ -47,25 +48,7 @@ function ProfileHeaderSkeleton() {
   );
 }
 
-function FeedSkeleton() {
-  return (
-    <div className="space-y-4 animate-pulse">
-      {[1, 2].map(i => (
-        <div key={i} className="bg-plasma-slate/60 rounded-2xl p-6 border border-white/5">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-plasma-slate-hover" />
-            <div className="space-y-1.5">
-              <div className="w-24 h-3.5 rounded bg-plasma-slate-hover" />
-              <div className="w-32 h-2.5 rounded bg-plasma-slate-hover" />
-            </div>
-          </div>
-          <div className="w-full h-4 rounded bg-plasma-slate-hover mb-2" />
-          <div className="w-2/3 h-4 rounded bg-plasma-slate-hover" />
-        </div>
-      ))}
-    </div>
-  );
-}
+
 
 export default function Profile() {
   const { token, user } = useAuth();
@@ -193,15 +176,7 @@ export default function Profile() {
           });
           const data = await res.json();
           if (data.success) {
-            setActivityPosts(data.data.map(p => ({
-              id: p.postID,
-              type: p.type,
-              content: p.content,
-              mediaURL: p.mediaURL,
-              time: new Date(p.timestampUTC).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-              username: p.username,
-              avatar: p.avatarURL || null,
-            })));
+            setActivityPosts(data.data.map(mapActivityPost));
           }
         } else if (activeTab === "Library" && libraryGames.length === 0) {
           const res = await fetch(`${API_BASE}/api/library/user/${user.id}`, {
@@ -375,37 +350,12 @@ export default function Profile() {
 
             {/* ACTIVITY TAB */}
             {activeTab === "Activity" && (
-              <div className="w-full max-w-[680px] py-8 flex flex-col gap-6 animate-fade-in">
-                {loadingTab ? <FeedSkeleton /> : activityPosts.length > 0 ? (
-                  activityPosts.map(post => (
-                    <div key={post.id} className="bg-plasma-slate/60 backdrop-blur-md border border-white/5 rounded-2xl p-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <img src={getAvatarUrl(post.avatar, post.username)} alt="" className="w-10 h-10 rounded-full border border-plasma-primary/20 bg-plasma-slate" />
-                        <div>
-                          <p className="text-sm font-bold text-plasma-text-primary">{post.username}</p>
-                          <p className="text-[11px] text-plasma-text-secondary">{post.time}</p>
-                        </div>
-                      </div>
-                      {post.content && (
-                        <p className="text-sm text-plasma-text-secondary mb-4 leading-relaxed">{post.content}</p>
-                      )}
-                      {post.mediaURL && (
-                        <div className="rounded-xl overflow-hidden aspect-video relative group border border-white/5 cursor-pointer">
-                          {post.mediaURL.endsWith('.mp4') || post.mediaURL.endsWith('.webm') ? (
-                            <video src={post.mediaURL} controls className="w-full h-full object-cover" />
-                          ) : (
-                            <img src={post.mediaURL} alt="" className="w-full h-full object-cover" />
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-12">
-                    <p className="text-plasma-text-secondary text-sm">No posts yet.</p>
-                  </div>
-                )}
-              </div>
+              <ActivityFeedTab
+                posts={activityPosts}
+                loadingTab={loadingTab}
+                currentUserId={user?.id}
+                onPostsChange={setActivityPosts}
+              />
             )}
 
             {/* LIBRARY TAB */}
