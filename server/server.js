@@ -3,7 +3,7 @@ const { connectToDatabase, pool } = require('./config/dbConfig'); // Import data
 const app = express();
 const cors = require('cors'); // Import CORS middleware
 require('dotenv').config(); // Load environment variables from .env file
-const port = parseInt(process.env.PORT, 10); // Convert environment variable to integer or default to 5000
+const port = parseInt(process.env.PORT, 10) || 5000; // Convert environment variable to integer or default to 5000
 
 // ── Global Error Guard ────────────────────────────────────────────────────────
 // Catch-all handlers for errors that occur outside of Express routes.

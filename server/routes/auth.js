@@ -257,7 +257,7 @@ router.get('/steam/callback', (req, res, next) => {
         // Check if user exists
         const result = await pool.query('SELECT "plasmaUserID" FROM "users" WHERE "steamID64" = $1', [steamID64]);
         
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
         if (result.rows.length > 0) {
             // Already registered, automatically log them in
@@ -278,7 +278,7 @@ router.get('/steam/callback', (req, res, next) => {
         }
     } catch (err) {
         console.error('[Auth] Steam Auth Error:', err);
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
         return res.redirect(`${frontendUrl}/login?error=auth_failed`);
     }
 });
