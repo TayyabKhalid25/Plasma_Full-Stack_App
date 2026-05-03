@@ -167,6 +167,7 @@ router.post('/login', async (req, res) => {
     }
 });
 
+/*
 // POST /api/auth/dev-login
 // Development ONLY: Logs in or creates a user using just a username and steamID64.
 router.post('/dev-login', async (req, res) => {
@@ -224,6 +225,7 @@ router.post('/dev-login', async (req, res) => {
         return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
+*/
 
 // GET /api/auth/steam
 // Redirects the browser to Valve's OpenID 2.0 endpoint

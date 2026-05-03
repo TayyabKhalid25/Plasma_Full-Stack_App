@@ -73,6 +73,7 @@ function LoginContent() {
     }
   };
 
+  /*
   const handleDevLogin = async () => {
     try {
       setLoading(true);
@@ -86,6 +87,7 @@ function LoginContent() {
       setLoading(false);
     }
   };
+  */
 
   const handleSteamLogin = () => {
     window.location.href = `${API_BASE}/api/auth/steam`;
@@ -214,6 +216,7 @@ function LoginContent() {
                 />
               </button>
 
+              {/* 
               <Button
                 onClick={handleDevLogin}
                 disabled={loading}
@@ -224,6 +227,7 @@ function LoginContent() {
                 </svg>
                 Dev Mode Login
               </Button>
+              */}
               {/* Sign Up link */}
               <div className="flex flex-col w-full items-center flex-[0_0_auto]">
                 <Link
