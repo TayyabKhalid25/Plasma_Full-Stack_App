@@ -6,8 +6,28 @@ export function cn(...inputs) {
 }
 
 export function getAvatarUrl(avatar, seed) {
-  if (avatar) return avatar;
-  // Ensure we have a string for the seed
+  const isBrowser = typeof window !== 'undefined';
+  const cacheKey = `avatar_cache_${seed}`;
+
+  if (avatar) {
+    // If we have a real avatar, cache it and return it
+    if (isBrowser) {
+      try {
+        localStorage.setItem(cacheKey, avatar);
+      } catch (e) {}
+    }
+    return avatar;
+  }
+
+  // If no avatar provided, check cache
+  if (isBrowser) {
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) return cached;
+    } catch (e) {}
+  }
+
+  // Final fallback to DiceBear
   const safeSeed = typeof seed === 'string' ? seed : 'User';
   return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(safeSeed)}`;
 }
