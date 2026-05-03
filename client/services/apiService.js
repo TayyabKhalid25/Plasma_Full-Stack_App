@@ -1,6 +1,7 @@
 import { validationService } from "./validationService";
 
-const API_BASE = "http://localhost:5000";
+const rawApiBase = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000";
+const API_BASE = rawApiBase.endsWith("/") ? rawApiBase.slice(0, -1) : rawApiBase;
 
 function getToken() {
   if (typeof window !== "undefined") {

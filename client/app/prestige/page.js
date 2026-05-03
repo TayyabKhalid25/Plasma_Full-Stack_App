@@ -421,6 +421,7 @@ export default function Prestige() {
                           <AchievementIcon key={aIdx} achievement={ach} />
                         ))}
                       </div>
+                      </div>
                     </div>
                   );
                 })

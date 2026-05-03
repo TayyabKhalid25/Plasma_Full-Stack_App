@@ -3,7 +3,7 @@ const { connectToDatabase, pool } = require('./config/dbConfig'); // Import data
 const app = express();
 const cors = require('cors'); // Import CORS middleware
 require('dotenv').config(); // Load environment variables from .env file
-const port = parseInt(process.env.PORT, 10); // Convert environment variable to integer or default to 5000
+const port = parseInt(process.env.PORT, 10) || 5000; // Convert environment variable to integer or default to 5000
 
 // ── Global Error Guard ────────────────────────────────────────────────────────
 // Catch-all handlers for errors that occur outside of Express routes.
@@ -23,7 +23,9 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
-    const allowedOrigins = [process.env.FRONTEND_URL, 'http://localhost:3000', 'http://127.0.0.1:3000'];
+    const rawFrontendUrl = process.env.FRONTEND_URL || "";
+    const frontendUrl = rawFrontendUrl.endsWith("/") ? rawFrontendUrl.slice(0, -1) : rawFrontendUrl;
+    const allowedOrigins = [frontendUrl, 'http://localhost:3000', 'http://127.0.0.1:3000'];
     if (allowedOrigins.indexOf(origin) !== -1 || origin.startsWith('http://localhost:')) {
       callback(null, true);
     } else {
