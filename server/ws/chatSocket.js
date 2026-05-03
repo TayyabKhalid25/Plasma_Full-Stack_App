@@ -71,23 +71,30 @@ function setupWebSocket(server) {
                 }
 
                 if (msg.type === 'SEND_MESSAGE') {
-                    const { receiverId, content, mediaURL, isLobbyInvite, lobbyLink } = msg;
-                    console.log(`WS: User ${userId} sending message to ${receiverId}`);
-                    
-                    if (!receiverId && !content && !mediaURL && !isLobbyInvite) {
-                        console.log('WS: Missing message payload');
-                        return;
-                    }
-
                     // Persist to database
                     try {
+                        const { receiverId, content, mediaURL, isLobbyInvite, lobbyLink, parentMessageID } = msg;
+                        
                         const result = await pool.query(`
-                            INSERT INTO "direct_messages" ("senderID", "receiverID", "content", "mediaURL", "isLobbyInvite", "lobbyLink")
-                            VALUES ($1, $2, $3, $4, $5, $6)
-                            RETURNING "messageID", "senderID", "receiverID", "content", "mediaURL", "isLobbyInvite", "lobbyLink", "timestampUTC"
-                        `, [userId, receiverId, content, mediaURL, isLobbyInvite || false, lobbyLink]);
+                            INSERT INTO "direct_messages" ("senderID", "receiverID", "content", "mediaURL", "isLobbyInvite", "lobbyLink", "parentMessageID")
+                            VALUES ($1, $2, $3, $4, $5, $6, $7)
+                            RETURNING "messageID", "senderID", "receiverID", "content", "mediaURL", "isLobbyInvite", "lobbyLink", "timestampUTC", "parentMessageID"
+                        `, [userId, receiverId, content, mediaURL, isLobbyInvite || false, lobbyLink, parentMessageID]);
 
-                        const savedMsg = result.rows[0];
+                        let savedMsg = result.rows[0];
+
+                        // If it's a reply, fetch parent details for the frontend
+                        if (parentMessageID) {
+                            const parentRes = await pool.query(
+                                'SELECT "content", "senderID" FROM "direct_messages" WHERE "messageID" = $1',
+                                [parentMessageID]
+                            );
+                            if (parentRes.rows.length > 0) {
+                                savedMsg.parentContent = parentRes.rows[0].content;
+                                savedMsg.parentSenderID = parentRes.rows[0].senderID;
+                            }
+                        }
+
                         console.log(`WS: Message saved to DB with ID: ${savedMsg.messageID}`);
 
                         const payload = {

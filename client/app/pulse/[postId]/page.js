@@ -6,7 +6,7 @@ import { useAuth, API_BASE } from "@/context/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { 
   ArrowLeft, Heart, MessageSquare, Share2, Send, 
-  MoreHorizontal, Trash2, Edit2, Loader2, Sparkles
+  MoreHorizontal, Trash2, Edit2, Loader2, Sparkles, Reply, X
 } from "lucide-react";
 import Link from "next/link";
 import { getIntentStyle } from "@/lib/intentStyles";
@@ -26,6 +26,7 @@ export default function PostPage() {
   const [commentText, setCommentText] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [replyTo, setReplyTo] = useState(null);
   const [openDropdown, setOpenDropdown] = useState(false);
   const shareModal = useModal();
   const deleteModal = useModal();
@@ -82,7 +83,10 @@ export default function PostPage() {
             username: c.username,
             avatar: getAvatarUrl(c.avatarURL, c.username),
             text: c.text,
-            time: new Date(c.timestampUTC).toLocaleString()
+            time: new Date(c.timestampUTC).toLocaleString(),
+            parentCommentID: c.parentCommentID,
+            parentText: c.parentText,
+            parentUsername: c.parentUsername
           })));
         }
       } catch (err) {
@@ -123,7 +127,10 @@ export default function PostPage() {
       const res = await fetch(`${API_BASE}/api/pulse/posts/${postId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ content: commentText })
+        body: JSON.stringify({ 
+          content: commentText,
+          parentCommentID: replyTo?.id
+        })
       });
       const data = await res.json();
       if (data.success) {
@@ -132,10 +139,14 @@ export default function PostPage() {
           username: data.data.username,
           avatar: getAvatarUrl(data.data.avatarURL, data.data.username),
           text: data.data.text,
-          time: "Just now"
+          time: "Just now",
+          parentCommentID: replyTo?.id,
+          parentText: replyTo?.text,
+          parentUsername: replyTo?.username
         };
         setComments(prev => [...prev, newComment]);
         setCommentText("");
+        setReplyTo(null);
         setPost(prev => ({ ...prev, comments: prev.comments + 1 }));
       }
     } catch (err) {
@@ -346,7 +357,20 @@ export default function PostPage() {
           </div>
 
           {/* Comment Input */}
-          <form onSubmit={handleAddComment} className="relative group">
+          <div className="relative">
+            {replyTo && (
+              <div className="mb-4 p-3 bg-plasma-primary/5 border-l-4 border-plasma-primary rounded-r-2xl flex items-center justify-between animate-in slide-in-from-bottom-2 duration-200">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-normal text-plasma-primary uppercase tracking-widest">Replying to {replyTo.username}</p>
+                  <p className="text-xs text-plasma-text-secondary truncate">{replyTo.text}</p>
+                </div>
+                <button onClick={() => setReplyTo(null)} className="p-1 text-plasma-text-secondary hover:text-white transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+            
+            <form onSubmit={handleAddComment} className="relative group">
             <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
               <img 
                 src={getAvatarUrl(user?.avatar, user?.username)} 
@@ -369,9 +393,10 @@ export default function PostPage() {
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             </button>
           </form>
+        </div>
 
           {/* Comments List */}
-          <div className="space-y-4">
+          <div className="space-y-6">
             {comments.length === 0 ? (
               <div className="py-20 text-center bg-plasma-slate/20 backdrop-blur-sm rounded-[32px] border border-white/5 border-dashed">
                 <Sparkles className="w-10 h-10 mx-auto text-plasma-primary/40 mb-4" />
@@ -379,21 +404,56 @@ export default function PostPage() {
                 <p className="text-[11px] text-plasma-text-muted mt-2 uppercase tracking-widest font-black">Plasma Pulse Protocol</p>
               </div>
             ) : (
-              comments.map((comment) => (
-                <div key={comment.id} className="flex gap-4 p-5 rounded-3xl bg-white/2 hover:bg-white/5 border border-white/5 transition-all group animate-fade-in">
-                  <Link href={`/profile/${comment.id}`} className="shrink-0">
-                    <img src={comment.avatar} alt={comment.username} className="w-10 h-10 rounded-full border border-white/10" />
-                  </Link>
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-white hover:text-plasma-primary transition-colors cursor-pointer">
-                        {comment.username}
-                      </span>
-                      <span className="text-[10px] text-plasma-text-secondary font-medium uppercase tracking-widest">{comment.time}</span>
+              comments.filter(c => !c.parentCommentID).map((parentComment) => (
+                <div key={parentComment.id} className="bg-plasma-slate/40 backdrop-blur-md rounded-[32px] border border-white/10 p-6 space-y-6 shadow-lg">
+                  {/* Parent Comment */}
+                  <div className="flex gap-4 group animate-fade-in">
+                    <Link href={`/profile/${parentComment.id}`} className="shrink-0">
+                      <img src={parentComment.avatar} alt={parentComment.username} className="w-10 h-10 rounded-full border border-white/10" />
+                    </Link>
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-white hover:text-plasma-primary transition-colors cursor-pointer">
+                          {parentComment.username}
+                        </span>
+                        <span className="text-[10px] text-plasma-text-secondary font-medium uppercase tracking-widest">{parentComment.time}</span>
+                      </div>
+
+                      <div className="flex items-end justify-between gap-4">
+                        <p className="text-sm text-plasma-text-secondary leading-relaxed flex-1">
+                          {parentComment.text}
+                        </p>
+                        <button 
+                          onClick={() => setReplyTo({ id: parentComment.id, text: parentComment.text, username: parentComment.username })}
+                          className="p-2 text-plasma-text-secondary hover:text-plasma-primary transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+                          title="Reply"
+                        >
+                          <Reply className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                    <p className="text-sm text-plasma-text-secondary leading-relaxed">
-                      {comment.text}
-                    </p>
+                  </div>
+
+                  {/* Replies */}
+                  <div className="ml-14 space-y-6 border-l border-white/10 pl-6">
+                    {comments.filter(c => c.parentCommentID === parentComment.id).map((reply) => (
+                      <div key={reply.id} className="flex gap-3 group animate-fade-in">
+                        <Link href={`/profile/${reply.id}`} className="shrink-0">
+                          <img src={reply.avatar} alt={reply.username} className="w-8 h-8 rounded-full border border-white/10" />
+                        </Link>
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-white/80 hover:text-plasma-primary transition-colors cursor-pointer">
+                              {reply.username}
+                            </span>
+                            <span className="text-[9px] text-plasma-text-secondary font-medium uppercase tracking-widest">{reply.time}</span>
+                          </div>
+                          <p className="text-xs text-plasma-text-secondary leading-relaxed">
+                            {reply.text}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))

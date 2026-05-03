@@ -115,10 +115,13 @@ router.get('/:userId', authenticateToken, async (req, res) => {
         }
         
         const result = await pool.query(`
-            SELECT "messageID", "senderID", "receiverID", "content", "isLobbyInvite", "lobbyLink", "timestampUTC"
-            FROM "direct_messages"
-            WHERE ("senderID" = $1 AND "receiverID" = $2) OR ("senderID" = $2 AND "receiverID" = $1)
-            ORDER BY "timestampUTC" ASC
+            SELECT 
+                m."messageID", m."senderID", m."receiverID", m."content", m."isLobbyInvite", m."lobbyLink", m."timestampUTC", m."mediaURL", m."parentMessageID",
+                p."content" AS "parentContent", p."senderID" AS "parentSenderID"
+            FROM "direct_messages" m
+            LEFT JOIN "direct_messages" p ON m."parentMessageID" = p."messageID"
+            WHERE (m."senderID" = $1 AND m."receiverID" = $2) OR (m."senderID" = $2 AND m."receiverID" = $1)
+            ORDER BY m."timestampUTC" ASC
             LIMIT 100
         `, [myId, friendId]);
         
@@ -134,7 +137,7 @@ router.get('/:userId', authenticateToken, async (req, res) => {
 router.post('/:userId', authenticateToken, async (req, res) => {
     const friendId = req.params.userId;
     const myId = req.userId;
-    const { content, isLobbyInvite, lobbyLink, mediaURL } = req.body;
+    const { content, isLobbyInvite, lobbyLink, mediaURL, parentMessageID } = req.body;
     
     if (!content && !isLobbyInvite && !mediaURL) {
         return res.status(400).json({ success: false, message: 'Message content, lobby invite, or media is required' });
@@ -147,10 +150,10 @@ router.post('/:userId', authenticateToken, async (req, res) => {
         }
         
         const result = await pool.query(`
-            INSERT INTO "direct_messages" ("senderID", "receiverID", "content", "isLobbyInvite", "lobbyLink", "mediaURL")
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO "direct_messages" ("senderID", "receiverID", "content", "isLobbyInvite", "lobbyLink", "mediaURL", "parentMessageID")
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING "messageID", "timestampUTC"
-        `, [myId, friendId, content, isLobbyInvite || false, lobbyLink, mediaURL]);
+        `, [myId, friendId, content, isLobbyInvite || false, lobbyLink, mediaURL, parentMessageID]);
         
         const newMessage = {
             messageID: result.rows[0].messageID,
@@ -160,6 +163,7 @@ router.post('/:userId', authenticateToken, async (req, res) => {
             isLobbyInvite: isLobbyInvite === true || isLobbyInvite === 'true',
             lobbyLink,
             mediaURL,
+            parentMessageID,
             timestampUTC: result.rows[0].timestampUTC,
             isRead: false
         };

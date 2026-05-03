@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { ModalWrapper } from "../ui/ModalWrapper";
-import { Heart, Send, MoreHorizontal } from "lucide-react";
+import { Heart, Send, MoreHorizontal, Reply, X } from "lucide-react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { getAvatarUrl } from "@/lib/utils";
 import Link from "next/link";
@@ -10,6 +10,7 @@ export function PostCommentsModal({ isOpen, onClose, post, onAddComment, onToggl
   const [commentText, setCommentText] = useState("");
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [replyTo, setReplyTo] = useState(null);
   
   // Fetch comments from API
   useEffect(() => {
@@ -32,7 +33,10 @@ export function PostCommentsModal({ isOpen, onClose, post, onAddComment, onToggl
               },
               text: c.text,
               time: new Date(c.timestampUTC).toLocaleString(),
-              liked: false
+              liked: false,
+              parentCommentID: c.parentCommentID,
+              parentText: c.parentText,
+              parentUsername: c.parentUsername
             }));
             setComments(mapped);
           }
@@ -56,7 +60,10 @@ export function PostCommentsModal({ isOpen, onClose, post, onAddComment, onToggl
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}` 
         },
-        body: JSON.stringify({ content: commentText.trim() })
+        body: JSON.stringify({ 
+          content: commentText.trim(),
+          parentCommentID: replyTo?.id
+        })
       });
       const data = await res.json();
       if (data.success) {
@@ -73,6 +80,7 @@ export function PostCommentsModal({ isOpen, onClose, post, onAddComment, onToggl
         
         setComments([...comments, newComment]);
         setCommentText("");
+        setReplyTo(null);
         if (onAddComment) onAddComment(post.id); // Notify parent to update count
       }
     } catch (err) {
@@ -150,35 +158,80 @@ export function PostCommentsModal({ isOpen, onClose, post, onAddComment, onToggl
               </div>
             ))
           ) : comments.length > 0 ? (
-            comments.map((comment) => (
-              <div key={comment.id} className="flex gap-3 group">
-                <Link 
-                  href={String(comment.user.id) === String(user?.id) ? "/profile" : `/profile/${comment.user.id}`}
-                  onClick={onClose}
-                  className="shrink-0"
-                >
-                  <img src={comment.user.avatar} className="w-8 h-8 rounded-full bg-plasma-slate hover:ring-2 hover:ring-plasma-primary transition-all" />
-                </Link>
-                <div className="flex-1 bg-white/5 rounded-2xl rounded-tl-none p-3 relative group/comment">
-                  <div className="flex justify-between items-start mb-1">
+            <div className="space-y-6">
+              {comments.filter(c => !c.parentCommentID).map((parentComment) => (
+                <div key={parentComment.id} className="bg-white/5 rounded-[32px] p-5 space-y-4 border border-white/5">
+                  {/* Parent Comment */}
+                  <div className="flex gap-3 group">
                     <Link 
-                      href={String(comment.user.id) === String(user?.id) ? "/profile" : `/profile/${comment.user.id}`}
+                      href={String(parentComment.user.id) === String(user?.id) ? "/profile" : `/profile/${parentComment.user.id}`}
                       onClick={onClose}
-                      className="text-xs font-bold text-plasma-text-primary hover:text-plasma-primary transition-colors"
+                      className="shrink-0"
                     >
-                      {comment.user.name}
+                      <img src={parentComment.user.avatar} className="w-8 h-8 rounded-full bg-plasma-slate hover:ring-2 hover:ring-plasma-primary transition-all" />
                     </Link>
-                    <span className="text-[10px] text-plasma-text-secondary">{comment.time}</span>
+                    <div className="flex-1 relative group/comment">
+                      <div className="flex justify-between items-start mb-1">
+                        <Link 
+                          href={String(parentComment.user.id) === String(user?.id) ? "/profile" : `/profile/${parentComment.user.id}`}
+                          onClick={onClose}
+                          className="text-xs font-bold text-plasma-text-primary hover:text-plasma-primary transition-colors"
+                        >
+                          {parentComment.user.name}
+                        </Link>
+                        <span className="text-[10px] text-plasma-text-secondary">{parentComment.time}</span>
+                      </div>
+                      <p className="text-sm text-plasma-text-primary pr-8">{parentComment.text}</p>
+                      <div className="absolute right-0 bottom-0 opacity-0 group-hover/comment:opacity-100 transition-opacity flex items-center gap-2">
+                        <button 
+                          onClick={() => setReplyTo({ id: parentComment.id, text: parentComment.text, userName: parentComment.user.name })}
+                          className="p-1 text-plasma-text-secondary hover:text-plasma-primary transition-colors cursor-pointer"
+                          title="Reply"
+                        >
+                          <Reply className="w-3.5 h-3.5" />
+                        </button>
+                        <button className="p-1 text-plasma-text-secondary hover:text-plasma-secondary transition-colors cursor-pointer">
+                          <Heart className={`w-3.5 h-3.5 ${parentComment.liked ? "fill-plasma-secondary text-plasma-secondary" : ""}`} />
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-sm text-plasma-text-primary pr-8">{comment.text}</p>
-                  <div className="absolute right-3 bottom-3 opacity-0 group-hover/comment:opacity-100 transition-opacity flex items-center gap-2">
-                    <button className="p-1 text-plasma-text-secondary hover:text-plasma-secondary transition-colors cursor-pointer">
-                      <Heart className={`w-3.5 h-3.5 ${comment.liked ? "fill-plasma-secondary text-plasma-secondary" : ""}`} />
-                    </button>
+
+                  {/* Replies */}
+                  <div className="ml-11 space-y-4 border-l border-white/10 pl-4">
+                    {comments.filter(c => c.parentCommentID === parentComment.id).map((reply) => (
+                      <div key={reply.id} className="flex gap-3 group">
+                        <Link 
+                          href={String(reply.user.id) === String(user?.id) ? "/profile" : `/profile/${reply.user.id}`}
+                          onClick={onClose}
+                          className="shrink-0"
+                        >
+                          <img src={reply.user.avatar} className="w-6 h-6 rounded-full bg-plasma-slate hover:ring-2 hover:ring-plasma-primary transition-all" />
+                        </Link>
+                        <div className="flex-1 relative group/reply">
+                          <div className="flex justify-between items-start mb-1">
+                            <Link 
+                              href={String(reply.user.id) === String(user?.id) ? "/profile" : `/profile/${reply.user.id}`}
+                              onClick={onClose}
+                              className="text-[11px] font-bold text-plasma-text-primary hover:text-plasma-primary transition-colors"
+                            >
+                              {reply.user.name}
+                            </Link>
+                            <span className="text-[9px] text-plasma-text-secondary">{reply.time}</span>
+                          </div>
+                          <p className="text-xs text-plasma-text-secondary pr-8">{reply.text}</p>
+                          <div className="absolute right-0 bottom-0 opacity-0 group-hover/reply:opacity-100 transition-opacity flex items-center gap-2">
+                            <button className="p-1 text-plasma-text-secondary hover:text-plasma-secondary transition-colors cursor-pointer">
+                              <Heart className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </div>
-            ))
+              ))}
+            </div>
           ) : (
             <div className="text-center py-12">
               <p className="text-plasma-text-secondary text-sm">No comments yet. Be the first to share your thoughts!</p>
@@ -186,9 +239,23 @@ export function PostCommentsModal({ isOpen, onClose, post, onAddComment, onToggl
           )}
         </div>
 
-        {/* Comment Input */}
-        <div className="pt-4 border-t border-white/5 shrink-0 flex items-center gap-3">
-          <img src={getAvatarUrl(user?.avatar, user?.name || user?.username || 'You')} className="w-8 h-8 rounded-full bg-plasma-slate shrink-0" />
+        {/* Comment Input Area */}
+        <div className="pt-4 border-t border-white/5 shrink-0">
+          {/* Reply Preview */}
+          {replyTo && (
+            <div className="mb-3 p-2 bg-plasma-primary/5 border-l-4 border-plasma-primary rounded-r-lg flex items-center justify-between animate-in slide-in-from-bottom-2 duration-200">
+              <div className="min-w-0">
+                <p className="text-[10px] font-normal text-plasma-primary uppercase tracking-widest">Replying to {replyTo.userName}</p>
+                <p className="text-[11px] text-plasma-text-secondary truncate">{replyTo.text}</p>
+              </div>
+              <button onClick={() => setReplyTo(null)} className="p-1 text-plasma-text-secondary hover:text-white transition-colors">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          <div className="flex items-center gap-3">
+            <img src={getAvatarUrl(user?.avatar, user?.name || user?.username || 'You')} className="w-8 h-8 rounded-full bg-plasma-slate shrink-0" />
           <input
             type="text"
             value={commentText}
@@ -206,6 +273,7 @@ export function PostCommentsModal({ isOpen, onClose, post, onAddComment, onToggl
           </button>
         </div>
       </div>
-    </ModalWrapper>
+    </div>
+  </ModalWrapper>
   );
 }

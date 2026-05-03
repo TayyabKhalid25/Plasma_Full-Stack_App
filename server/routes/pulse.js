@@ -123,10 +123,15 @@ router.get('/posts/:postId/comments', authenticateToken, async (req, res) => {
 
     try {
         const result = await pool.query(`
-            SELECT c."commentID", c."text", c."timestampUTC", u."username", u."plasmaUserID", pr."avatarURL"
+            SELECT 
+                c."commentID", c."text", c."timestampUTC", c."parentCommentID",
+                u."username", u."plasmaUserID", pr."avatarURL",
+                pc."text" AS "parentText", pu."username" AS "parentUsername"
             FROM "comments" c
             JOIN "users" u ON c."userID" = u."plasmaUserID"
             LEFT JOIN "profiles" pr ON u."plasmaUserID" = pr."plasmaUserID"
+            LEFT JOIN "comments" pc ON c."parentCommentID" = pc."commentID"
+            LEFT JOIN "users" pu ON pc."userID" = pu."plasmaUserID"
             WHERE c."postID" = $1
             ORDER BY c."timestampUTC" ASC
         `, [postId]);
@@ -168,22 +173,26 @@ router.get('/posts/:postId', authenticateToken, async (req, res) => {
 // POST /api/pulse/posts/:postId/comments
 router.post('/posts/:postId/comments', authenticateToken, async (req, res) => {
     const { postId } = req.params;
-    const { content } = req.body;
+    const { content, parentCommentID } = req.body;
 
     if (!content) return res.status(400).json({ success: false, message: 'Content is required' });
 
     try {
         const result = await pool.query(`
             WITH inserted_comment AS (
-                INSERT INTO "comments" ("postID", "userID", "text")
-                VALUES ($1, $2, $3)
-                RETURNING "commentID", "text", "timestampUTC", "userID"
+                INSERT INTO "comments" ("postID", "userID", "text", "parentCommentID")
+                VALUES ($1, $2, $3, $4)
+                RETURNING "commentID", "text", "timestampUTC", "userID", "parentCommentID"
             )
-            SELECT ic.*, u."username", pr."avatarURL"
+            SELECT 
+                ic.*, u."username", pr."avatarURL",
+                pc."text" AS "parentText", pu."username" AS "parentUsername"
             FROM inserted_comment ic
             JOIN "users" u ON ic."userID" = u."plasmaUserID"
             LEFT JOIN "profiles" pr ON u."plasmaUserID" = pr."plasmaUserID"
-        `, [postId, req.userId, content]);
+            LEFT JOIN "comments" pc ON ic."parentCommentID" = pc."commentID"
+            LEFT JOIN "users" pu ON pc."userID" = pu."plasmaUserID"
+        `, [postId, req.userId, content, parentCommentID]);
 
         const comment = result.rows[0];
 

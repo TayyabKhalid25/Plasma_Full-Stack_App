@@ -5,10 +5,10 @@ import { useAuth, API_BASE } from "@/context/AuthContext";
 import { useSocket } from "@/context/SocketContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { getAvatarUrl } from "@/lib/utils";
-import { 
-  Search, Send, MoreVertical, Phone, Video, Info, User, 
+import {
+  Search, Send, MoreVertical, Phone, Video, Info, User,
   ChevronRight, ArrowLeft, Trophy, Settings, MessageSquare,
-  Share2, Calendar, Clock, PlusCircle, Image as ImageIcon, X as CloseIcon
+  Share2, Calendar, Clock, PlusCircle, Image as ImageIcon, X as CloseIcon, Reply
 } from "lucide-react";
 import { useModal } from "@/hooks/useModal";
 import { NewMessageModal } from "@/components/modals/NewMessageModal";
@@ -24,9 +24,9 @@ const formatMessage = (text) => {
   const urlRegex = /(https?:\/\/[^\s]+)/g;
   const steamRegex = /(steam:\/\/run\/\d+)/g;
   const plasmaPostRegex = /(plasma:post:([^\s]+))/g;
-  
+
   const parts = text.split(/((?:https?:\/\/[^\s]+)|(?:steam:\/\/run\/\d+)|(?:plasma:post:[^\s]+))/g);
-  
+
   return parts.map((part, i) => {
     if (part.match(urlRegex)) {
       return (
@@ -37,7 +37,7 @@ const formatMessage = (text) => {
     }
     if (part.match(steamRegex)) {
       return (
-        <a key={i} href={part} className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 hover:bg-white/20 rounded-lg text-[10px] font-black uppercase tracking-widest text-white transition-all border border-white/10 mt-1 mb-1">
+        <a key={i} href={part} className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 hover:bg-white/20 rounded-lg text-[10px] font-black text-white transition-all border border-white/10 mt-1 mb-1">
           <Trophy className="w-3 h-3 text-plasma-primary" />
           Launch Steam Game
         </a>
@@ -46,9 +46,9 @@ const formatMessage = (text) => {
     if (part.match(plasmaPostRegex)) {
       const postId = part.split(':').pop();
       return (
-        <Link 
-          key={i} 
-          href={`/pulse/${postId}`} 
+        <Link
+          key={i}
+          href={`/pulse/${postId}`}
           className="block mt-2 p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group"
         >
           <div className="flex items-center gap-4">
@@ -65,6 +65,36 @@ const formatMessage = (text) => {
       );
     }
     return part;
+  });
+};
+
+const formatDateSeparator = (date) => {
+  if (!date) return "";
+  const now = new Date();
+  const d = new Date(date);
+
+  if (d.toDateString() === now.toDateString()) {
+    return "Today";
+  }
+
+  const yesterday = new Date();
+  yesterday.setDate(now.getDate() - 1);
+  if (d.toDateString() === yesterday.toDateString()) {
+    return "Yesterday";
+  }
+
+  // If within the last week, show day name
+  const diffTime = Math.abs(now - d);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  if (diffDays < 7) {
+    return d.toLocaleDateString([], { weekday: 'long' });
+  }
+
+  // Otherwise show full date
+  return d.toLocaleDateString([], {
+    month: 'long',
+    day: 'numeric',
+    year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
   });
 };
 
@@ -164,8 +194,8 @@ function RallyInviteCard({ lobbyLink, isMe }) {
       <Link
         href={`/rally/${eventId}`}
         className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isMe
-            ? "bg-white/10 hover:bg-white/20 text-white border border-white/10"
-            : "bg-plasma-primary hover:bg-plasma-primary/80 text-white shadow-lg shadow-plasma-primary/20"
+          ? "bg-white/10 hover:bg-white/20 text-white border border-white/10"
+          : "bg-plasma-primary hover:bg-plasma-primary/80 text-white shadow-lg shadow-plasma-primary/20"
           }`}
       >
         View Rally
@@ -199,6 +229,7 @@ function MessagesContent() {
   const [loadingChat, setLoadingChat] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [mediaUrl, setMediaUrl] = useState(null);
+  const [replyTo, setReplyTo] = useState(null);
   const uploadModal = useModal();
   const newMessageModal = useModal();
   const messagesEndRef = useRef(null);
@@ -266,9 +297,13 @@ function MessagesContent() {
             sender: m.senderID,
             text: m.content,
             time: new Date(m.timestampUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timestamp: m.timestampUTC,
             isLobbyInvite: m.isLobbyInvite,
             lobbyLink: m.lobbyLink,
-            mediaURL: m.mediaURL
+            mediaURL: m.mediaURL,
+            parentMessageID: m.parentMessageID,
+            parentContent: m.parentContent,
+            parentSenderID: m.parentSenderID
           })));
 
           // Mark as read in the background
@@ -311,9 +346,13 @@ function MessagesContent() {
             sender: msg.senderID,
             text: msg.content,
             time: new Date(msg.timestampUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timestamp: msg.timestampUTC,
             isLobbyInvite: msg.isLobbyInvite,
             lobbyLink: msg.lobbyLink,
-            mediaURL: msg.mediaURL
+            mediaURL: msg.mediaURL,
+            parentMessageID: msg.parentMessageID,
+            parentContent: msg.parentContent,
+            parentSenderID: msg.parentSenderID
           };
           if (tempIndex !== -1) {
             const updated = [...prev];
@@ -361,6 +400,7 @@ function MessagesContent() {
       receiverId: activeConvId,
       content: messageInput.trim(),
       mediaURL: mediaUrl,
+      parentMessageID: replyTo?.id
     });
 
     if (!success) {
@@ -377,10 +417,15 @@ function MessagesContent() {
       isLobbyInvite: false,
       lobbyLink: null,
       time: "Just now",
+      timestamp: new Date().toISOString(),
+      parentMessageID: replyTo?.id,
+      parentContent: replyTo?.text,
+      parentSenderID: replyTo?.sender
     };
     setMessages(prev => [...prev, optimisticMsg]);
     setMessageInput("");
     setMediaUrl(null);
+    setReplyTo(null);
   };
 
   const handleKeyDown = (e) => {
@@ -438,8 +483,8 @@ function MessagesContent() {
                   key={conv.id}
                   onClick={() => setActiveConvId(conv.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3.5 transition-colors cursor-pointer text-left ${activeConvId === conv.id
-                      ? "bg-plasma-primary/10 border-l-4 border-plasma-primary"
-                      : "hover:bg-white/5 border-l-4 border-transparent"
+                    ? "bg-plasma-primary/10 border-l-4 border-plasma-primary"
+                    : "hover:bg-white/5 border-l-4 border-transparent"
                     }`}
                 >
                   <div className="relative shrink-0">
@@ -509,30 +554,65 @@ function MessagesContent() {
                     <p className="text-plasma-text-secondary text-sm">No messages yet. Say hi!</p>
                   </div>
                 ) : (
-                  messages.map((msg) => {
+                  messages.map((msg, index) => {
                     const isMe = msg.sender === user?.id;
+                    const prevMsg = messages[index - 1];
+                    const showDateSeparator = !prevMsg ||
+                      new Date(msg.timestamp).toDateString() !== new Date(prevMsg.timestamp).toDateString();
+
                     return (
-                      <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                        <div className={`max-w-[70%] px-4 py-2.5 rounded-2xl ${isMe
+                      <div key={msg.id} className="space-y-4">
+                        {showDateSeparator && (
+                          <div className="flex justify-center my-8">
+                            <span className="px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest text-plasma-text-secondary shadow-sm">
+                              {formatDateSeparator(msg.timestamp)}
+                            </span>
+                          </div>
+                        )}
+                        <div className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                          <div className={`max-w-[70%] group relative px-4 py-2.5 rounded-2xl ${isMe
                             ? "bg-plasma-primary text-white rounded-br-md"
                             : "bg-plasma-slate border border-white/5 text-plasma-text-primary rounded-bl-md"
-                          }`}>
-                          {msg.mediaURL && (
-                            <div className="mb-2 rounded-xl overflow-hidden border border-white/10 bg-black max-w-sm">
-                              {msg.mediaURL.match(/\.(mp4|webm|ogg|mov)$/i) ? (
-                                <video src={msg.mediaURL} controls className="w-full h-auto max-h-60 object-contain" />
-                              ) : (
-                                <img src={msg.mediaURL} alt="Shared media" className="w-full h-auto max-h-60 object-contain hover:scale-[1.02] transition-transform cursor-pointer" onClick={() => window.open(msg.mediaURL, '_blank')} />
-                              )}
-                            </div>
-                          )}
-                          <div className="text-sm leading-relaxed whitespace-pre-wrap">{formatMessage(msg.text)}</div>
+                            }`}>
+                            {/* Reply Action Button */}
+                            <button
+                              onClick={() => setReplyTo({ id: msg.id, text: msg.text, sender: msg.sender, senderName: isMe ? "You" : activeConv.friend.name })}
+                              className={`absolute top-0 ${isMe ? "-left-10" : "-right-10"} p-2 text-plasma-text-secondary hover:text-plasma-primary opacity-0 group-hover:opacity-100 transition-all cursor-pointer`}
+                              title="Reply"
+                            >
+                              <Reply className="w-4 h-4" />
+                            </button>
 
-                          {msg.isLobbyInvite && (
-                            <RallyInviteCard lobbyLink={msg.lobbyLink} isMe={isMe} />
-                          )}
+                            {/* Replied Message Preview */}
+                            {msg.parentMessageID && (
+                              <div className={`mb-2 p-2 rounded-lg border-l-2 text-[11px] line-clamp-2 ${isMe
+                                ? "bg-white/10 border-white/30 text-white/80"
+                                : "bg-white/5 border-plasma-primary/50 text-plasma-text-secondary"
+                                }`}>
+                                <p className="font-normal  opacity-60 mb-0.5">
+                                  {msg.parentSenderID === user?.id ? "You" : activeConv.friend.name}
+                                </p>
+                                {msg.parentContent || "Media / Lobby Invite"}
+                              </div>
+                            )}
 
-                          <p className={`text-[10px] mt-1 ${isMe ? "text-white/60" : "text-plasma-text-secondary"}`}>{msg.time}</p>
+                            {msg.mediaURL && (
+                              <div className="mb-2 rounded-xl overflow-hidden border border-white/10 bg-black max-w-sm">
+                                {msg.mediaURL.match(/\.(mp4|webm|ogg|mov)$/i) ? (
+                                  <video src={msg.mediaURL} controls className="w-full h-auto max-h-60 object-contain" />
+                                ) : (
+                                  <img src={msg.mediaURL} alt="Shared media" className="w-full h-auto max-h-60 object-contain hover:scale-[1.02] transition-transform cursor-pointer" onClick={() => window.open(msg.mediaURL, '_blank')} />
+                                )}
+                              </div>
+                            )}
+                            <div className="text-sm leading-relaxed whitespace-pre-wrap">{formatMessage(msg.text)}</div>
+
+                            {msg.isLobbyInvite && (
+                              <RallyInviteCard lobbyLink={msg.lobbyLink} isMe={isMe} />
+                            )}
+
+                            <p className={`text-[10px] mt-1 ${isMe ? "text-white/60" : "text-plasma-text-secondary"}`}>{msg.time}</p>
+                          </div>
                         </div>
                       </div>
                     );
@@ -541,8 +621,21 @@ function MessagesContent() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Input */}
+              {/* Input Area */}
               <div className="p-4 border-t border-white/5 bg-plasma-slate/30">
+                {/* Reply Preview */}
+                {replyTo && (
+                  <div className="mb-3 p-3 bg-plasma-primary/5 border-l-4 border-plasma-primary rounded-r-xl flex items-center justify-between animate-in slide-in-from-bottom-2 duration-200">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-normal text-plasma-primary uppercase tracking-widest">Replying to {replyTo.senderName}</p>
+                      <p className="text-xs text-plasma-text-secondary truncate">{replyTo.text}</p>
+                    </div>
+                    <button onClick={() => setReplyTo(null)} className="p-1 text-plasma-text-secondary hover:text-white transition-colors">
+                      <CloseIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
                 {mediaUrl && (
                   <div className="mb-3 relative w-32 h-32 rounded-xl overflow-hidden border border-white/10 group">
                     {mediaUrl.match(/\.(mp4|webm|ogg|mov)$/i) ? (
@@ -550,7 +643,7 @@ function MessagesContent() {
                     ) : (
                       <img src={mediaUrl} alt="Preview" className="w-full h-full object-cover" />
                     )}
-                    <button 
+                    <button
                       onClick={() => setMediaUrl(null)}
                       className="absolute top-1 right-1 p-1.5 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors"
                     >
