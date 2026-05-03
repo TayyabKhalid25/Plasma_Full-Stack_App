@@ -127,7 +127,7 @@ async function syncSteamLibrary(userId) {
         `, [userIds, appIds, hoursPlayed]);
     }
 
-    return { syncedGames: addedCount };
+    return { syncedGames: addedCount, isPrivate };
 }
 
 /**

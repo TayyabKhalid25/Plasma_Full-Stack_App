@@ -27,6 +27,7 @@
     "jsonwebtoken": "^9.0.2",
     "passport": "^0.7.0",
     "passport-steam": "^1.0.18",
+    "plasma-full-stack-app": "file:..",
     "ws": "^8.18.1"
   },
   "devDependencies": {
