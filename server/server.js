@@ -23,7 +23,9 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
-    const allowedOrigins = [process.env.FRONTEND_URL, 'http://localhost:3000', 'http://127.0.0.1:3000'];
+    const rawFrontendUrl = process.env.FRONTEND_URL || "";
+    const frontendUrl = rawFrontendUrl.endsWith("/") ? rawFrontendUrl.slice(0, -1) : rawFrontendUrl;
+    const allowedOrigins = [frontendUrl, 'http://localhost:3000', 'http://127.0.0.1:3000'];
     if (allowedOrigins.indexOf(origin) !== -1 || origin.startsWith('http://localhost:')) {
       callback(null, true);
     } else {

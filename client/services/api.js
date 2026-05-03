@@ -6,7 +6,8 @@
 
 import * as dummy from "@/data/dummy";
 
-const API_BASE = "http://localhost:5000";
+const rawApiBase = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000";
+const API_BASE = rawApiBase.endsWith("/") ? rawApiBase.slice(0, -1) : rawApiBase;
 
 // Simulates network latency for realistic loading states (dummy fallback only)
 const delay = (ms = 200) => new Promise((r) => setTimeout(r, ms));
