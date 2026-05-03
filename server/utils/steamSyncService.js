@@ -18,6 +18,25 @@ const {
 } = require('./externalApis');
 
 /**
+ * Retrieves the steamID64 for a given plasmaUserID.
+ * Shared by all sync functions to avoid duplicating this query.
+ *
+ * @param {string} userId - The plasmaUserID (UUID).
+ * @returns {string} The user's steamID64.
+ * @throws If the user has no Steam account linked.
+ */
+async function getUserSteamId(userId) {
+    const result = await pool.query(
+        'SELECT "steamID64" FROM "users" WHERE "plasmaUserID" = $1',
+        [userId]
+    );
+    if (result.rows.length === 0 || !result.rows[0].steamID64) {
+        throw new Error('Steam account not linked');
+    }
+    return result.rows[0].steamID64;
+}
+
+/**
  * Syncs all relevant Steam profile fields from GetPlayerSummaries to the profiles table.
  * Always syncs public fields (avatar, personaname, profileurl, lastlogoff).
  * Only syncs private-gated fields (timecreated, loccountrycode) when the profile is public
@@ -25,9 +44,10 @@ const {
  *
  * @param {string} steamId - The user's SteamID64.
  * @param {string} userId  - The plasmaUserID (UUID).
+ * @param {boolean} forceAvatar - If true, overwrites existing avatarURL. If false, only sets it if missing.
  * @returns {{ synced: boolean, isPrivate: boolean }} Sync result.
  */
-async function syncSteamProfile(steamId, userId) {
+async function syncSteamProfile(steamId, userId, forceAvatar = false) {
     const summaries = await getSteamPlayerSummaries(steamId);
     if (!summaries || summaries.length === 0) {
         return { synced: false, isPrivate: false };
@@ -54,7 +74,11 @@ async function syncSteamProfile(steamId, userId) {
 
     await pool.query(`
         UPDATE "profiles" SET
-            "avatarURL"         = COALESCE($1, "avatarURL"),
+            "avatarURL" = CASE 
+                WHEN $9 = TRUE THEN COALESCE($1, "avatarURL")
+                WHEN "avatarURL" IS NULL OR "avatarURL" = '' THEN COALESCE($1, "avatarURL")
+                ELSE "avatarURL"
+            END,
             "steamPersonaName"  = COALESCE($2, "steamPersonaName"),
             "steamProfileURL"   = COALESCE($3, "steamProfileURL"),
             "lastLogoff"        = COALESCE($4, "lastLogoff"),
@@ -62,7 +86,7 @@ async function syncSteamProfile(steamId, userId) {
             "countryCode"       = COALESCE($6, "countryCode"),
             "isSteamProfilePrivate" = $7
         WHERE "plasmaUserID" = $8
-    `, [avatarURL, personaName, profileURL, lastLogoff, steamMemberSince, countryCode, !isPublic, userId]);
+    `, [avatarURL, personaName, profileURL, lastLogoff, steamMemberSince, countryCode, !isPublic, userId, forceAvatar]);
 
     return { synced: true, isPrivate: !isPublic };
 }
@@ -77,14 +101,7 @@ async function syncSteamProfile(steamId, userId) {
  */
 async function syncSteamLibrary(userId) {
     // 1. Get user's steamId64
-    const user = await pool.query(
-        'SELECT "steamID64" FROM "users" WHERE "plasmaUserID" = $1',
-        [userId]
-    );
-    if (user.rows.length === 0 || !user.rows[0].steamID64) {
-        throw new Error('Steam account not linked');
-    }
-    const steamId = user.rows[0].steamID64;
+    const steamId = await getUserSteamId(userId);
 
     // 2. Sync full profile from Steam (avatar, personaName, etc.)
     const { isPrivate } = await syncSteamProfile(steamId, userId);
@@ -140,27 +157,19 @@ async function syncSteamLibrary(userId) {
  */
 async function syncSteamAchievements(userId) {
     // 1. Get user's steamID64
-    const user = await pool.query(
-        'SELECT "steamID64" FROM "users" WHERE "plasmaUserID" = $1',
-        [userId]
-    );
-    if (user.rows.length === 0 || !user.rows[0].steamID64) {
-        throw new Error('Steam account not linked');
-    }
-    const steamId = user.rows[0].steamID64;
+    const steamId = await getUserSteamId(userId);
 
-    // 1b. Sync full profile from Steam
+    // 2. Sync full profile from Steam (non-critical, wrapped in try/catch)
     try {
         const { isPrivate } = await syncSteamProfile(steamId, userId);
         if (isPrivate) {
             console.log(`[Steam] User ${userId} profile is private. Achievements will likely be inaccessible.`);
         }
     } catch (profileErr) {
-        // Non-critical: log and continue with achievement sync
-        console.warn('[Steam] Profile sync failed during background achievement sync:', profileErr.message);
+        console.warn('[Steam] Profile sync failed during achievement sync:', profileErr.message);
     }
 
-    // 2. Get all STEAM games in this user's library
+    // 3. Get all STEAM games in this user's library
     const libraryResult = await pool.query(`
         SELECT g."appID" FROM "library_entries" le
         JOIN "games" g ON le."appID" = g."appID"
@@ -299,6 +308,8 @@ async function syncSteamAchievements(userId) {
 }
 
 module.exports = {
+    getUserSteamId,
+    syncSteamProfile,
     syncSteamLibrary,
     syncSteamAchievements
 };

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
   User, Mail, Lock, Bell, BellOff, Eye, EyeOff, Link2, Unlink, Shield,
-  Trash2, Download, Save, Check, ChevronRight, ChevronDown, ChevronUp, Camera, Loader2
+  Trash2, Download, Save, Check, ChevronRight, ChevronDown, ChevronUp, Camera, Loader2, RotateCcw
 } from "lucide-react";
 import { useModal } from "@/hooks/useModal";
 import { ChangePasswordModal } from "@/components/modals/ChangePasswordModal";
@@ -43,12 +43,13 @@ function SettingRow({ label, description, children }) {
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState("general");
-  const [saved, setSaved] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
   const { token, logout, user, fetchUser } = useAuth();
   const [isFetching, setIsFetching] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
   const [isSelectOpen, setIsSelectOpen] = useState(false);
+  const [isSyncingAvatar, setIsSyncingAvatar] = useState(false);
 
   // Account state
   const [username, setUsername] = useState("");
@@ -72,6 +73,7 @@ export default function SettingsPage() {
 
   const passwordModal = useModal();
   const avatarModal = useModal();
+  const syncModal = useModal();
   const dangerModal = useModal();
 
   // Populate account from auth context user
@@ -139,7 +141,7 @@ export default function SettingsPage() {
 
   const handleManualSave = async () => {
     setIsSaving(true);
-    setSaved(false);
+    setProfileSaved(false);
     setError(null);
 
     try {
@@ -162,8 +164,8 @@ export default function SettingsPage() {
       }
 
       if (fetchUser && token) await fetchUser(token);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 3000);
     } catch (err) {
       console.error("Save error:", err);
       setError(err.message);
@@ -184,6 +186,27 @@ export default function SettingsPage() {
       }
     } catch (err) {
       console.error("Failed to delete account", err);
+    }
+  };
+
+  const handleSteamAvatarSync = async () => {
+    setIsSyncingAvatar(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/steam/sync/avatar-force`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || "Failed to sync avatar");
+      
+      if (fetchUser) await fetchUser(token);
+      // No longer setting profileSaved here to avoid UI confusion
+    } catch (err) {
+      console.error("Sync error:", err);
+      setError(err.message);
+    } finally {
+      setIsSyncingAvatar(false);
     }
   };
 
@@ -250,11 +273,18 @@ export default function SettingsPage() {
                         <Camera className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                    <div>
+                    <div className="flex flex-wrap gap-3">
                       <button onClick={() => avatarModal.open()} className="px-5 py-2 rounded-xl bg-plasma-primary/15 text-plasma-primary text-sm font-bold hover:bg-plasma-primary/25 transition-colors cursor-pointer">
                         Change Avatar
                       </button>
-                      <p className="text-xs text-plasma-text-secondary mt-1.5">JPG, PNG. Max 2MB.</p>
+                      <button 
+                        onClick={() => syncModal.open()} 
+                        className="px-5 py-2 rounded-xl bg-[#1b2838] text-[#66c0f4] border border-[#66c0f4]/20 text-sm font-bold hover:bg-[#2a475e] transition-all cursor-pointer flex items-center gap-2"
+                      >
+                        {isSyncingAvatar ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+                        Sync Steam Avatar
+                      </button>
+                      <p className="text-xs text-plasma-text-secondary mt-1.5 w-full">JPG, PNG. Max 2MB.</p>
                     </div>
                   </div>
 
@@ -274,12 +304,12 @@ export default function SettingsPage() {
                         onClick={handleManualSave}
                         disabled={isSaving}
                         className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold text-sm transition-all cursor-pointer disabled:opacity-50 ${
-                          saved
+                          profileSaved
                             ? "bg-plasma-success text-white"
                             : "bg-primary-gradient text-white hover:shadow-card-glow hover:scale-[1.02]"
                         }`}
                       >
-                        {isSaving ? "Saving..." : saved ? <><Check className="w-4 h-4" /> Saved!</> : <><Save className="w-4 h-4" /> Save</>}
+                        {isSaving ? "Saving..." : profileSaved ? <><Check className="w-4 h-4" /> Saved!</> : <><Save className="w-4 h-4" /> Save</>}
                       </button>
                     </div>
                   </div>
@@ -394,6 +424,15 @@ export default function SettingsPage() {
         message={dangerModal.modalData?.message}
         requiredString={dangerModal.modalData?.requiredString}
         onConfirm={handleDeleteAccount}
+      />
+      <ConfirmActionModal 
+        isOpen={syncModal.isOpen} 
+        onClose={syncModal.close}
+        title="Sync Steam Avatar"
+        message="This will fetch your latest public avatar from Steam and overwrite your current Plasma avatar. This action cannot be easily undone if you haven't backed up your current image."
+        requiredString="SYNC"
+        actionType="info"
+        onConfirm={handleSteamAvatarSync}
       />
     </DashboardLayout>
   );
