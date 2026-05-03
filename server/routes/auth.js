@@ -4,27 +4,31 @@ const passport = require('passport');
 const SteamStrategy = require('passport-steam').Strategy;
 const { jwt, authenticateToken } = require('../middleware/authMiddleware');
 const { pool } = require('../config/dbConfig');
+const { syncSteamLibrary, syncSteamAchievements } = require('../utils/steamSyncService');
+const { enqueueJob } = require('../utils/jobQueue');
+
 const router = express.Router();
 
+// Passport serialization
 passport.serializeUser((user, done) => {
-  done(null, user);
-});
-passport.deserializeUser((obj, done) => {
-  done(null, obj);
+    done(null, user);
 });
 
+passport.deserializeUser((obj, done) => {
+    done(null, obj);
+});
+
+// Configure Steam Strategy
 passport.use(new SteamStrategy({
     returnURL: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/auth/steam/callback`,
     realm: `${process.env.BACKEND_URL || 'http://localhost:5000'}/`,
     apiKey: process.env.STEAM_API_KEY || 'MISSING'
-  },
-  function(identifier, profile, done) {
-    process.nextTick(function () {
-      profile.identifier = identifier;
-      return done(null, profile);
+}, (identifier, profile, done) => {
+    process.nextTick(() => {
+        profile.identifier = identifier;
+        return done(null, profile);
     });
-  }
-));
+}));
 
 // ==========================================
 // NEW AUTHENTICATION SYSTEM (TRADITIONAL & UUID SCHEMA)
@@ -43,7 +47,9 @@ router.post('/register', async (req, res) => {
     let steamAvatarURL = '';
     try {
         const decoded = jwt.verify(steamToken, process.env.JWT_SECRET);
-        if (!decoded.isRegistration) throw new Error('Invalid token');
+        if (!decoded.isRegistration) {
+            throw new Error('Token is not for registration');
+        }
         steamID64 = decoded.steamID64;
         steamAvatarURL = decoded.avatarURL || '';
     } catch (err) {
@@ -51,9 +57,9 @@ router.post('/register', async (req, res) => {
     }
 
     try {
-        // 1. Check if user already exists (by email or username)
+        // 1. Check if user already exists
         const checkResult = await pool.query(
-            `SELECT "plasmaUserID" FROM "users" WHERE "email" = $1 OR "username" = $2`,
+            'SELECT "plasmaUserID" FROM "users" WHERE "email" = $1 OR "username" = $2',
             [email, username]
         );
 
@@ -65,7 +71,7 @@ router.post('/register', async (req, res) => {
         const saltRounds = 10;
         const passwordHash = await bcrypt.hash(password, saltRounds);
 
-        // 3. Insert new user with SteamID linked
+        // 3. Insert new user
         const insertResult = await pool.query(`
             INSERT INTO "users" ("steamID64", "username", "email", "passwordHash", "dateOfBirth", "intent")
             VALUES ($1, $2, $3, $4, $5, 'OFFLINE')
@@ -74,7 +80,7 @@ router.post('/register', async (req, res) => {
 
         const user = insertResult.rows[0];
 
-        // 4. Create profile with Steam avatar from the registration token
+        // 4. Create profile
         await pool.query(`
             INSERT INTO "profiles" ("plasmaUserID", "bio", "avatarURL", "totalPlasmaXP")
             VALUES ($1, 'New to Plasma', $2, 0)
@@ -84,20 +90,19 @@ router.post('/register', async (req, res) => {
         const payload = { userId: user.plasmaUserID };
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '60d' });
 
-        // 6. Trigger background Steam sync automatically
-        const { enqueueJob } = require('../utils/jobQueue');
+        // 6. Trigger background Steam sync
         await enqueueJob('STEAM_LIBRARY_SYNC', { userId: user.plasmaUserID });
         await enqueueJob('STEAM_ACHIEVEMENT_SYNC', { userId: user.plasmaUserID });
 
-        res.status(201).json({
+        return res.status(201).json({
             success: true,
             message: 'Registration successful',
             token,
             user: { ...user, isSteamLinked: true }
         });
     } catch (err) {
-        console.error('Registration error:', err);
-        res.status(500).json({ success: false, message: 'Internal server error' });
+        console.error('[Auth] Registration error:', err);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
 
@@ -140,20 +145,25 @@ router.post('/login', async (req, res) => {
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '60d' });
 
         // 4. Trigger background sync
-        const { enqueueJob } = require('../utils/jobQueue');
         await enqueueJob('STEAM_LIBRARY_SYNC', { userId: user.plasmaUserID });
         await enqueueJob('STEAM_ACHIEVEMENT_SYNC', { userId: user.plasmaUserID });
 
-        res.json({
+        return res.json({
             success: true,
             message: 'Login successful',
             token,
-            user: { id: user.plasmaUserID, username: user.username, email: user.email, intent: user.intent, isSteamLinked: true }
+            user: { 
+                id: user.plasmaUserID, 
+                username: user.username, 
+                email: user.email, 
+                intent: user.intent, 
+                isSteamLinked: true 
+            }
         });
 
     } catch (err) {
-        console.error('Login error:', err);
-        res.status(500).json({ success: false, message: 'Internal server error' });
+        console.error('[Auth] Login error:', err);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
 
@@ -194,16 +204,15 @@ router.post('/dev-login', async (req, res) => {
             `, [user.plasmaUserID]);
         }
 
-        // 4. Generate JWT with the UUID
-        const payload = { userId: user.plasmaUserID }; // This MUST be the UUID
+        // 4. Generate JWT
+        const payload = { userId: user.plasmaUserID };
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '60d' });
 
         // 5. Trigger background sync
-        const { enqueueJob } = require('../utils/jobQueue');
         await enqueueJob('STEAM_LIBRARY_SYNC', { userId: user.plasmaUserID });
         await enqueueJob('STEAM_ACHIEVEMENT_SYNC', { userId: user.plasmaUserID });
 
-        res.json({
+        return res.json({
             success: true,
             message: 'Dev authentication successful',
             token,
@@ -211,18 +220,18 @@ router.post('/dev-login', async (req, res) => {
         });
 
     } catch (err) {
-        console.error('Error during dev-login:', err.message);
-        res.status(500).json({ success: false, message: 'Internal server error' });
+        console.error('[Auth] Dev-login error:', err.message);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
 
 // GET /api/auth/steam
 // Redirects the browser to Valve's OpenID 2.0 endpoint
 router.get('/steam', (req, res, next) => {
-    if (!process.env.STEAM_API_KEY || process.env.STEAM_API_KEY === 'YOUR_STEAM_API_KEY_HERE') {
+    if (!process.env.STEAM_API_KEY || process.env.STEAM_API_KEY === 'YOUR_STEAM_API_KEY_HERE' || process.env.STEAM_API_KEY === 'MISSING') {
         return res.status(503).json({ 
             success: false, 
-            message: 'Steam login functionality failed. The server is unable to initialize the Passport Steam strategy because the STEAM_API_KEY environment variable is missing.' 
+            message: 'Steam login failed: STEAM_API_KEY is missing or invalid.' 
         });
     }
     next();
@@ -231,10 +240,10 @@ router.get('/steam', (req, res, next) => {
 // GET /api/auth/steam/callback
 // Valve redirects here after login to validate assertion, issue JWT
 router.get('/steam/callback', (req, res, next) => {
-    if (!process.env.STEAM_API_KEY || process.env.STEAM_API_KEY === 'YOUR_STEAM_API_KEY_HERE') {
+    if (!process.env.STEAM_API_KEY || process.env.STEAM_API_KEY === 'YOUR_STEAM_API_KEY_HERE' || process.env.STEAM_API_KEY === 'MISSING') {
         return res.status(503).json({ 
             success: false, 
-            message: 'Steam login callback failed. The server is unable to process the authentication request because the STEAM_API_KEY environment variable is missing.' 
+            message: 'Steam login callback failed: STEAM_API_KEY is missing or invalid.' 
         });
     }
     next();
@@ -246,6 +255,8 @@ router.get('/steam/callback', (req, res, next) => {
         // Check if user exists
         const result = await pool.query('SELECT "plasmaUserID" FROM "users" WHERE "steamID64" = $1', [steamID64]);
         
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
         if (result.rows.length > 0) {
             // Already registered, automatically log them in
             const userId = result.rows[0].plasmaUserID;
@@ -253,31 +264,30 @@ router.get('/steam/callback', (req, res, next) => {
             const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '60d' });
             
             // Trigger background sync for returning user
-            const { enqueueJob } = require('../utils/jobQueue');
             await enqueueJob('STEAM_LIBRARY_SYNC', { userId });
             await enqueueJob('STEAM_ACHIEVEMENT_SYNC', { userId });
 
             // Redirect to frontend dashboard or login success page with token
-            res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?token=${token}`);
+            return res.redirect(`${frontendUrl}/login?token=${token}`);
         } else {
             // New user, needs full registration
             const tempToken = jwt.sign({ steamID64, avatarURL, isRegistration: true }, process.env.JWT_SECRET, { expiresIn: '15m' });
-            res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/sign-up?steamToken=${tempToken}`);
+            return res.redirect(`${frontendUrl}/sign-up?steamToken=${tempToken}`);
         }
     } catch (err) {
-        console.error('Steam Auth Error:', err);
-        res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=auth_failed`);
+        console.error('[Auth] Steam Auth Error:', err);
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        return res.redirect(`${frontendUrl}/login?error=auth_failed`);
     }
 });
 
 // POST /api/auth/logout
-// Clears session (client-side clears token, server could blacklist)
 router.post('/logout', authenticateToken, (req, res) => {
-    res.json({ success: true, message: 'Logged out successfully. Please discard your token.' });
+    return res.json({ success: true, message: 'Logged out successfully. Please discard your token.' });
 });
 
 // GET /api/auth/me
-// Returns the currently authenticated user's profile (Required by frontend api.js)
+// Returns the currently authenticated user's profile
 router.get('/me', authenticateToken, async (req, res) => {
     const userId = req.userId;
 
@@ -308,20 +318,20 @@ router.get('/me', authenticateToken, async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        res.json({
+        return res.json({
             success: true,
             data: result.rows[0]
         });
 
     } catch (err) {
-        console.error('Error fetching current user:', err.message);
-        res.status(500).json({ success: false, message: 'Internal server error' });
+        console.error('[Auth] Error fetching current user:', err.message);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
 
 // Route to Verify JWT token validity
 router.get('/verify', authenticateToken, (req, res) => {
-    res.json({ success: true, message: 'Token is valid' });
+    return res.json({ success: true, message: 'Token is valid' });
 });
 
 // PUT /api/auth/change-password
@@ -334,7 +344,7 @@ router.put('/change-password', authenticateToken, async (req, res) => {
     }
 
     try {
-        // 1. Fetch the current user's password hash
+        // 1. Fetch current user's password hash
         const result = await pool.query('SELECT "passwordHash" FROM "users" WHERE "plasmaUserID" = $1', [userId]);
         if (result.rows.length === 0) {
             return res.status(404).json({ success: false, message: 'User not found' });
@@ -342,11 +352,11 @@ router.put('/change-password', authenticateToken, async (req, res) => {
 
         const user = result.rows[0];
 
-        // 2. Check if the user even has a password (Steam-only users might not)
+        // 2. Check if the user even has a password
         if (!user.passwordHash) {
             return res.status(400).json({ 
                 success: false, 
-                message: 'This account does not have a password set (Steam-only). Please contact support to set a password.' 
+                message: 'This account does not have a password set (Steam-only).' 
             });
         }
 
@@ -362,11 +372,11 @@ router.put('/change-password', authenticateToken, async (req, res) => {
 
         await pool.query('UPDATE "users" SET "passwordHash" = $1 WHERE "plasmaUserID" = $2', [newHash, userId]);
 
-        res.json({ success: true, message: 'Password updated successfully' });
+        return res.json({ success: true, message: 'Password updated successfully' });
 
     } catch (err) {
-        console.error('Error changing password:', err.message);
-        res.status(500).json({ success: false, message: 'Internal server error' });
+        console.error('[Auth] Error changing password:', err.message);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
 

@@ -528,14 +528,14 @@ export const TopNav = () => {
                 className="relative w-10 h-10 rounded-full border-2 border-solid bg-cover bg-center hover:opacity-80 transition-opacity" 
                 style={{ 
                   backgroundImage: `url(${displayAvatar})`,
-                  borderColor: activeMode === 'comp' ? '#e84118' : activeMode === 'chill' ? '#2ecc71' : '#94a3b8'
+                  borderColor: activeMode === 'competitive' ? '#FF2A7A' : activeMode === 'chill' ? '#2ECC71' : '#8A869C'
                 }}
                 suppressHydrationWarning
               />
               <div 
                 className="absolute right-0 bottom-0 w-3 h-3 rounded-full border-2 border-solid border-plasma-bg" 
                 style={{ 
-                  backgroundColor: activeMode === 'comp' ? '#e84118' : activeMode === 'chill' ? '#2ecc71' : '#94a3b8'
+                  backgroundColor: activeMode === 'competitive' ? '#FF2A7A' : activeMode === 'chill' ? '#2ECC71' : '#8A869C'
                 }}
               />
             </button>
