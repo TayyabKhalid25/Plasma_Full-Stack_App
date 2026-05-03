@@ -4,14 +4,13 @@ import { useState, useEffect } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
-  Gamepad2, Play, Medal, Trophy, Swords, Shield, Target, Calendar, Users, User, Cloud, Zap, Loader2, ChevronDown, ChevronUp, Lock, Gem
+  Gamepad2, Medal, Trophy, Swords, Shield, Target, Calendar, Users, User, Loader2, ChevronDown, ChevronUp, Lock, Gem
 } from "lucide-react";
 import Link from "next/link";
 import { getIntentStyle } from "@/lib/intentStyles";
 import { getAvatarUrl, getRarityProps } from "@/lib/utils";
 
 import { useModal } from "@/hooks/useModal";
-import { SyncSuccessModal } from "@/components/modals/SyncSuccessModal";
 import { EditHallOfFameModal } from "@/components/modals/EditHallOfFameModal";
 
 const iconMap = { Trophy, Swords, Shield, Target, Medal, Gem, Lock };
@@ -83,10 +82,7 @@ export default function Profile() {
   const [gamesProgress, setGamesProgress] = useState([]);
   const [expandedGames, setExpandedGames] = useState({});
   const [loadingTab, setLoadingTab] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const syncModal = useModal();
   const editHofModal = useModal();
-  const [syncedCount, setSyncedCount] = useState(0);
 
   // Fetch profile + prestige on mount
   useEffect(() => {
@@ -315,45 +311,6 @@ export default function Profile() {
               </div>
 
               <div className="flex items-center gap-3 shrink-0">
-                <button
-                  onClick={async () => {
-                    if (!user?.steamID64) {
-                      window.location.href = '/settings';
-                      return;
-                    }
-                    setIsSyncing(true);
-                    try {
-                      const res = await fetch(`${API_BASE}/api/steam/sync/library`, {
-                        method: "POST",
-                        headers: { Authorization: `Bearer ${token}` }
-                      });
-                      const data = await res.json();
-                      if (data.success) {
-                        setSyncedCount(data.syncedGames || 0);
-                        syncModal.open();
-                      } else {
-                        alert(data.message || "Sync failed");
-                      }
-                    } catch (err) {
-                      console.error(err);
-                    } finally {
-                      setIsSyncing(false);
-                    }
-                  }}
-                  id="sync-steam-btn"
-                  disabled={isSyncing}
-                  className="flex items-center gap-2 px-6 py-3 rounded-full bg-white/5 border border-white/10 text-white font-bold text-sm transition-all hover:bg-white/10 disabled:opacity-50 cursor-pointer min-w-[140px] justify-center"
-                >
-                  {isSyncing ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" /> Syncing...
-                    </>
-                  ) : (
-                    <>
-                      <Cloud className="w-4 h-4 text-[#66c0f4]" /> {user?.steamID64 ? "Sync Steam" : "Link Steam"}
-                    </>
-                  )}
-                </button>
                 <Link
                   href="/settings"
                   className="flex items-center gap-2 px-8 py-3 rounded-full bg-primary-gradient text-white font-bold text-sm transition-all hover:shadow-card-glow hover:scale-[1.02] shrink-0 cursor-pointer"
@@ -382,7 +339,7 @@ export default function Profile() {
                 const Icon = iconMap[item.iconName] || Trophy;
                 return (
                   <div key={item.id} className="flex flex-col items-center gap-2 shrink-0">
-                    <div className={`w-[72px] h-[72px] rounded-full bg-plasma-slate/60 backdrop-blur-md border-2 ${item.border} flex items-center justify-center hover:border-plasma-secondary/40 transition-all overflow-hidden ${item.shadow}`}>
+                    <div className={`w-[72px] h-[72px] rounded-full bg-plasma-slate/60 backdrop-blur-md border-2 ${item.border} flex items-center justify-center overflow-hidden ${item.shadow}`}>
                       <Icon className={`w-8 h-8 ${item.color} opacity-80`} />
                     </div>
                     <div className="text-center w-[72px]">
@@ -503,7 +460,7 @@ export default function Profile() {
                     </Link>
                   </div>
                 )}
-                
+
                 {loadingTab ? (
                   <div className="text-center py-12"><Loader2 className="w-6 h-6 animate-spin mx-auto text-plasma-primary" /></div>
                 ) : (
@@ -520,7 +477,7 @@ export default function Profile() {
                             <div className="flex items-center justify-between mb-4">
                               <h3 className="text-[11px] font-bold text-plasma-text-secondary tracking-[0.2em] uppercase">{game.title}</h3>
                               {hasMore && (
-                                <button 
+                                <button
                                   onClick={() => toggleExpand(index)}
                                   className="text-[10px] font-bold text-plasma-primary hover:text-plasma-secondary transition-colors uppercase tracking-[0.15em] flex items-center gap-1 cursor-pointer"
                                 >
@@ -624,8 +581,8 @@ export default function Profile() {
                     </div>
                     <div className="space-y-3">
                       {rallies.length > 0 ? rallies.map((event) => (
-                        <Link 
-                          key={event.id} 
+                        <Link
+                          key={event.id}
                           href={`/rally/${event.id}`}
                           className="flex items-center justify-between p-4 bg-plasma-slate/60 rounded-xl border border-white/5 hover:bg-white/10 hover:scale-[1.01] transition-all cursor-pointer group"
                         >

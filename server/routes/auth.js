@@ -117,7 +117,7 @@ router.post('/register', async (req, res) => {
             success: true,
             message: 'Registration successful',
             token,
-            user
+            user: { ...user, isSteamLinked: true }
         });
     } catch (err) {
         console.error('Registration error:', err);
@@ -167,7 +167,7 @@ router.post('/login', async (req, res) => {
             success: true,
             message: 'Login successful',
             token,
-            user: { id: user.plasmaUserID, username: user.username, email: user.email, intent: user.intent }
+            user: { id: user.plasmaUserID, username: user.username, email: user.email, intent: user.intent, isSteamLinked: true }
         });
 
     } catch (err) {
@@ -221,7 +221,7 @@ router.post('/dev-login', async (req, res) => {
             success: true,
             message: 'Dev authentication successful',
             token,
-            user
+            user: { ...user, isSteamLinked: true }
         });
 
     } catch (err) {
@@ -298,6 +298,7 @@ router.get('/me', authenticateToken, async (req, res) => {
                 u."username" AS name, 
                 u."email",
                 u."intent",
+                u."steamID64" IS NOT NULL AS "isSteamLinked",
                 p."avatarURL" AS avatar,
                 p."bio",
                 p."totalPlasmaXP",
