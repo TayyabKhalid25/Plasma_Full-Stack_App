@@ -33,25 +33,25 @@ const intentModes = [
   {
     title: "Competitive",
     description: "Locked in. Absolute Tunnel Vision. No distractions. Ready for ranked grinds and high-stakes tournament play.",
-    barBg: "bg-[#dc262633]",
-    barFill: "bg-red-600 shadow-[0px_0px_10px_#ef4444]",
-    glowBg: "bg-[#dc26261a]",
+    barBg: "bg-plasma-secondary/20",
+    barFill: "bg-plasma-secondary shadow-[0px_0px_10px_#FF2A7A]",
+    glowBg: "bg-plasma-secondary/10",
     barTop: "top-[285px]",
   },
   {
     title: "Chill",
     description: "Just vibing. Open to talk, exploring new\nworlds, or completing daily quests at a\nrelaxed pace.",
-    barBg: "bg-[#05966933]",
-    barFill: "bg-emerald-600 shadow-[0px_0px_10px_#10b981]",
-    glowBg: "bg-[#0596691a]",
+    barBg: "bg-plasma-success/20",
+    barFill: "bg-plasma-success shadow-[0px_0px_10px_#2ECC71]",
+    glowBg: "bg-plasma-success/10",
     barTop: "top-[285px]",
   },
   {
     title: "Offline",
     description: "Going dark. AFK, handling real-world side quests, or deep in a solo campaign. Catch you on the next respawn.",
-    barBg: "bg-[#0e0e0eff]",
-    barFill: "bg-neutral-600 shadow-[0px_0px_10px_#f59e0b]",
-    glowBg: "bg-[#ca8a041a]",
+    barBg: "bg-plasma-text-secondary/20",
+    barFill: "bg-plasma-text-secondary shadow-[0px_0px_10px_#8A869C]",
+    glowBg: "bg-plasma-text-secondary/10",
     barTop: "top-[285px]",
   },
 ];
@@ -520,7 +520,7 @@ const MainSubsection = () => (
                 <div className={`absolute top-[41px] left-[41px] w-16 h-16 ${mode.glowBg} rounded-2xl border border-solid border-[#ffffff1a] flex items-center justify-center shadow-inner overflow-hidden`}>
                   {(() => {
                     const icons = [Award, Leaf, UserRoundSearch];
-                    const colors = ["text-red-500", "text-emerald-500", "text-yellow-500"];
+                    const colors = ["text-plasma-secondary", "text-plasma-success", "text-plasma-text-secondary"];
                     const Icon = icons[i] || Award;
                     return <Icon className={`${colors[i] || "text-white"} w-8 h-8`} strokeWidth={1.5} />;
                   })()}
