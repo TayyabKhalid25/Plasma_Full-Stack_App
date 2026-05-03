@@ -168,7 +168,7 @@ export default function SettingsPage() {
       setTimeout(() => setProfileSaved(false), 3000);
     } catch (err) {
       console.error("Save error:", err);
-      setError(err.message);
+      setError(err.message || "Failed to save profile. The image might be too large.");
     } finally {
       setIsSaving(false);
     }
@@ -407,14 +407,30 @@ export default function SettingsPage() {
         isOpen={avatarModal.isOpen} 
         onClose={avatarModal.close} 
         currentAvatar={avatar}
-        onUpload={(newAvatar) => {
-          setAvatar(newAvatar);
-          // Auto-save avatar when uploaded
-          fetch(`${API_BASE}/api/users/me/profile`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ avatarURL: newAvatar })
-          }).then(() => fetchUser && fetchUser(token));
+        onUpload={async (newAvatar) => {
+          try {
+            setAvatar(newAvatar);
+            // Auto-save avatar when uploaded
+            const res = await fetch(`${API_BASE}/api/users/me/profile`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ avatarURL: newAvatar })
+            });
+            
+            if (!res.ok) {
+              const data = await res.json();
+              throw new Error(data.message || "Failed to update avatar in database.");
+            }
+
+            if (fetchUser) await fetchUser(token);
+            setProfileSaved(true);
+            setTimeout(() => setProfileSaved(false), 3000);
+          } catch (err) {
+            console.error("Avatar auto-save failed:", err);
+            setError(err.message || "Failed to save avatar. The file might be too large for the server.");
+            // Revert local state on failure if we have a current user avatar
+            if (user?.avatar) setAvatar(user.avatar);
+          }
         }}
       />
       <ConfirmActionModal 
