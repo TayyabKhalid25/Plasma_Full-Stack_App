@@ -401,7 +401,7 @@ export default function Prestige() {
                       {/* Single-row overflow: max-height clips to one row of badges when collapsed */}
                       <div
                         className="flex flex-wrap gap-[32px] overflow-hidden transition-[max-height] duration-300 ease-in-out"
-                        style={{ maxHeight: isExpanded ? `${Math.ceil(game.achievements.length / 4) * 120}px` : '108px' }}
+                        style={{ maxHeight: isExpanded ? `${Math.ceil(game.achievements.length / 4) * 140}px` : '140px' }}
                       >
                         {game.achievements.map((ach, aIdx) => {
                           const Icon = iconMap[ach.iconName] || Lock;
