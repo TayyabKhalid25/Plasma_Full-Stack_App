@@ -30,56 +30,58 @@ async function fetchUserAchievements(userId, options = {}) {
     const sortField = validSortFields[orderBy] || 'ua."unlockedAt"';
     const sortDir = direction.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
-    const gamesProgressResult = await pool.query(`
+    const achievementResult = await pool.query(`
         SELECT 
             a."achievementID",
-            a."title" AS "achievementTitle",
+            a."title",
             a."description",
-            a."proofUrl",
             a."rarityWeight",
             a."plasmaXP",
+            a."iconName",
+            a."globalPercentage",
+            a."appID",
             ua."unlockedAt",
-            g."appID",
-            g."title" AS "gameTitle",
+            COALESCE(g."title", 'Unknown Game') AS "gameTitle",
             g."platform",
             g."isManualEntry"
         FROM "user_achievements" ua
         JOIN "achievements" a ON ua."achievementID" = a."achievementID"
-        JOIN "games" g ON a."appID" = g."appID"
+        LEFT JOIN "games" g ON a."appID" = g."appID"
         WHERE ua."userID" = $1 ${platformFilter}
         ORDER BY ${sortField} ${sortDir}
     `, [userId]);
 
-    // Group the achievements by game for the frontend
     const gamesProgressMap = {};
     const gameOrder = []; // To preserve game order from the SQL results
 
-    gamesProgressResult.rows.forEach(row => {
-        if (!gamesProgressMap[row.appID]) {
-            gameOrder.push(row.appID);
-            gamesProgressMap[row.appID] = {
-                appID: row.appID,
-                gameTitle: row.gameTitle,
+    achievementResult.rows.forEach(row => {
+        const groupKey = row.appID || 'unknown';
+        if (!gamesProgressMap[groupKey]) {
+            gameOrder.push(groupKey);
+            gamesProgressMap[groupKey] = {
+                appID: row.appID || null,
+                gameTitle: row.gameTitle || "Unknown Game",
                 platform: row.platform,
                 isManualEntry: row.isManualEntry,
                 totalPlasmaXP: 0,
                 achievements: []
             };
         }
-        gamesProgressMap[row.appID].totalPlasmaXP += row.plasmaXP;
-        gamesProgressMap[row.appID].achievements.push({
+        gamesProgressMap[groupKey].totalPlasmaXP += row.plasmaXP;
+        gamesProgressMap[groupKey].achievements.push({
             achievementID: row.achievementID,
-            title: row.achievementTitle,
+            title: row.title,
             description: row.description,
-            proofUrl: row.proofUrl,
             rarityWeight: row.rarityWeight,
             plasmaXP: row.plasmaXP,
+            iconName: row.iconName,
             globalPercentage: row.globalPercentage ?? null,
-            unlockedAt: row.unlockedAt
+            unlockedAt: row.unlockedAt,
+            gameTitle: row.gameTitle
         });
     });
 
-    return gameOrder.map(appId => gamesProgressMap[appId]);
+    return gameOrder.map(key => gamesProgressMap[key]);
 }
 
 // GET /api/achievements
@@ -94,16 +96,16 @@ router.get('/', authenticateToken, async (req, res) => {
             SELECT 
                 a."achievementID",
                 a."appID",
-                a."title" AS "achievementTitle",
+                a."title",
                 a."description",
-                a."proofUrl",
                 a."rarityWeight",
                 a."plasmaXP",
-                g."title" AS "gameTitle",
+                ua."unlockedAt",
+                COALESCE(g."title", 'Unknown Game') AS "gameTitle",
                 g."coverArtURL"
             FROM "user_achievements" ua
             JOIN "achievements" a ON ua."achievementID" = a."achievementID"
-            JOIN "games" g ON a."appID" = g."appID"
+            LEFT JOIN "games" g ON a."appID" = g."appID"
             WHERE ua."userID" = $1 AND ua."isPinned" = TRUE
             ORDER BY ua."unlockedAt" DESC
             LIMIT 5
@@ -207,9 +209,9 @@ router.get('/game/:appID', authenticateToken, async (req, res) => {
             FROM "games" WHERE "appID" = $1
         `, [appID]);
 
-        if (gameResult.rows.length === 0) {
-            return res.status(404).json({ success: false, message: 'Game not found' });
-        }
+        const game = gameResult.rows.length > 0 
+            ? gameResult.rows[0] 
+            : { appID, title: 'Unknown Game', platform: 'Unknown', coverArtURL: null, isManualEntry: false };
 
         // 2. Get All Achievements for this game with user unlock status
         const achievementsResult = await pool.query(`
@@ -231,7 +233,7 @@ router.get('/game/:appID', authenticateToken, async (req, res) => {
         res.json({ 
             success: true, 
             data: {
-                game: gameResult.rows[0],
+                game: game,
                 achievements: achievementsResult.rows
             }
         });
@@ -285,7 +287,7 @@ router.get('/game/:appID/friends', authenticateToken, async (req, res) => {
             friendsMap[row.friendID].achievements.push({
                 id: row.achievementID,
                 title: row.achievementTitle,
-                unlockedAt: row.unlockedAt
+                unlockedAt: row.unlockedAt === 'NULL' ? null : row.unlockedAt,
             });
         });
 

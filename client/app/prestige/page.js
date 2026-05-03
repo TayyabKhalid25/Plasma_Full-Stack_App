@@ -4,12 +4,13 @@ import { useState, useEffect } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
-  Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Gem, Zap, Activity, Loader2, CheckCircle2, ChevronDown, ChevronUp
+  Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Gem, Zap, Activity, Loader2, CheckCircle2, ChevronDown, ChevronUp, ExternalLink
 } from "lucide-react";
 import { useModal } from "@/hooks/useModal";
 import { EditHallOfFameModal } from "@/components/modals/EditHallOfFameModal";
 import { InviteFriendsModal } from "@/components/modals/InviteFriendsModal";
 import { AddMilestoneModal } from "@/components/modals/AddMilestoneModal";
+import { AchievementIcon } from "@/components/ui/AchievementIcon";
 import { getIntentStyle } from "@/lib/intentStyles";
 import { getAvatarUrl, getRarityProps } from "@/lib/utils";
 import Link from "next/link";
@@ -114,16 +115,24 @@ export default function Prestige() {
 
         if (prestigeJson.success) {
           setPrestigeData(prestigeJson.data);
-          // Map hall of fame
-          setHof(prestigeJson.data.hallOfFame.map((item) => {
+          const hofItems = prestigeJson.data.hallOfFame.map((item) => {
             const rarityProps = getRarityProps(item.rarityWeight);
             return {
               id: item.achievementID,
+              gameId: item.appID,
+              gameTitle: item.gameTitle,
               title: item.title,
-              xp: `+${item.plasmaXP}`,
+              description: item.description,
+              iconName: item.iconName,
+              xp: `${item.plasmaXP} XP`,
+              unlockedAt: (item.unlockedAt && item.unlockedAt !== "NULL" && item.unlockedAt !== "null") 
+                ? new Date(item.unlockedAt).toLocaleDateString() 
+                : null,
+              unlocked: true,
               ...rarityProps
             };
-          }));
+          });
+          setHof(hofItems);
         }
 
         if (achievementsJson.success) {
@@ -133,9 +142,16 @@ export default function Prestige() {
             achievements: game.achievements.map(ach => {
               const rarityProps = getRarityProps(ach.rarityWeight);
               return {
+                id: ach.achievementID,
                 title: ach.title,
+                description: ach.description,
+                iconName: ach.iconName,
                 xp: `${ach.plasmaXP} XP`,
+                unlockedAt: (ach.unlockedAt && ach.unlockedAt !== "NULL" && ach.unlockedAt !== "null") 
+                  ? new Date(ach.unlockedAt).toLocaleDateString() 
+                  : null,
                 unlocked: !!ach.unlockedAt,
+                gameTitle: game.gameTitle, // Ensure game title is passed for tooltips
                 ...rarityProps
               };
             })
@@ -191,20 +207,25 @@ export default function Prestige() {
       // Refresh prestige data
       const res = await fetch(`${API_BASE}/api/prestige/me`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
-      if (data.success) {
-        setPrestigeData(data.data);
-        setHof(data.data.hallOfFame.map((item) => {
-          const rarityProps = getRarityProps(item.rarityWeight);
-          return {
-            id: item.achievementID,
-            title: item.title,
-            xp: `${item.plasmaXP} XP`,
-            ...rarityProps,
-            borderColor: rarityProps.border,
-            glow: rarityProps.shadow,
-          };
-        }));
-      }
+        if (data.success) {
+          setPrestigeData(data.data);
+          const hofItems = data.data.hallOfFame.map((item) => {
+            const rarityProps = getRarityProps(item.rarityWeight);
+            return {
+              id: item.achievementID,
+              gameId: item.appID,
+              gameTitle: item.gameTitle,
+              title: item.title,
+              description: item.description,
+              iconName: item.iconName,
+              xp: `${item.plasmaXP} XP`,
+              unlockedAt: (item.unlockedAt && item.unlockedAt !== "NULL") ? new Date(item.unlockedAt).toLocaleDateString() : null,
+              unlocked: true,
+              ...rarityProps
+            };
+          });
+          setHof(hofItems);
+        }
     } catch (err) {
       console.error("Failed to update Hall of Fame", err);
     }
@@ -237,9 +258,14 @@ export default function Prestige() {
             achievements: game.achievements.map(ach => {
               const rarityProps = getRarityProps(ach.rarityWeight);
               return {
+                id: ach.achievementID,
                 title: ach.title,
+                description: ach.description,
+                iconName: ach.iconName,
                 xp: `${ach.plasmaXP} XP`,
-                unlocked: !!ach.unlockedAt,
+                unlockedAt: (ach.unlockedAt && ach.unlockedAt !== "NULL") ? new Date(ach.unlockedAt).toLocaleDateString() : null,
+                unlocked: !!ach.unlockedAt && ach.unlockedAt !== "NULL",
+                gameTitle: game.gameTitle,
                 ...rarityProps
               };
             })
@@ -315,7 +341,7 @@ export default function Prestige() {
           </div>
 
           {/* HALL OF FAME */}
-          <section className="mt-6">
+          <section className="mt-6 relative z-10">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-[11px] font-bold text-plasma-text-secondary tracking-[0.2em] uppercase">HALL OF FAME</h2>
               <button
@@ -327,22 +353,13 @@ export default function Prestige() {
             </div>
 
             {loading ? <HofSkeleton /> : (
-              <div className="flex gap-6 overflow-x-auto pb-4 hide-scrollbar">
-                {hof.length > 0 ? hof.map((item) => {
-                  const Icon = iconMap[item.iconName] || Trophy;
-                  return (
-                    <div key={item.id} className="flex flex-col items-center gap-2 shrink-0">
-                      <div className={`w-[72px] h-[72px] rounded-full bg-plasma-slate/60 backdrop-blur-md border-2 ${item.border} flex items-center justify-center overflow-hidden ${item.shadow}`}>
-                        <Icon className={`w-8 h-8 ${item.color} opacity-80`} />
-                      </div>
-                      <div className="text-center w-[72px]">
-                        <p className="text-[10px] font-bold text-plasma-text-primary truncate">{item.title}</p>
-                        <p className={`text-[10px] font-mono ${item.color}`}>{item.xp}</p>
-                      </div>
-                    </div>
-                  );
-                }) : (
-                  <p className="text-sm text-plasma-text-secondary py-4">No achievements pinned yet.</p>
+              <div className="flex flex-wrap gap-6 pb-4 overflow-visible relative z-10">
+                {hof.length > 0 ? hof.map((item) => (
+                  <div key={item.id} className="relative group shrink-0 overflow-visible">
+                    <AchievementIcon achievement={item} />
+                  </div>
+                )) : (
+                  <p className="text-sm text-plasma-text-secondary">No pinned achievements yet.</p>
                 )}
               </div>
             )}
@@ -374,13 +391,13 @@ export default function Prestige() {
 
           {/* Achievement Grid */}
           {loading ? <AchievementGridSkeleton /> : (
-            <div className="space-y-10 py-6">
+            <div className="space-y-10 py-6 relative z-20">
               {gamesProgress.length > 0 ? (
                 gamesProgress.map((game, index) => {
                   const isExpanded = expandedGames[index];
 
                   return (
-                    <div key={index} className="animate-fade-in">
+                    <div key={index} className="animate-fade-in relative hover:z-30">
                       <div className="flex items-center justify-between mb-4">
                         <Link href={`/prestige/${game.appID}`} className="group/title">
                           <h3 className="text-[11px] font-bold text-plasma-text-secondary tracking-[0.2em] uppercase group-hover/title:text-plasma-primary transition-colors flex items-center gap-2">
@@ -399,24 +416,10 @@ export default function Prestige() {
                         )}
                       </div>
                       {/* Single-row overflow: max-height clips to one row of badges when collapsed */}
-                      <div
-                        className="flex flex-wrap gap-[32px] overflow-hidden transition-[max-height] duration-300 ease-in-out"
-                        style={{ maxHeight: isExpanded ? `${Math.ceil(game.achievements.length / 4) * 120}px` : '108px' }}
-                      >
-                        {game.achievements.map((ach, aIdx) => {
-                          const Icon = iconMap[ach.iconName] || Lock;
-                          return (
-                            <div key={aIdx} className={`flex flex-col items-center gap-2 w-[72px] text-center ${!ach.unlocked ? 'opacity-50 grayscale' : ''}`}>
-                              <div className={`w-[72px] h-[72px] rounded-full border-2 ${ach.border} flex items-center justify-center bg-white/5 relative ${ach.unlocked ? ach.shadow : ''}`}>
-                                <Icon className={`w-8 h-8 ${ach.color}`} />
-                              </div>
-                              <p className={`text-[10px] font-medium truncate w-full ${!ach.unlocked ? 'text-plasma-text-secondary' : 'text-plasma-text-primary'}`}>
-                                {ach.title}
-                              </p>
-                              <p className={`text-[9px] font-mono ${ach.color}`}>{ach.xp}</p>
-                            </div>
-                          )
-                        })}
+                      <div className="flex flex-wrap gap-[32px] overflow-visible relative z-20">
+                        {game.achievements.slice(0, isExpanded ? undefined : 6).map((ach, aIdx) => (
+                          <AchievementIcon key={aIdx} achievement={ach} />
+                        ))}
                       </div>
                     </div>
                   );

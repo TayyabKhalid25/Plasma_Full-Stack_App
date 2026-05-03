@@ -27,9 +27,19 @@ async function fetchPrestige(userId) {
     `, [userId]);
 
     const hallOfFame = await pool.query(`
-        SELECT a."achievementID", a."appID", a."title", a."plasmaXP", a."rarityWeight"
+        SELECT 
+            a."achievementID", 
+            a."appID", 
+            a."title", 
+            a."description", 
+            a."plasmaXP", 
+            a."rarityWeight", 
+            a."iconName",
+            ua."unlockedAt",
+            COALESCE(g."title", 'Unknown Game') AS "gameTitle"
         FROM "user_achievements" ua
         JOIN "achievements" a ON ua."achievementID" = a."achievementID"
+        LEFT JOIN "games" g ON a."appID" = g."appID"
         WHERE ua."userID" = $1 AND ua."isPinned" = TRUE
     `, [userId]);
 
@@ -134,8 +144,8 @@ router.post('/milestones', authenticateToken, async (req, res) => {
 
     try {
         const result = await pool.query(`
-            INSERT INTO "achievements" ("achievementID", "appID", "title", "description", "proofUrl", "rarityWeight", "plasmaXP")
-            VALUES (gen_random_uuid(), $1, $2, $3, $4, 1.0, 100)
+            INSERT INTO "achievements" ("achievementID", "appID", "title", "description", "rarityWeight", "plasmaXP")
+            VALUES (gen_random_uuid(), $1, $2, $3, 1.0, 100)
             RETURNING "achievementID"
         `, [gameId || 'custom_milestone', title, description, proofUrl]);
 

@@ -100,10 +100,18 @@ router.get('/:userId', authenticateToken, async (req, res) => {
         // Fetch Hall of Fame
         const hallOfFameResult = await pool.query(`
             SELECT 
-                a."achievementID", a."title", a."rarityWeight", a."plasmaXP", g."coverArtURL"
+                a."achievementID", 
+                a."title", 
+                a."description", 
+                a."rarityWeight", 
+                a."plasmaXP", 
+                a."iconName",
+                a."appID",
+                ua."unlockedAt",
+                COALESCE(g."title", 'Unknown Game') AS "gameTitle"
             FROM "user_achievements" ua
             JOIN "achievements" a ON ua."achievementID" = a."achievementID"
-            JOIN "games" g ON a."appID" = g."appID"
+            LEFT JOIN "games" g ON a."appID" = g."appID"
             WHERE ua."userID" = $1 AND ua."isPinned" = TRUE
             LIMIT 5
         `, [userId]);

@@ -5,6 +5,7 @@ import { MessageSquare, X, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth, API_BASE } from "@/context/AuthContext";
+import { useSocket } from "@/context/SocketContext";
 import { getAvatarUrl } from "@/lib/utils";
 
 export const FloatingMessages = () => {
@@ -15,62 +16,44 @@ export const FloatingMessages = () => {
   const pathname = usePathname();
 
   const { token } = useAuth();
+  const { lastMessage } = useSocket();
+
+  const fetchInbox = () => {
+    if (!token) return;
+    fetch(`${API_BASE}/api/messages`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          const mapped = data.data.map(c => ({
+            id: c.contactID,
+            friend: {
+              name: c.contactUsername,
+              avatar: getAvatarUrl(c.contactAvatar, c.contactUsername),
+              online: c.online,
+            },
+            lastMessage: c.content,
+            lastMessageTime: new Date(c.timestampUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            unread: c.unreadCount || 0,
+          }));
+          setConversations(mapped.slice(0, 5));
+          const totalUnread = mapped.reduce((acc, conv) => acc + (conv.unread || 0), 0);
+          setUnreadCount(totalUnread);
+        }
+      })
+      .catch(err => console.error("Failed to fetch floating messages", err));
+  };
 
   useEffect(() => {
-    if (!token) return;
-
-    const fetchInbox = () => {
-      fetch(`${API_BASE}/api/messages`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            const mapped = data.data.map(c => ({
-              id: c.contactID,
-              friend: {
-                name: c.contactUsername,
-                avatar: getAvatarUrl(c.contactAvatar, c.contactUsername),
-                online: c.online,
-              },
-              lastMessage: c.content,
-              lastMessageTime: new Date(c.timestampUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              unread: c.unreadCount || 0,
-            }));
-            setConversations(mapped.slice(0, 5));
-            const totalUnread = mapped.reduce((acc, conv) => acc + (conv.unread || 0), 0);
-            setUnreadCount(totalUnread);
-          }
-        })
-        .catch(err => console.error("Failed to fetch floating messages", err));
-    };
-
     fetchInbox();
-
-    // WebSocket listener for real-time unread updates
-    const WS_BASE = API_BASE.replace(/^http/, "ws");
-    const ws = new WebSocket(`${WS_BASE}/ws/chat?token=${token}`);
-
-    ws.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-        if (payload.type === "NEW_MESSAGE") {
-          // Re-fetch inbox to get updated unread counts and newest message
-          fetchInbox();
-        }
-      } catch (err) {
-        if (ws.readyState !== WebSocket.CLOSING && ws.readyState !== WebSocket.CLOSED) {
-          console.error("FloatingMessages WS error:", err);
-        }
-      }
-    };
-
-    ws.onerror = () => {
-      // Quietly handle connection drops in floating widget
-    };
-
-    return () => ws.close();
   }, [token]);
+
+  useEffect(() => {
+    if (lastMessage?.type === "NEW_MESSAGE") {
+      fetchInbox();
+    }
+  }, [lastMessage]);
 
   // Close on click outside
   useEffect(() => {

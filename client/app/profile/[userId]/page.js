@@ -4,9 +4,10 @@ import { useState, useEffect, use } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
-  Gamepad2, Play, Medal, Trophy, Calendar, Users, UserPlus, UserMinus, Swords, Shield, Target, Gem, Lock, ChevronDown, ChevronUp
+  Gamepad2, Play, Medal, Trophy, Calendar, Users, UserPlus, UserMinus, Swords, Shield, Target, Gem, Lock, ChevronDown, ChevronUp, ExternalLink
 } from "lucide-react";
 import Link from "next/link";
+import { AchievementIcon } from "@/components/ui/AchievementIcon";
 import { getIntentStyle } from "@/lib/intentStyles";
 import { getAvatarUrl, getRarityProps } from "@/lib/utils";
 import { ActivityFeedTab, mapActivityPost } from "@/components/ui/ActivityFeedTab";
@@ -65,6 +66,14 @@ export default function UserProfile({ params }) {
     if (!token || !targetUserId) return;
     const fetchUserProfile = async () => {
       setLoading(true);
+      // Clear user-specific data when switching profiles
+      setGamesProgress([]);
+      setHofData([]);
+      setActivityPosts([]);
+      setLibraryGames([]);
+      setRallies([]);
+      setExpandedGames({});
+      
       try {
         const [userRes, prestigeRes, squadRes] = await Promise.all([
           fetch(`${API_BASE}/api/users/${targetUserId}`, { headers: { Authorization: `Bearer ${token}` } }),
@@ -88,16 +97,19 @@ export default function UserProfile({ params }) {
           setIsFollowing(userData.data.isFollowing);
           setIsMutual(userData.data.isMutual);
           setIsFollower(userData.data.isFollower);
-          setHofData((userData.data.hallOfFame || []).map((item) => {
-            const rarityProps = getRarityProps(item.rarityWeight);
-            return {
-              id: item.achievementID,
-              gameId: item.appID,
-              title: item.title,
-              xp: `${item.plasmaXP} XP`,
-              ...rarityProps
-            };
+          const mappedHOF = userData.data.hallOfFame.map(item => ({
+            ...getRarityProps(item.rarityWeight || 0),
+            id: item.achievementID,
+            title: item.title,
+            description: item.description,
+            iconName: item.iconName,
+            xp: `${item.plasmaXP} XP`,
+            unlockedAt: (item.unlockedAt && item.unlockedAt !== "NULL" && item.unlockedAt !== "null") ? item.unlockedAt : null,
+            unlocked: true,
+            gameId: item.appID,
+            gameTitle: item.gameTitle
           }));
+          setHofData(mappedHOF);
         }
         
         if (squadJson.success) {
@@ -142,7 +154,7 @@ export default function UserProfile({ params }) {
               isCurrentlyPlaying: g.isCurrentlyPlaying,
             })));
           }
-        } else if (activeTab === "Achievements" && gamesProgress.length === 0) {
+        } else if (activeTab === "Achievements") {
           const res = await fetch(`${API_BASE}/api/achievements/${targetUserId}?orderBy=rarityWeight&direction=DESC`, {
             headers: { Authorization: `Bearer ${token}` }
           });
@@ -154,9 +166,14 @@ export default function UserProfile({ params }) {
               achievements: g.achievements.map(a => {
                 const rarityProps = getRarityProps(a.rarityWeight);
                 return {
+                  id: a.achievementID,
                   title: a.title,
-                  xp: `+${a.plasmaXP}`,
-                  unlocked: !!a.unlockedAt,
+                  description: a.description,
+                  iconName: a.iconName,
+                  xp: `${a.plasmaXP} XP`,
+                  unlockedAt: a.unlockedAt,
+                  unlocked: !!a.unlockedAt && a.unlockedAt !== "NULL" && a.unlockedAt !== "null",
+                  gameTitle: g.gameTitle,
                   ...rarityProps
                 };
               })
@@ -250,9 +267,6 @@ export default function UserProfile({ params }) {
                   <div className={`w-[120px] h-[120px] rounded-full border-[3px] ${getIntentStyle(profileData.intent).border} p-1 bg-plasma-slate overflow-hidden`}>
                     <img src={getAvatarUrl(profileData.avatar, profileData.username)} alt="User Profile" className="w-full h-full object-cover rounded-full" />
                   </div>
-                  {profileData.online && (
-                    <div className="absolute bottom-2 right-2 w-5 h-5 rounded-full border-[3px] border-plasma-bg bg-plasma-success"></div>
-                  )}
                 </div>
                 
                 <div>
@@ -304,28 +318,15 @@ export default function UserProfile({ params }) {
 
         {/* HALL OF FAME ROW */}
         {!loading && (
-          <section className="px-8 md:px-20 py-8 relative z-20">
+          <section className="px-8 md:px-20 py-8 relative z-10 overflow-visible">
             <h3 className="text-plasma-text-secondary font-sans font-bold text-[10px] tracking-[0.2em] uppercase mb-6">Hall of Fame</h3>
-            <div className="flex gap-6 overflow-x-auto pb-4 hide-scrollbar">
-              {hofData.length > 0 ? hofData.map((item) => {
-                const Icon = iconMap[item.iconName] || Trophy;
-                return (
-                  <Link 
-                    key={item.id} 
-                    href={`/profile/${targetUserId}/prestige/${item.gameId}`}
-                    className="flex flex-col items-center gap-2 shrink-0 group cursor-pointer hover:scale-105 transition-transform"
-                  >
-                    <div className={`w-[72px] h-[72px] rounded-full bg-plasma-slate/60 backdrop-blur-md border-2 ${item.border} flex items-center justify-center overflow-hidden ${item.shadow} group-hover:border-plasma-primary transition-colors`}>
-                      <Icon className={`w-8 h-8 ${item.color} opacity-80 group-hover:opacity-100 transition-opacity`} />
-                    </div>
-                    <div className="text-center w-[72px]">
-                      <p className="text-[10px] font-bold text-plasma-text-primary truncate">{item.title}</p>
-                      <p className={`text-[10px] font-mono ${item.color}`}>{item.xp}</p>
-                    </div>
-                  </Link>
-                );
-              }) : (
-                <p className="text-sm text-plasma-text-secondary">No pinned achievements.</p>
+            <div className="flex flex-wrap gap-6 pb-12 overflow-visible relative z-10">
+              {hofData.length > 0 ? hofData.map((item) => (
+                <div key={item.id} className="relative">
+                  <AchievementIcon achievement={item} showGameTitle={true} />
+                </div>
+              )) : (
+                <p className="text-sm text-plasma-text-secondary">No pinned achievements yet.</p>
               )}
             </div>
           </section>
@@ -333,7 +334,7 @@ export default function UserProfile({ params }) {
 
         {/* CONTENT TABS */}
         {!loading && (
-          <section className="px-8 md:px-20 mt-2">
+          <section className="px-8 md:px-20 mt-2 relative z-20">
             <div className="flex gap-8 border-b border-white/5 overflow-x-auto hide-scrollbar">
               {["Activity", "Library", "Achievements", "Squad", "Rallies"].map(tab => (
                 <button 
@@ -412,7 +413,7 @@ export default function UserProfile({ params }) {
                         const isExpanded = expandedGames[index];
 
                         return (
-                          <div key={index} className="animate-fade-in">
+                          <div key={index} className="animate-fade-in relative hover:z-30">
                             <div className="flex items-center justify-between mb-4">
                               <Link href={`/profile/${targetUserId}/prestige/${game.id}`} className="text-[11px] font-bold text-plasma-text-secondary tracking-[0.2em] uppercase hover:text-plasma-primary transition-colors block cursor-pointer">{game.title}</Link>
                               {game.achievements.length > 1 && (
@@ -426,27 +427,11 @@ export default function UserProfile({ params }) {
                               )}
                             </div>
                             <div
-                              className="flex flex-wrap gap-[32px] overflow-hidden transition-[max-height] duration-300 ease-in-out"
-                              style={{ maxHeight: isExpanded ? `${Math.ceil(game.achievements.length / 4) * 120}px` : '108px' }}
+                              className="flex flex-wrap gap-[32px] transition-all duration-300 ease-in-out overflow-visible relative z-20"
                             >
-                              {game.achievements.map((ach, aIdx) => {
-                                const Icon = iconMap[ach.iconName] || Lock;
-                                return (
-                                  <Link 
-                                    key={aIdx} 
-                                    href={`/profile/${targetUserId}/prestige/${game.id}`}
-                                    className={`flex flex-col items-center gap-2 w-[72px] text-center cursor-pointer hover:scale-105 transition-transform ${!ach.unlocked ? 'opacity-50 grayscale' : ''}`}
-                                  >
-                                    <div className={`w-[72px] h-[72px] rounded-full border-2 ${ach.border} flex items-center justify-center bg-white/5 relative ${ach.unlocked ? ach.shadow : ''}`}>
-                                      <Icon className={`w-8 h-8 ${ach.color}`} />
-                                    </div>
-                                    <p className={`text-[10px] font-medium truncate w-full ${!ach.unlocked ? 'text-plasma-text-secondary' : 'text-plasma-text-primary'}`}>
-                                      {ach.title}
-                                    </p>
-                                    <p className={`text-[9px] font-mono ${ach.color}`}>{ach.xp}</p>
-                                  </Link>
-                                )
-                              })}
+                              {(isExpanded ? game.achievements : game.achievements.slice(0, 5)).map((ach, aIdx) => (
+                                <AchievementIcon key={aIdx} achievement={ach} />
+                              ))}
                             </div>
                           </div>
                         );

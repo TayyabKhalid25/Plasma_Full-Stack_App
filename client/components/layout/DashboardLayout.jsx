@@ -15,8 +15,8 @@ export const DashboardLayout = ({ children, showRightRail = true }) => {
     <div className="flex flex-col items-start relative bg-plasma-bg min-h-screen pt-16 font-sans">
       <TopNav />
       <Sidebar onOpenDrawer={() => setIsDrawerOpen(true)} />
-      <div className={`flex items-start justify-center w-full ${showRightRail ? 'pr-[280px]' : ''}`}>
-        <main className={`flex-1 grow pl-64 w-full`}>
+      <div className={`flex items-start justify-center ml-64 w-[calc(100%-16rem)] relative z-40 ${showRightRail ? 'pr-[280px]' : ''}`}>
+        <main className={`flex-1 grow w-full relative z-0`}>
           {children}
         </main>
         {showRightRail && <RightRail />}

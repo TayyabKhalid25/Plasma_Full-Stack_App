@@ -3,12 +3,10 @@
 import { useState, useEffect, use } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import {
-  Trophy, Lock, Users, Target, Shield, Medal,
-  Sparkles, Zap, Star, Loader2, ArrowLeft, Gamepad2, Info, Gem, Swords, Flame, Skull, Crosshair, Leaf, Flag, Activity
-} from "lucide-react";
-import { AchievementCard } from "@/components/ui/AchievementCard";
+import { Trophy, Lock, Users, Medal, Loader2, ArrowLeft, Info } from "lucide-react";
+import { AchievementIcon } from "@/components/ui/AchievementIcon";
 import { FriendAchievementCard } from "@/components/ui/FriendAchievementCard";
+import { getRarityProps } from "@/lib/utils";
 import Link from "next/link";
 
 export default function UserGamePrestigePage({ params }) {
@@ -244,10 +242,20 @@ export default function UserGamePrestigePage({ params }) {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {groupedAchievements[group].map(ach => (
-                      <AchievementCard key={ach.achievementID} achievement={ach} />
-                    ))}
+                  <div className="flex flex-wrap gap-8">
+                    {groupedAchievements[group].map(ach => {
+                      const mappedAch = {
+                        id: ach.achievementID,
+                        title: ach.title,
+                        description: ach.description,
+                        iconName: ach.iconName,
+                        xp: `${ach.plasmaXP} XP`,
+                        unlockedAt: ach.unlockedAt ? new Date(ach.unlockedAt).toLocaleDateString() : null,
+                        unlocked: true,
+                        ...getRarityProps(ach.rarityWeight)
+                      };
+                      return <AchievementIcon key={ach.achievementID} achievement={mappedAch} />;
+                    })}
                   </div>
                 </div>
               )
@@ -272,10 +280,20 @@ export default function UserGamePrestigePage({ params }) {
                 </div>
 
                 {locked.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 opacity-60">
-                    {locked.map(ach => (
-                      <AchievementCard key={ach.achievementID} achievement={ach} isLocked />
-                    ))}
+                  <div className="flex flex-wrap gap-8">
+                    {locked.map(ach => {
+                      const mappedAch = {
+                        id: ach.achievementID,
+                        title: ach.title,
+                        description: ach.description,
+                        iconName: ach.iconName,
+                        xp: `${ach.plasmaXP} XP`,
+                        unlockedAt: null,
+                        unlocked: false,
+                        ...getRarityProps(ach.rarityWeight)
+                      };
+                      return <AchievementIcon key={ach.achievementID} achievement={mappedAch} />;
+                    })}
                   </div>
                 ) : (
                   <div className="py-10 px-6 rounded-3xl bg-white/5 border border-dashed border-white/10 text-center">

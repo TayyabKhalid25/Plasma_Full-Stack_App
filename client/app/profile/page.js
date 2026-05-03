@@ -4,11 +4,13 @@ import { useState, useEffect } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
-  Gamepad2, Medal, Trophy, Swords, Shield, Target, Calendar, Users, User, Loader2, ChevronDown, ChevronUp, Lock, Gem
+  Gamepad2, Medal, Trophy, Swords, Shield, Target, Calendar, Users, User, Loader2, ChevronDown, ChevronUp, Lock, Gem, ExternalLink, ArrowRight
 } from "lucide-react";
 import Link from "next/link";
+import { AddMilestoneModal } from "@/components/modals/AddMilestoneModal";
+import { AchievementIcon } from "@/components/ui/AchievementIcon";
 import { getIntentStyle } from "@/lib/intentStyles";
-import { getAvatarUrl, getRarityProps } from "@/lib/utils";
+import { getRarityProps, getAvatarUrl } from "@/lib/utils";
 import { ActivityFeedTab, mapActivityPost } from "@/components/ui/ActivityFeedTab";
 
 import { useModal } from "@/hooks/useModal";
@@ -72,6 +74,14 @@ export default function Profile() {
     if (!token || !user) return;
     const fetchProfile = async () => {
       setLoading(true);
+      // Clear tab-specific data to prevent stale rendering
+      setGamesProgress([]);
+      setHofData([]);
+      setActivityPosts([]);
+      setLibraryGames([]);
+      setRallies([]);
+      setExpandedGames({});
+
       try {
         const [prestigeRes, squadRes] = await Promise.all([
           fetch(`${API_BASE}/api/prestige/me`, { headers: { Authorization: `Bearer ${token}` } }),
@@ -93,11 +103,16 @@ export default function Profile() {
           setHofData(prestigeJson.data.hallOfFame.map((item) => {
             const rarityProps = getRarityProps(item.rarityWeight);
             return {
+              ...rarityProps,
               id: item.achievementID,
               gameId: item.appID,
               title: item.title,
+              description: item.description,
+              iconName: item.iconName || rarityProps.iconName,
               xp: `${item.plasmaXP} XP`,
-              ...rarityProps
+              unlockedAt: item.unlockedAt, // Pass raw date for robust handling in AchievementIcon
+              unlocked: true,
+              gameTitle: item.gameTitle,
             };
           }));
         }
@@ -148,7 +163,12 @@ export default function Profile() {
             id: item.achievementID,
             gameId: item.appID,
             title: item.title,
+            description: item.description,
+            iconName: item.iconName,
             xp: `${item.plasmaXP} XP`,
+            unlockedAt: item.unlockedAt,
+            unlocked: true,
+            gameTitle: item.gameTitle,
             ...rarityProps
           };
         }));
@@ -193,7 +213,7 @@ export default function Profile() {
               isCurrentlyPlaying: g.isCurrentlyPlaying,
             })));
           }
-        } else if (activeTab === "Achievements" && gamesProgress.length === 0) {
+        } else if (activeTab === "Achievements") {
           const res = await fetch(`${API_BASE}/api/achievements/${user.id}?orderBy=rarityWeight&direction=DESC`, {
             headers: { Authorization: `Bearer ${token}` }
           });
@@ -205,9 +225,14 @@ export default function Profile() {
               achievements: g.achievements.map(a => {
                 const rarityProps = getRarityProps(a.rarityWeight);
                 return {
+                  id: a.achievementID,
                   title: a.title,
-                  xp: `+${a.plasmaXP}`,
-                  unlocked: !!a.unlockedAt,
+                  description: a.description,
+                  iconName: a.iconName,
+                  xp: `${a.plasmaXP} XP`,
+                  unlockedAt: a.unlockedAt,
+                  unlocked: !!a.unlockedAt && a.unlockedAt !== "NULL" && a.unlockedAt !== "null",
+                  gameTitle: g.gameTitle,
                   ...rarityProps
                 };
               })
@@ -302,7 +327,7 @@ export default function Profile() {
 
         {/* HALL OF FAME ROW */}
         {!loading && (
-          <section className="px-8 md:px-20 py-8 relative z-20">
+          <section className="px-8 md:px-20 py-8 relative z-10 overflow-visible">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-plasma-text-secondary font-sans font-bold text-[10px] tracking-[0.2em] uppercase">Hall of Fame</h3>
               <button
@@ -312,25 +337,12 @@ export default function Profile() {
                 Edit Hall of Fame
               </button>
             </div>
-            <div className="flex gap-6 overflow-x-auto pb-4 hide-scrollbar">
-              {hofData.length > 0 ? hofData.map((item) => {
-                const Icon = iconMap[item.iconName] || Trophy;
-                return (
-                  <Link 
-                    key={item.id} 
-                    href={`/prestige/${item.gameId}`}
-                    className="flex flex-col items-center gap-2 shrink-0 group cursor-pointer hover:scale-105 transition-transform"
-                  >
-                    <div className={`w-[72px] h-[72px] rounded-full bg-plasma-slate/60 backdrop-blur-md border-2 ${item.border} flex items-center justify-center overflow-hidden ${item.shadow} group-hover:border-plasma-primary transition-colors`}>
-                      <Icon className={`w-8 h-8 ${item.color} opacity-80 group-hover:opacity-100 transition-opacity`} />
-                    </div>
-                    <div className="text-center w-[72px]">
-                      <p className="text-[10px] font-bold text-plasma-text-primary truncate group-hover:text-plasma-primary transition-colors">{item.title}</p>
-                      <p className={`text-[10px] font-mono ${item.color}`}>{item.xp}</p>
-                    </div>
-                  </Link>
-                );
-              }) : (
+            <div className="flex flex-wrap gap-6 pb-12 overflow-visible relative z-10">
+              {hofData.length > 0 ? hofData.map((item) => (
+                <div key={item.id} className="relative">
+                  <AchievementIcon achievement={item} showGameTitle={true} />
+                </div>
+              )) : (
                 <p className="text-sm text-plasma-text-secondary">No pinned achievements yet.</p>
               )}
             </div>
@@ -339,7 +351,7 @@ export default function Profile() {
 
         {/* CONTENT TABS */}
         {!loading && (
-          <section className="px-8 md:px-20 mt-2">
+          <section className="px-8 md:px-20 mt-2 relative z-20">
             <div className="flex gap-8 border-b border-white/5 overflow-x-auto hide-scrollbar">
               {["Activity", "Library", "Achievements", "Squad", "Rallies"].map(tab => (
                 <button
@@ -378,19 +390,43 @@ export default function Profile() {
                   <>
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
                       {libraryGames.slice(0, 12).map((game) => (
-                        <Link 
+                        <div 
                           key={game.id} 
-                          href={`/library/${game.id}`}
-                          className="relative aspect-[2/3] rounded-xl overflow-hidden group cursor-pointer hover:scale-[1.03] transition-transform shadow-lg block"
+                          className="relative aspect-[2/3] rounded-xl overflow-hidden group hover:scale-[1.03] transition-transform shadow-lg block"
                         >
                           <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${game.image})` }} />
                           {game.isCurrentlyPlaying && (
-                            <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 bg-plasma-secondary text-white text-[8px] font-bold rounded z-10">LIVE</div>
+                            <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 bg-plasma-secondary text-white text-[8px] font-bold rounded z-10 shadow-[0_0_10px_rgba(255,42,122,0.5)]">LIVE</div>
                           )}
-                          <div className="absolute bottom-0 left-0 right-0 p-2 bg-plasma-slate/80 backdrop-blur-sm">
-                            <span className="text-[11px] font-semibold text-plasma-text-primary truncate block">{game.title}</span>
+                          
+                          {/* Hover Overlay */}
+                          <div className="absolute inset-0 bg-plasma-bg/70 backdrop-blur-[4px] flex flex-col items-center justify-center gap-3 px-4 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                togglePlaying(game.id, game.isCurrentlyPlaying);
+                              }}
+                              className="flex items-center justify-between w-full px-2"
+                            >
+                              <span className="text-[10px] font-bold text-white uppercase tracking-tighter">Set Playing</span>
+                              <div className={`w-7 h-3.5 rounded-full relative transition-colors ${game.isCurrentlyPlaying ? "bg-plasma-secondary" : "bg-white/20"}`}>
+                                <div className={`absolute top-0.5 w-2.5 h-2.5 bg-white rounded-full transition-transform ${game.isCurrentlyPlaying ? "right-0.5" : "left-0.5"}`}></div>
+                              </div>
+                            </button>
+
+                            <Link 
+                              href={`/library/${game.id}`}
+                              className="text-[11px] font-black text-white hover:text-plasma-primary transition-colors flex items-center gap-1 mt-1 uppercase tracking-widest"
+                            >
+                              Details <ArrowRight className="w-3 h-3" />
+                            </Link>
                           </div>
-                        </Link>
+
+                          <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
+                            <span className="text-[10px] font-bold text-white truncate block uppercase tracking-tight">{game.title}</span>
+                          </div>
+                        </div>
                       ))}
                     </div>
                     <div className="mt-6 text-center">
@@ -407,9 +443,8 @@ export default function Profile() {
               </div>
             )}
 
-            {/* ACHIEVEMENTS TAB */}
             {activeTab === "Achievements" && (
-              <div className="py-8 animate-fade-in max-w-[800px]">
+              <div className="py-8 animate-fade-in max-w-[800px] relative overflow-visible z-20">
                 {prestigeData && (
                   <div className="flex items-center justify-between mb-6">
                     <div>
@@ -431,7 +466,7 @@ export default function Profile() {
                         const isExpanded = expandedGames[index];
 
                         return (
-                          <div key={index} className="animate-fade-in">
+                          <div key={index} className="animate-fade-in relative hover:z-30">
                             <div className="flex items-center justify-between mb-4">
                               <Link href={`/prestige/${game.id}`} className="text-[11px] font-bold text-plasma-text-secondary tracking-[0.2em] uppercase hover:text-plasma-primary transition-colors block cursor-pointer">{game.title}</Link>
                               {game.achievements.length > 1 && (
@@ -445,27 +480,11 @@ export default function Profile() {
                               )}
                             </div>
                             <div
-                              className="flex flex-wrap gap-[32px] overflow-hidden transition-[max-height] duration-300 ease-in-out"
-                              style={{ maxHeight: isExpanded ? `${Math.ceil(game.achievements.length / 4) * 120}px` : '100px' }}
+                              className="flex flex-wrap gap-[32px] transition-all duration-300 ease-in-out overflow-visible relative z-20"
                             >
-                              {game.achievements.map((ach, aIdx) => {
-                                const Icon = iconMap[ach.iconName] || Lock;
-                                return (
-                                  <Link 
-                                    key={aIdx} 
-                                    href={`/prestige/${game.id}`}
-                                    className={`flex flex-col items-center gap-2 w-[72px] text-center cursor-pointer hover:scale-105 transition-transform ${!ach.unlocked ? 'opacity-50 grayscale' : ''}`}
-                                  >
-                                    <div className={`w-12 h-12 rounded-full border-2 ${ach.border} flex items-center justify-center bg-white/5 transition-all ${ach.unlocked ? ach.shadow : "opacity-40"}`}>
-                                      <Icon className={`w-8 h-8 ${ach.color}`} />
-                                    </div>
-                                    <p className={`text-[10px] font-medium truncate w-full ${!ach.unlocked ? 'text-plasma-text-secondary' : 'text-plasma-text-primary'}`}>
-                                      {ach.title}
-                                    </p>
-                                    <p className={`text-[9px] font-mono ${ach.color}`}>{ach.xp}</p>
-                                  </Link>
-                                )
-                              })}
+                              {(isExpanded ? game.achievements : game.achievements.slice(0, 5)).map((ach, aIdx) => (
+                                <AchievementIcon key={aIdx} achievement={ach} />
+                              ))}
                             </div>
                           </div>
                         );

@@ -1,11 +1,15 @@
 import { useState, useEffect } from "react";
 import { ModalWrapper } from "../ui/ModalWrapper";
-import { Loader2, Check, Trophy, Shield, Target, Medal, Gem, Lock } from "lucide-react";
+import { 
+  Loader2, Check, Trophy, Shield, Target, Medal, Gem, Lock, Sparkles, Zap, Star, Gamepad2, Flame, Skull, Crosshair, Leaf, Flag, Activity, Users 
+} from "lucide-react";
 import { apiService } from "@/services/apiService";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { getRarityProps } from "@/lib/utils";
 
-const iconMap = { Trophy, Shield, Target, Medal, Gem, Lock };
+const iconMap = { 
+  Trophy, Shield, Target, Medal, Gem, Lock, Sparkles, Zap, Star, Gamepad2, Flame, Skull, Crosshair, Leaf, Flag, Activity, Users 
+};
 
 export function EditHallOfFameModal({ isOpen, onClose, onUpdate, initialSelectedIds = [] }) {
   const { token } = useAuth();
@@ -34,6 +38,7 @@ export function EditHallOfFameModal({ isOpen, onClose, onUpdate, initialSelected
               xp: ach.plasmaXP,
               gameTitle: game.gameTitle,
               rarityWeight: ach.rarityWeight,
+              iconName: ach.iconName,
             }))
           );
           setAvailableAchievements(allAch);
@@ -127,7 +132,7 @@ export function EditHallOfFameModal({ isOpen, onClose, onUpdate, initialSelected
              {availableAchievements.map((ach) => {
                const isSelected = selectedIds.includes(ach.id);
                const rarityProps = getRarityProps(ach.rarityWeight);
-               const Icon = iconMap[rarityProps.iconName] || Trophy;
+               const Icon = iconMap[ach.iconName] || iconMap[rarityProps.iconName] || Trophy;
 
                return (
                  <div 

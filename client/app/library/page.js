@@ -331,19 +331,27 @@ export default function Library() {
                         )}
 
                         {/* Hover Overlay */}
-                        <div className="absolute inset-0 bg-plasma-bg/70 backdrop-blur-[4px] flex flex-col items-center justify-center gap-4 px-4 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        <div className="absolute inset-0 bg-plasma-bg/80 backdrop-blur-[6px] flex flex-col items-center justify-center gap-4 px-4 opacity-0 group-hover:opacity-100 transition-all duration-300 z-[30] pointer-events-auto">
                           <button
                             onClick={(e) => togglePlaying(game.id, e, game.nowPlaying)}
-                            className="flex items-center justify-between w-full px-2"
+                            className={`flex items-center justify-between w-full px-3 py-2 rounded-lg transition-colors border ${
+                              game.nowPlaying 
+                                ? "bg-plasma-secondary/20 border-plasma-secondary/50 text-white" 
+                                : "bg-plasma-slate-hover border-white/5 text-plasma-text-primary hover:bg-white/10"
+                            }`}
                           >
-                            <span className="text-[12px] font-medium text-plasma-text-primary">Set Playing</span>
-                            <div className={`w-8 h-4 rounded-full relative transition-colors ${game.nowPlaying ? "bg-plasma-secondary" : "bg-plasma-primary"}`}>
-                              <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-transform ${game.nowPlaying ? "right-0.5" : "left-0.5"}`}></div>
+                            <span className="text-[12px] font-bold uppercase tracking-wider">
+                              {game.nowPlaying ? "Stop Playing" : "Set Playing"}
+                            </span>
+                            <div className={`w-8 h-4 rounded-full relative transition-colors ${game.nowPlaying ? "bg-plasma-secondary" : "bg-white/10"}`}>
+                              <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all duration-300 shadow-sm ${game.nowPlaying ? "translate-x-4" : "translate-x-0.5"}`}></div>
                             </div>
                           </button>
 
-                          <div className="text-[13px] font-bold text-plasma-text-primary hover:text-plasma-secondary transition-colors flex items-center gap-1 mt-2">
-                            View Details <ArrowRight className="w-3.5 h-3.5" />
+                          <div className="w-full flex items-center justify-center pt-2">
+                            <div className="text-[13px] font-bold text-plasma-text-primary hover:text-plasma-secondary transition-colors flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5">
+                              View Details <ArrowRight className="w-4 h-4" />
+                            </div>
                           </div>
                         </div>
 
