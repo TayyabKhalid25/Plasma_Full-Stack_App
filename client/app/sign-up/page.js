@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, Suspense } from "react";
-import { AlertCircle, CheckCircle2, Steam, ArrowRight, ShieldCheck, Zap } from "lucide-react";
+import { AlertCircle, CheckCircle2, Steam, ArrowRight, ShieldCheck, Zap, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -27,6 +27,7 @@ const SectionLeftSideSubsection = () => {
   const searchParams = useSearchParams();
   const steamToken = searchParams.get("steamToken");
   const [step, setStep] = useState(1);
+  const [showPassword, setShowPassword] = useState(false);
 
   // If steamToken is present, move to step 2 automatically
   useEffect(() => {
@@ -229,14 +230,24 @@ const SectionLeftSideSubsection = () => {
                 <Label htmlFor="password" className="font-sans font-medium text-plasma-text-muted text-[13px]">
                   Account Password
                 </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  placeholder="Minimum 6 characters"
-                  className="w-full bg-plasma-slate/50 text-white rounded-xl border-plasma-text-muted/25 focus-visible:border-plasma-primary"
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    placeholder="Minimum 6 characters"
+                    className="w-full bg-plasma-slate/50 text-white rounded-xl border-plasma-text-muted/25 pr-10 focus-visible:border-plasma-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-plasma-text-secondary hover:text-white transition-colors cursor-pointer"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               {/* Date of Birth field */}

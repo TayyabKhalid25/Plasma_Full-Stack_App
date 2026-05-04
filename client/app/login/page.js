@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, Suspense } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -18,6 +18,7 @@ import { useAuth, API_BASE } from "@/context/AuthContext";
 function LoginContent() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [legalModal, setLegalModal] = useState({ isOpen: false, type: null });
@@ -168,14 +169,24 @@ function LoginContent() {
               >
                 Password
               </Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-plasma-slate/50 text-white rounded-xl border border-solid border-plasma-text-muted/25 font-sans font-normal text-plasma-text-muted text-sm py-[11px] px-4 h-[44px] transition-all focus-visible:border-plasma-primary"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-plasma-slate/50 text-white rounded-xl border border-solid border-plasma-text-muted/25 font-sans font-normal text-plasma-text-muted text-sm py-[11px] px-4 pr-10 h-[44px] transition-all focus-visible:border-plasma-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-plasma-text-secondary hover:text-white transition-colors cursor-pointer"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             {/* Log In button */}

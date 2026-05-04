@@ -338,6 +338,15 @@ export default function GameDetailPage({ params }) {
                   >
                     Remove
                   </button>
+                  {game.platform === "Steam" && !String(id).startsWith("igdb_") && !String(id).startsWith("custom_") && (
+                    <a
+                      href={`steam://run/${id}`}
+                      className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm bg-[#1b2838] text-[#66c0f4] border border-[#66c0f4]/20 hover:bg-[#2a475e] hover:shadow-[0_0_15px_rgba(102,192,244,0.2)] transition-all cursor-pointer"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      Launch Game
+                    </a>
+                  )}
                   <button
                     onClick={togglePlaying}
                     className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer ${isPlaying
