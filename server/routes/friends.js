@@ -18,7 +18,12 @@ router.get('/', authenticateToken, async (req, res) => {
                 u."intent", 
                 pr."avatarURL",
                 fr."isMutual",
-                fr."followerID"
+                fr."followerID",
+                (SELECT g."title" 
+                 FROM "library_entries" le 
+                 JOIN "games" g ON le."appID" = g."appID" 
+                 WHERE le."userID" = u."plasmaUserID" AND le."isCurrentlyPlaying" = TRUE 
+                 LIMIT 1) as "playingGame"
             FROM "follow_relationships" fr
             JOIN "users" u ON (u."plasmaUserID" = fr."followedID" OR u."plasmaUserID" = fr."followerID")
             LEFT JOIN "profiles" pr ON u."plasmaUserID" = pr."plasmaUserID"
@@ -33,7 +38,13 @@ router.get('/', authenticateToken, async (req, res) => {
             if (seen.has(row.plasmaUserID)) return;
             seen.add(row.plasmaUserID);
 
-            const userObj = { id: row.plasmaUserID, name: row.username, intent: row.intent, avatar: row.avatarURL };
+            const userObj = { 
+                id: row.plasmaUserID, 
+                name: row.username, 
+                intent: row.intent, 
+                avatar: row.avatarURL,
+                playingGame: row.playingGame 
+            };
             if (!row.isMutual && row.followerID !== userId) {
                 friends.requests.push(userObj);
             } else if (row.isMutual) {
