@@ -21,7 +21,7 @@ passport.deserializeUser((obj, done) => {
 // Configure Steam Strategy
 passport.use(new SteamStrategy({
     returnURL: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/auth/steam/callback`,
-    realm: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/`,
+    realm: `${process.env.BACKEND_URL || 'http://localhost:5000'}/`,
     apiKey: process.env.STEAM_API_KEY || 'MISSING'
 }, (identifier, profile, done) => {
     process.nextTick(() => {

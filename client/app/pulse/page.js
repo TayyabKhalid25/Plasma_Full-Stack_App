@@ -75,6 +75,7 @@ export const ActivityFeedSection = () => {
           comments: 0,
           time: "Just now",
           liked: false,
+          deepLinkURI: null,
         };
         setPosts((prev) => [newPost, ...prev]);
         setPostText("");

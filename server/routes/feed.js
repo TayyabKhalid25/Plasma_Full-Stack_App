@@ -22,6 +22,7 @@ router.get('/', authenticateToken, async (req, res) => {
                 p."timestampUTC", 
                 p."isVisible",
                 p."intent",
+                p."deepLinkURI",
                 u."plasmaUserID", 
                 u."username", 
                 pr."avatarURL",

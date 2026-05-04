@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useCallback } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
@@ -60,6 +60,26 @@ export default function UserProfile({ params }) {
   const [gamesProgress, setGamesProgress] = useState([]);
   const [expandedGames, setExpandedGames] = useState({});
   const [loadingTab, setLoadingTab] = useState(false);
+  const [myLibrary, setMyLibrary] = useState(new Set());
+
+  // Fetch viewer's library to show "Run Game" buttons
+  useEffect(() => {
+    if (!token) return;
+    const fetchMyLibrary = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/library`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setMyLibrary(new Set(data.data.map(g => String(g.gameID))));
+        }
+      } catch (err) {
+        console.error("Failed to fetch my library", err);
+      }
+    };
+    fetchMyLibrary();
+  }, [token]);
 
   // Fetch user profile
   useEffect(() => {
@@ -128,84 +148,104 @@ export default function UserProfile({ params }) {
   }, [token, targetUserId]);
 
   // Fetch tab data
-  useEffect(() => {
+  const fetchTabData = useCallback(async () => {
     if (!token || !targetUserId) return;
-    const fetchTabData = async () => {
-      setLoadingTab(true);
-      try {
-        if (activeTab === "Activity") {
-          const res = await fetch(`${API_BASE}/api/feed?userId=${targetUserId}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          const data = await res.json();
-          if (data.success) {
-            setActivityPosts(data.data.map(mapActivityPost));
-          }
-        } else if (activeTab === "Library") {
-          const res = await fetch(`${API_BASE}/api/library/user/${targetUserId}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          const data = await res.json();
-          if (data.success) {
-            setLibraryGames(data.data.map(g => ({
-              id: g.appID,
-              title: g.title,
-              image: g.coverArtURL || "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=400&auto=format&fit=crop",
-              isCurrentlyPlaying: g.isCurrentlyPlaying,
-            })));
-          }
-        } else if (activeTab === "Achievements") {
-          const res = await fetch(`${API_BASE}/api/achievements/${targetUserId}?orderBy=rarityWeight&direction=DESC`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          const data = await res.json();
-          if (data.success) {
-            const formattedGames = data.data.gamesProgress.map(g => ({
-              id: g.appID,
-              title: g.gameTitle,
-              achievements: g.achievements.map(a => {
-                const rarityProps = getRarityProps(a.rarityWeight);
-                return {
-                  id: a.achievementID,
-                  title: a.title,
-                  description: a.description,
-                  iconName: a.iconName,
-                  xp: `${a.plasmaXP} XP`,
-                  unlockedAt: a.unlockedAt,
-                  unlocked: !!a.unlockedAt && a.unlockedAt !== "NULL" && a.unlockedAt !== "null",
-                  gameTitle: g.gameTitle,
-                  ...rarityProps
-                };
-              })
-            }));
-            setGamesProgress(formattedGames);
-          }
-        } else if (activeTab === "Rallies") {
-          const res = await fetch(`${API_BASE}/api/rallies/user/${targetUserId}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          const data = await res.json();
-          if (data.success) {
-            setRallies(data.data.map(e => ({
-              id: e.eventID,
-              title: e.title,
-              date: new Date(e.scheduledStartUTC).toLocaleDateString([], { month: 'short', day: 'numeric' }),
-              time: new Date(e.scheduledStartUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              intent: e.requiredIntent,
-              intentColor: getIntentStyle(e.requiredIntent).badge,
-              slotsFilled: parseInt(e.currentAttendees) || 0,
-              slotsTotal: e.maxCapacity,
-            })));
-          }
+    setLoadingTab(true);
+    try {
+      if (activeTab === "Activity") {
+        const res = await fetch(`${API_BASE}/api/feed?userId=${targetUserId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setActivityPosts(data.data.map(mapActivityPost));
         }
-      } catch (err) {
-        console.error("Failed to fetch tab data", err);
-      } finally {
-        setLoadingTab(false);
+      } else if (activeTab === "Library") {
+        const res = await fetch(`${API_BASE}/api/library/user/${targetUserId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setLibraryGames(data.data.map(g => ({
+            id: g.appID,
+            title: g.title,
+            image: g.coverArtURL || "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=400&auto=format&fit=crop",
+            isCurrentlyPlaying: g.isCurrentlyPlaying,
+            platform: g.platform,
+          })));
+        }
+      } else if (activeTab === "Achievements") {
+        const res = await fetch(`${API_BASE}/api/achievements/${targetUserId}?orderBy=rarityWeight&direction=DESC`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          const formattedGames = data.data.gamesProgress.map(g => ({
+            id: g.appID,
+            title: g.gameTitle,
+            achievements: g.achievements.map(a => {
+              const rarityProps = getRarityProps(a.rarityWeight);
+              return {
+                id: a.achievementID,
+                title: a.title,
+                description: a.description,
+                iconName: a.iconName,
+                xp: `${a.plasmaXP} XP`,
+                unlockedAt: a.unlockedAt,
+                unlocked: !!a.unlockedAt && a.unlockedAt !== "NULL" && a.unlockedAt !== "null",
+                gameTitle: g.gameTitle,
+                ...rarityProps
+              };
+            })
+          }));
+          setGamesProgress(formattedGames);
+        }
+      } else if (activeTab === "Rallies") {
+        const res = await fetch(`${API_BASE}/api/rallies/user/${targetUserId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setRallies(data.data.map(e => ({
+            id: e.eventID,
+            title: e.title,
+            date: new Date(e.scheduledStartUTC).toLocaleDateString([], { month: 'short', day: 'numeric' }),
+            time: new Date(e.scheduledStartUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            intent: e.requiredIntent,
+            intentColor: getIntentStyle(e.requiredIntent).badge,
+            slotsFilled: parseInt(e.currentAttendees) || 0,
+            slotsTotal: e.maxCapacity,
+          })));
+        }
       }
-    };
-    fetchTabData();
+    } catch (err) {
+      console.error("Failed to fetch tab data", err);
+    } finally {
+      setLoadingTab(false);
+    }
   }, [token, targetUserId, activeTab]);
+
+  useEffect(() => {
+    fetchTabData();
+  }, [fetchTabData]);
+
+  const togglePlaying = async (gameId, currentStatus, platform) => {
+    if (platform === "STEAM" && !currentStatus) {
+      window.location.href = `steam://run/${gameId}`;
+    }
+
+    try {
+      await fetch(`${API_BASE}/api/library/${gameId}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ isCurrentlyPlaying: !currentStatus })
+      });
+      // Optionally refresh tab data to show "LIVE" badge if we started playing
+      if (!currentStatus) fetchTabData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleFollow = async () => {
     setFollowLoading(true);
@@ -370,17 +410,46 @@ export default function UserProfile({ params }) {
                   </div>
                 ) : libraryGames.length > 0 ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
-                    {libraryGames.slice(0, 12).map((game) => (
-                      <Link href={`/profile/${targetUserId}/library/${game.id}`} key={game.id} className="relative aspect-[3/4] rounded-xl overflow-hidden group hover:scale-[1.03] transition-transform block">
-                        <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${game.image})` }} />
-                        {game.isCurrentlyPlaying && (
-                          <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 bg-plasma-secondary text-white text-[8px] font-bold rounded z-10">LIVE</div>
-                        )}
-                        <div className="absolute bottom-0 left-0 right-0 p-2 bg-plasma-slate/80 backdrop-blur-sm">
-                          <span className="text-[11px] font-semibold text-plasma-text-primary truncate block">{game.title}</span>
+                    {libraryGames.slice(0, 12).map((game) => {
+                      const userOwnsGame = myLibrary.has(String(game.id));
+                      return (
+                        <div key={game.id} className="relative aspect-[3/4] rounded-xl overflow-hidden group">
+                          <Link href={`/profile/${targetUserId}/library/${game.id}`} className="absolute inset-0 z-0 block">
+                            <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${game.image})` }} />
+                            {game.isCurrentlyPlaying && (
+                              <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 bg-plasma-secondary text-white text-[8px] font-bold rounded z-10">LIVE</div>
+                            )}
+                            <div className="absolute bottom-0 left-0 right-0 p-2 bg-plasma-slate/80 backdrop-blur-sm">
+                              <span className="text-[11px] font-semibold text-plasma-text-primary truncate block">{game.title}</span>
+                            </div>
+                          </Link>
+
+                          {/* RUN GAME Button for viewer if they own it */}
+                          {userOwnsGame && game.platform === "STEAM" && (
+                            <div className="absolute inset-0 bg-plasma-bg/70 backdrop-blur-[4px] flex flex-col items-center justify-center gap-3 px-4 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  togglePlaying(game.id, false, game.platform);
+                                }}
+                                className="w-full py-2 rounded-lg bg-[#1b2838] text-[#66c0f4] border border-[#66c0f4]/20 hover:bg-[#2a475e] font-bold text-[10px] uppercase tracking-wider transition-all shadow-lg flex items-center justify-center gap-2"
+                              >
+                                <div className="w-3 h-3 bg-[#66c0f4] rounded-full flex items-center justify-center">
+                                  <div className="w-0 h-0 border-t-[2px] border-t-transparent border-l-[4px] border-l-[#1b2838] border-b-[2px] border-b-transparent ml-0.5" />
+                                </div>
+                                Run Game
+                              </button>
+                              <Link 
+                                href={`/profile/${targetUserId}/library/${game.id}`}
+                                className="text-[10px] text-plasma-text-secondary hover:text-white font-bold uppercase tracking-widest transition-colors"
+                              >
+                                View Details
+                              </Link>
+                            </div>
+                          )}
                         </div>
-                      </Link>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-12">
