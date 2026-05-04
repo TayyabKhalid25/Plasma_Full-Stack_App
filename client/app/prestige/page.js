@@ -11,6 +11,7 @@ import { EditHallOfFameModal } from "@/components/modals/EditHallOfFameModal";
 import { InviteFriendsModal } from "@/components/modals/InviteFriendsModal";
 import { AddMilestoneModal } from "@/components/modals/AddMilestoneModal";
 import { AchievementIcon } from "@/components/ui/AchievementIcon";
+import { SteamPrivacyWarning } from "@/components/ui/SteamPrivacyWarning";
 import { getIntentStyle } from "@/lib/intentStyles";
 import { getAvatarUrl, getRarityProps } from "@/lib/utils";
 import Link from "next/link";
@@ -99,23 +100,16 @@ export default function Prestige() {
   const inviteModal = useModal();
   const addMilestoneModal = useModal();
 
-  // Fetch prestige + achievements data
+  // Fetch initial prestige data once on mount
   useEffect(() => {
     if (!token) return;
-    const fetchData = async () => {
-      setLoading(true);
+    const fetchPrestige = async () => {
       try {
-        const [prestigeRes, achievementsRes] = await Promise.all([
-          fetch(`${API_BASE}/api/prestige/me`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API_BASE}/api/achievements?type=${activeAchTab}&orderBy=rarityWeight&direction=DESC`, { headers: { Authorization: `Bearer ${token}` } }),
-        ]);
-
-        const prestigeJson = await prestigeRes.json();
-        const achievementsJson = await achievementsRes.json();
-
-        if (prestigeJson.success) {
-          setPrestigeData(prestigeJson.data);
-          const hofItems = prestigeJson.data.hallOfFame.map((item) => {
+        const res = await fetch(`${API_BASE}/api/prestige/me`, { headers: { Authorization: `Bearer ${token}` } });
+        const json = await res.json();
+        if (json.success) {
+          setPrestigeData(json.data);
+          const hofItems = json.data.hallOfFame.map((item) => {
             const rarityProps = getRarityProps(item.rarityWeight);
             return {
               id: item.achievementID,
@@ -134,9 +128,29 @@ export default function Prestige() {
           });
           setHof(hofItems);
         }
+      } catch (err) {
+        console.error("Failed to fetch prestige summary", err);
+      }
+    };
+    fetchPrestige();
+  }, [token]);
 
-        if (achievementsJson.success) {
-          setGamesProgress(achievementsJson.data.gamesProgress.map(game => ({
+  // Fetch achievements data when tab changes
+  useEffect(() => {
+    if (!token) return;
+    const fetchAchievements = async () => {
+      // Only show skeletons if we don't have any data yet
+      const isInitialLoad = gamesProgress.length === 0;
+      if (isInitialLoad) setLoading(true);
+
+      try {
+        const res = await fetch(`${API_BASE}/api/achievements?type=${activeAchTab}&orderBy=rarityWeight&direction=DESC`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const json = await res.json();
+
+        if (json.success) {
+          setGamesProgress(json.data.gamesProgress.map(game => ({
             appID: game.appID,
             title: game.gameTitle?.toUpperCase() || "UNKNOWN GAME",
             achievements: game.achievements.map(ach => {
@@ -151,26 +165,29 @@ export default function Prestige() {
                   ? new Date(ach.unlockedAt).toLocaleDateString() 
                   : null,
                 unlocked: !!ach.unlockedAt,
-                gameTitle: game.gameTitle, // Ensure game title is passed for tooltips
+                gameTitle: game.gameTitle,
                 ...rarityProps
               };
             })
           })));
         }
       } catch (err) {
-        console.error("Failed to fetch prestige data", err);
+        console.error("Failed to fetch filtered achievements", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
+    fetchAchievements();
   }, [token, activeAchTab]);
 
   // Fetch leaderboard
   useEffect(() => {
     if (!token) return;
     const fetchLeaderboard = async () => {
-      setLoadingLeaderboard(true);
+      // Only show skeleton if we don't have any leaderboard data yet
+      const isInitialLoad = leaderboardData.length === 0;
+      if (isInitialLoad) setLoadingLeaderboard(true);
+
       try {
         const res = await fetch(`${API_BASE}/api/leaderboard?scope=${activeLeaderboard === "global" ? "global" : "friends"}`, {
           headers: { Authorization: `Bearer ${token}` }
@@ -241,16 +258,37 @@ export default function Prestige() {
       const data = await res.json();
       if (data.success) {
         showToast(`Synced ${data.syncedAchievements} achievements across ${data.gamesProcessed} games!`, "success");
-        // Re-trigger the data fetch
-        setActiveAchTab(prev => prev); // force useEffect re-run
-        // Manually re-fetch
+        
+        // Manual re-fetch to update UI after sync
         const [prestigeRes, achievementsRes] = await Promise.all([
           fetch(`${API_BASE}/api/prestige/me`, { headers: { Authorization: `Bearer ${token}` } }),
           fetch(`${API_BASE}/api/achievements?type=${activeAchTab}&orderBy=rarityWeight&direction=DESC`, { headers: { Authorization: `Bearer ${token}` } }),
         ]);
+
         const prestigeJson = await prestigeRes.json();
         const achievementsJson = await achievementsRes.json();
-        if (prestigeJson.success) setPrestigeData(prestigeJson.data);
+
+        if (prestigeJson.success) {
+          setPrestigeData(prestigeJson.data);
+          // Update HOF as well
+          const hofItems = prestigeJson.data.hallOfFame.map((item) => {
+            const rarityProps = getRarityProps(item.rarityWeight);
+            return {
+              id: item.achievementID,
+              gameId: item.appID,
+              gameTitle: item.gameTitle,
+              title: item.title,
+              description: item.description,
+              iconName: item.iconName,
+              xp: `${item.plasmaXP} XP`,
+              unlockedAt: (item.unlockedAt && item.unlockedAt !== "NULL") ? new Date(item.unlockedAt).toLocaleDateString() : null,
+              unlocked: true,
+              ...rarityProps
+            };
+          });
+          setHof(hofItems);
+        }
+
         if (achievementsJson.success) {
           setGamesProgress(achievementsJson.data.gamesProgress.map(game => ({
             appID: game.appID,
@@ -340,8 +378,14 @@ export default function Prestige() {
             </div>
           </div>
 
+          <SteamPrivacyWarning 
+            isPrivate={user?.isSteamProfilePrivate} 
+            onSync={syncAchievements}
+            syncing={syncing}
+          />
+
           {/* HALL OF FAME */}
-          <section className="mt-6 relative z-10">
+          <section className="mt-6 relative z-50">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-[11px] font-bold text-plasma-text-secondary tracking-[0.2em] uppercase">HALL OF FAME</h2>
               <button
@@ -353,10 +397,10 @@ export default function Prestige() {
             </div>
 
             {loading ? <HofSkeleton /> : (
-              <div className="flex flex-wrap gap-6 pb-4 overflow-visible relative z-10">
+              <div className="flex flex-wrap gap-6 pb-4 overflow-visible relative">
                 {hof.length > 0 ? hof.map((item) => (
                   <div key={item.id} className="relative group shrink-0 overflow-visible">
-                    <AchievementIcon achievement={item} />
+                    <AchievementIcon achievement={item} tooltipSide="bottom" />
                   </div>
                 )) : (
                   <p className="text-sm text-plasma-text-secondary">No pinned achievements yet.</p>
@@ -391,7 +435,7 @@ export default function Prestige() {
 
           {/* Achievement Grid */}
           {loading ? <AchievementGridSkeleton /> : (
-            <div className="space-y-10 py-6 relative z-20">
+            <div className="space-y-10 py-6 relative z-10">
               {gamesProgress.length > 0 ? (
                 gamesProgress.map((game, index) => {
                   const isExpanded = expandedGames[index];

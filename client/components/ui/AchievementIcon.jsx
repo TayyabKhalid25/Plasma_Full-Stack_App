@@ -7,7 +7,7 @@ const iconMap = {
   Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Gem, Zap, Activity 
 };
 
-export function AchievementIcon({ achievement, showGameTitle = false }) {
+export function AchievementIcon({ achievement, showGameTitle = false, tooltipSide = "top" }) {
   const Icon = iconMap[achievement.iconName] || Trophy;
   
   // Robust date handling
@@ -26,24 +26,28 @@ export function AchievementIcon({ achievement, showGameTitle = false }) {
       displayDate = null;
     }
   }
+
+  const isBottom = tooltipSide === "bottom";
   
   return (
-    <div className={`flex flex-col items-center gap-3 w-[84px] text-center transition-all group relative hover:z-[110] ${!achievement.unlocked ? 'opacity-40 grayscale' : ''}`}>
-      <div className={`relative w-[72px] h-[72px] rounded-full border-2 ${achievement.border} bg-white/5 flex items-center justify-center transition-all ${achievement.unlocked ? achievement.shadow + " group-hover:" + achievement.glow : ""}`}>
-        <Icon className={`w-8 h-8 ${achievement.color} transition-all group-hover:scale-110`} />
+    <div className="flex flex-col items-center gap-3 w-[84px] text-center transition-all group relative hover:z-[500]">
+      <div className={`relative w-[72px] h-[72px] rounded-full border-2 ${achievement.border} bg-plasma-slate flex items-center justify-center transition-all ${achievement.unlocked ? achievement.shadow + " group-hover:" + achievement.glow : "border-white/5"}`}>
+        <Icon className={`w-8 h-8 ${achievement.color} transition-all group-hover:scale-110 ${!achievement.unlocked ? 'opacity-70 grayscale' : ''}`} />
         {!achievement.unlocked && <Lock className="absolute bottom-0 right-0 w-4 h-4 text-plasma-text-secondary bg-plasma-bg rounded-full p-0.5" />}
       </div>
       <div className="min-w-0 w-full">
-        <p className={`text-[10px] font-bold truncate leading-tight ${achievement.unlocked ? 'text-plasma-text-primary' : 'text-plasma-text-secondary'}`}>
+        <p className={`text-[10px] font-bold truncate leading-tight ${achievement.unlocked ? 'text-plasma-text-primary' : 'text-plasma-text-secondary opacity-70'}`}>
           {achievement.title}
         </p>
-        <p className={`text-[9px] font-mono mt-0.5 ${achievement.color}`}>{achievement.xp}</p>
+        <p className={`text-[9px] font-mono mt-0.5 ${achievement.color} ${!achievement.unlocked ? 'opacity-70' : ''}`}>{achievement.xp}</p>
       </div>
 
       {/* Premium Tooltip - Redesigned for zero-cutoff and maximum info */}
-      <div className="absolute z-[100] hidden group-hover:block pointer-events-none bottom-[105%] left-1/2 -translate-x-1/2 mb-4 animate-fade-in shadow-2xl">
+      <div className={`absolute z-[100] hidden group-hover:block pointer-events-none left-1/2 -translate-x-1/2 animate-fade-in shadow-2xl ${
+        isBottom ? 'top-[105%] mt-4' : 'bottom-[105%] mb-4'
+      }`}>
         <div 
-          className="p-4 rounded-xl bg-slate-950 border border-white/20 w-[260px] text-left ring-1 ring-white/10 shadow-[0_20px_50px_rgba(0,0,0,1)] opacity-100"
+          className="p-4 rounded-xl bg-slate-950 border border-white/20 w-[260px] text-left ring-1 ring-white/10 shadow-[0_20px_50px_rgba(0,0,0,1)] opacity-100 relative"
           style={{ backgroundColor: '#020617', opacity: 1 }}
         >
           <div className="flex justify-between items-start gap-2 mb-3">
@@ -91,7 +95,14 @@ export function AchievementIcon({ achievement, showGameTitle = false }) {
           </div>
 
           {/* Tooltip Arrow */}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 w-4 h-4 bg-slate-950 border-r border-b border-white/20 rotate-45 -mt-2 shadow-xl" style={{ backgroundColor: '#020617' }} />
+          <div 
+            className={`absolute left-1/2 -translate-x-1/2 w-4 h-4 bg-slate-950 rotate-45 shadow-xl ${
+              isBottom 
+                ? 'bottom-full -mb-2 border-t border-l border-white/20' 
+                : 'top-full -mt-2 border-r border-b border-white/20'
+            }`} 
+            style={{ backgroundColor: '#020617' }} 
+          />
         </div>
       </div>
     </div>

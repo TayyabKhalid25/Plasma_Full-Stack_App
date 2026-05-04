@@ -13,14 +13,14 @@ export function AchievementCard({ achievement, isLocked }) {
   const Icon = iconMap[rarity.iconName] || Trophy;
 
   return (
-    <div className={`p-4 rounded-3xl bg-plasma-slate/60 backdrop-blur-md border border-white/5 transition-all relative overflow-hidden ${isLocked ? "grayscale opacity-90" : ""}`}>
+    <div className={`p-4 rounded-3xl bg-plasma-slate/95 border border-white/5 transition-all relative overflow-hidden ${isLocked ? "grayscale opacity-90" : ""}`}>
       {!isLocked && (
         <div className={`absolute -right-4 -bottom-4 w-24 h-24 blur-[40px] opacity-20 transition-opacity ${rarity.bg}`} />
       )}
 
       <div className="flex gap-4 items-center">
         {/* Circle icon container */}
-        <div className={`w-14 h-14 rounded-full border-2 flex items-center justify-center shrink-0 relative z-10 ${isLocked ? "bg-white/5 border-white/10" : `${rarity.border} ${rarity.shadow} bg-white/5`}`}>
+        <div className={`w-14 h-14 rounded-full border-2 flex items-center justify-center shrink-0 relative z-10 ${isLocked ? "bg-plasma-slate border-white/10" : `${rarity.border} ${rarity.shadow} bg-plasma-slate`}`}>
           {isLocked
             ? <Lock className="w-5 h-5 text-plasma-text-secondary" />
             : <Icon className={`w-6 h-6 ${rarity.color}`} />

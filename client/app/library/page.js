@@ -4,25 +4,25 @@ import { useState, useEffect, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import Image from "next/image";
-import { 
-  Search, 
-  Gamepad2, 
-  Gem, 
-  Cloud, 
-  Zap, 
-  Shield, 
-  Sparkles, 
-  Dog, 
-  Star, 
-  Castle, 
+import {
+  Search,
+  Gamepad2,
+  Gem,
+  Cloud,
+  Zap,
+  Shield,
+  Sparkles,
+  Dog,
+  Star,
+  Castle,
   Cpu,
   ArrowRight,
   Loader2,
   CheckCircle2
 } from "lucide-react";
 import Link from "next/link";
-import { useModal } from "@/hooks/useModal";
 import { SearchIGDBGameModal } from "@/components/modals/SearchIGDBGameModal";
+import { SteamPrivacyWarning } from "@/components/ui/SteamPrivacyWarning";
 
 const gameFilters = [
   { id: "all", label: "All" },
@@ -62,7 +62,7 @@ export default function Library() {
   const [toast, setToast] = useState(null);
   const { token } = useAuth();
   const addGameModal = useModal();
-  
+
   // Show toast with auto-dismiss
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -102,12 +102,12 @@ export default function Library() {
   const togglePlaying = async (gameId, e, currentPlaying) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Optimistic UI update: 
     // If we are starting a game, turn off all others.
     // If we are stopping a game, just turn that one off.
     const newPlayingStatus = !currentPlaying;
-    
+
     setGames((prev) => prev.map((g) => {
       if (g.id === gameId) {
         return { ...g, nowPlaying: newPlayingStatus };
@@ -177,14 +177,13 @@ export default function Library() {
     <DashboardLayout showRightRail={false}>
       <div className="flex flex-col items-center pt-8 pb-20 px-10 min-h-screen">
         <div className="w-full max-w-[960px]">
-          
+
           {/* Toast Notification */}
           {toast && (
-            <div className={`fixed top-20 right-6 z-[200] flex items-center gap-2 px-5 py-3 rounded-xl shadow-2xl text-sm font-medium animate-fade-in transition-all ${
-              toast.type === "success" 
-                ? "bg-plasma-success/20 border border-plasma-success/30 text-plasma-success" 
+            <div className={`fixed top-20 right-6 z-[200] flex items-center gap-2 px-5 py-3 rounded-xl shadow-2xl text-sm font-medium animate-fade-in transition-all ${toast.type === "success"
+                ? "bg-plasma-success/20 border border-plasma-success/30 text-plasma-success"
                 : "bg-plasma-error/20 border border-plasma-error/30 text-plasma-error"
-            }`}>
+              }`}>
               <CheckCircle2 className="w-4 h-4 shrink-0" />
               {toast.message}
             </div>
@@ -196,7 +195,7 @@ export default function Library() {
               <h1 className="font-display font-bold text-[32px] text-plasma-text-primary">
                 The Omni-Library
               </h1>
-              <button 
+              <button
                 onClick={syncSteam}
                 disabled={syncing}
                 className="px-4 py-2 bg-primary-gradient text-white font-bold text-xs rounded-full shadow-card-glow hover:scale-[1.02] transition-all cursor-pointer flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
@@ -212,14 +211,22 @@ export default function Library() {
               </button>
             </div>
 
+            <div className="mt-6">
+              <SteamPrivacyWarning 
+                isPrivate={user?.isSteamProfilePrivate} 
+                onSync={syncSteam}
+                syncing={syncing}
+              />
+            </div>
+
             <div className="mt-8 flex justify-center md:justify-start">
               <div className="relative w-full max-w-[600px] group">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-plasma-text-secondary group-focus-within:text-plasma-primary transition-colors" />
-                <input 
+                <input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-plasma-slate-hover border-none rounded-lg py-[14px] pl-12 pr-4 text-plasma-text-primary placeholder:text-plasma-text-secondary focus:ring-1 focus:ring-plasma-primary transition-all outline-none" 
-                  placeholder="Filter your library..." 
+                  className="w-full bg-plasma-slate-hover border-none rounded-lg py-[14px] pl-12 pr-4 text-plasma-text-primary placeholder:text-plasma-text-secondary focus:ring-1 focus:ring-plasma-primary transition-all outline-none"
+                  placeholder="Filter your library..."
                   type="text"
                 />
               </div>
@@ -233,11 +240,10 @@ export default function Library() {
                   <button
                     key={filter.id}
                     onClick={() => !loading && setActiveFilter(filter.id)}
-                    className={`px-6 py-2 rounded-full font-sans font-medium text-sm whitespace-nowrap transition-all ${
-                      isActive 
-                        ? "bg-plasma-primary text-white" 
+                    className={`px-6 py-2 rounded-full font-sans font-medium text-sm whitespace-nowrap transition-all ${isActive
+                        ? "bg-plasma-primary text-white"
                         : "bg-plasma-slate-hover text-plasma-text-secondary hover:text-plasma-text-primary"
-                    } ${loading ? "pointer-events-none" : ""}`}
+                      } ${loading ? "pointer-events-none" : ""}`}
                   >
                     {filter.label}
                   </button>
@@ -272,7 +278,7 @@ export default function Library() {
               <p className="font-sans font-normal text-[15px] text-plasma-text-secondary max-w-[320px] mx-auto mb-8">
                 Search for a game above or sync your Steam library to start building your collection.
               </p>
-              <button 
+              <button
                 onClick={syncSteam}
                 disabled={syncing}
                 className="px-10 py-3 rounded-full bg-primary-gradient text-white font-sans font-bold text-sm uppercase tracking-widest shadow-[0_0_20px_rgba(255,42,122,0.3)] hover:shadow-[0_0_30px_rgba(255,42,122,0.5)] transition-all cursor-pointer flex items-center gap-2 disabled:opacity-70"
@@ -288,9 +294,9 @@ export default function Library() {
               <div className="mb-6 flex items-center gap-2 text-plasma-text-secondary font-sans font-normal text-[13px]">
                 <span>{games.length} Games</span>
                 <span className="w-1 h-1 rounded-full bg-plasma-text-secondary/30"></span>
-                <span>{games.filter(g => g.platform === "steam").length} Steam</span>
+                <span>{games.filter(g => g.platform === "STEAM").length} Steam</span>
                 <span className="w-1 h-1 rounded-full bg-plasma-text-secondary/30"></span>
-                <span>{games.filter(g => g.platform !== "steam").length} Non-Steam</span>
+                <span>{games.filter(g => g.platform !== "STEAM").length} Non-Steam</span>
                 <span className="w-1 h-1 rounded-full bg-plasma-text-secondary/30"></span>
                 <span>{games.filter(g => g.nowPlaying).length} Currently Playing</span>
                 <span className="w-1 h-1 rounded-full bg-plasma-text-secondary/30"></span>
@@ -305,14 +311,13 @@ export default function Library() {
                   {games.map((game) => {
                     const Icon = iconMap[game.iconName] || Gamepad2;
                     return (
-                      <Link 
-                        href={`/library/${game.id}`} 
+                      <Link
+                        href={`/library/${game.id}`}
                         key={game.id}
-                        className={`relative aspect-[2/3] rounded-xl overflow-hidden group cursor-pointer transition-all duration-300 ${
-                          game.nowPlaying 
-                            ? "border-2 border-plasma-secondary shadow-[0_0_20px_rgba(255,42,122,0.3)]" 
+                        className={`relative aspect-[2/3] rounded-xl overflow-hidden group cursor-pointer transition-all duration-300 ${game.nowPlaying
+                            ? "border-2 border-plasma-secondary shadow-[0_0_20px_rgba(255,42,122,0.3)]"
                             : "hover:scale-[1.03] hover:shadow-[0_0_30px_rgba(86,56,149,0.25)] hover:z-10"
-                        }`}
+                          }`}
                       >
                         {game.image ? (
                           <div className="absolute inset-0">
@@ -323,7 +328,7 @@ export default function Library() {
                             <Gamepad2 className="w-12 h-12 text-plasma-text-secondary/30" />
                           </div>
                         )}
-                        
+
                         {game.nowPlaying && (
                           <div className="absolute top-2 right-2 px-2 py-0.5 bg-plasma-secondary text-white text-[10px] font-bold rounded-md z-20">
                             NOW PLAYING
@@ -342,13 +347,12 @@ export default function Library() {
                               }
                               await togglePlaying(game.id, e, game.nowPlaying);
                             }}
-                            className={`flex items-center justify-between w-full px-3 py-2 rounded-lg transition-colors border ${
-                              game.nowPlaying 
-                                ? "bg-plasma-secondary/20 border-plasma-secondary/50 text-white" 
+                            className={`flex items-center justify-between w-full px-3 py-2 rounded-lg transition-colors border ${game.nowPlaying
+                                ? "bg-plasma-secondary/20 border-plasma-secondary/50 text-white"
                                 : game.platform === "STEAM"
                                   ? "bg-[#1b2838]/80 border-[#66c0f4]/30 text-[#66c0f4] hover:bg-[#2a475e]"
                                   : "bg-plasma-slate-hover border-white/5 text-plasma-text-primary hover:bg-white/10"
-                            }`}
+                              }`}
                           >
                             <span className="text-[12px] font-bold uppercase tracking-wider">
                               {game.nowPlaying ? "Stop Playing" : game.platform === "STEAM" ? "Run Game" : "Set Playing"}
@@ -385,9 +389,9 @@ export default function Library() {
           )}
         </div>
       </div>
-      
-      <SearchIGDBGameModal 
-        isOpen={addGameModal.isOpen} 
+
+      <SearchIGDBGameModal
+        isOpen={addGameModal.isOpen}
         onClose={addGameModal.close}
         onAddGame={(game) => {
           setGames(prev => [...prev, { ...game, nowPlaying: false, iconName: "Gamepad2" }]);
