@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
@@ -211,6 +211,7 @@ export default function Profile() {
               title: g.title,
               image: getHighResImage(g.appID, g.coverArtURL, g.platform),
               isCurrentlyPlaying: g.isCurrentlyPlaying,
+              platform: g.platform,
             })));
           }
         } else if (activeTab === "Achievements") {
@@ -265,6 +266,30 @@ export default function Profile() {
     };
     fetchTabData();
   }, [token, user?.id, activeTab]);
+
+  const togglePlaying = async (gameId, currentStatus, platform) => {
+    // Optimistic update
+    const updated = libraryGames.map(g => 
+      g.id === gameId ? { ...g, isCurrentlyPlaying: !currentStatus } : { ...g, isCurrentlyPlaying: false }
+    );
+    setLibraryGames(updated);
+
+    if (platform === "STEAM" && !currentStatus) {
+      window.location.href = `steam://run/${gameId}`;
+    }
+
+    try {
+      await fetch(`${API_BASE}/api/library/${gameId}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ isCurrentlyPlaying: !currentStatus })
+      });
+    } catch (err) {
+      console.error("Failed to toggle playing status", err);
+      // Revert on error
+      setLibraryGames(libraryGames);
+    }
+  };
 
   const userStats = profileData && prestigeData ? [
     { label: "Plasma XP", value: prestigeData.totalPlasmaXP.toLocaleString(), highlight: true },
@@ -401,19 +426,43 @@ export default function Profile() {
                           
                           {/* Hover Overlay */}
                           <div className="absolute inset-0 bg-plasma-bg/70 backdrop-blur-[4px] flex flex-col items-center justify-center gap-3 px-4 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                togglePlaying(game.id, game.isCurrentlyPlaying);
-                              }}
-                              className="flex items-center justify-between w-full px-2"
-                            >
-                              <span className="text-[10px] font-bold text-white uppercase tracking-tighter">Set Playing</span>
-                              <div className={`w-7 h-3.5 rounded-full relative transition-colors ${game.isCurrentlyPlaying ? "bg-plasma-secondary" : "bg-white/20"}`}>
-                                <div className={`absolute top-0.5 w-2.5 h-2.5 bg-white rounded-full transition-transform ${game.isCurrentlyPlaying ? "right-0.5" : "left-0.5"}`}></div>
-                              </div>
-                            </button>
+                            {game.platform === "STEAM" ? (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  togglePlaying(game.id, game.isCurrentlyPlaying, game.platform);
+                                }}
+                                className={`w-full py-2 rounded-lg font-bold text-[10px] uppercase tracking-wider transition-all shadow-lg flex items-center justify-center gap-2 ${
+                                  game.isCurrentlyPlaying 
+                                    ? "bg-plasma-secondary text-white shadow-[0_0_15px_rgba(255,42,122,0.3)]" 
+                                    : "bg-[#1b2838] text-[#66c0f4] border border-[#66c0f4]/20 hover:bg-[#2a475e]"
+                                }`}
+                              >
+                                {!game.isCurrentlyPlaying && (
+                                  <div className="w-3 h-3 bg-[#66c0f4] rounded-full flex items-center justify-center">
+                                    <div className="w-0 h-0 border-t-[2px] border-t-transparent border-l-[4px] border-l-[#1b2838] border-b-[2px] border-b-transparent ml-0.5" />
+                                  </div>
+                                )}
+                                {game.isCurrentlyPlaying ? "Stop Playing" : "Run Game"}
+                              </button>
+                            ) : (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  togglePlaying(game.id, game.isCurrentlyPlaying, game.platform);
+                                }}
+                                className="flex items-center justify-between w-full px-2"
+                              >
+                                <span className="text-[10px] font-bold text-white uppercase tracking-tighter">
+                                  {game.isCurrentlyPlaying ? "Stop Playing" : "Set Playing"}
+                                </span>
+                                <div className={`w-7 h-3.5 rounded-full relative transition-colors ${game.isCurrentlyPlaying ? "bg-plasma-secondary" : "bg-white/20"}`}>
+                                  <div className={`absolute top-0.5 w-2.5 h-2.5 bg-white rounded-full transition-transform ${game.isCurrentlyPlaying ? "right-0.5" : "left-0.5"}`}></div>
+                                </div>
+                              </button>
+                            )}
 
                             <Link 
                               href={`/library/${game.id}`}

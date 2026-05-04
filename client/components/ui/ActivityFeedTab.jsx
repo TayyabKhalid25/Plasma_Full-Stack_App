@@ -55,7 +55,8 @@ function ActivitySkeletons() {
 // ---------------------------------------------------------------------------
 // Single post card — identical visual to pulse/page.js
 // ---------------------------------------------------------------------------
-function PostCard({ post, currentUserId, onToggleLike, onDelete, onEdit, onShare }) {
+function PostCard({ post, currentUserId, userLibrary, onToggleLike, onDelete, onEdit, onShare }) {
+  const { token } = useAuth();
   const [openDropdown, setOpenDropdown] = useState(false);
   const style = getIntentStyle(post.rawIntent);
   const isOwner = String(post.userID) === String(currentUserId);
@@ -69,6 +70,36 @@ function PostCard({ post, currentUserId, onToggleLike, onDelete, onEdit, onShare
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [openDropdown]);
+
+  const handleRunGameFromPost = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!post.deepLinkURI) return;
+
+    const gameId = post.deepLinkURI.split("/").pop();
+    if (!gameId) return;
+
+    // Launch Steam
+    window.location.href = post.deepLinkURI;
+
+    // Update status to "playing" for this user
+    try {
+      await fetch(`${API_BASE}/api/library/${gameId}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ isCurrentlyPlaying: true }),
+      });
+    } catch (err) {
+      console.error("Failed to set playing status from pulse", err);
+    }
+  };
+
+  const isSteamActivity = post.deepLinkURI?.startsWith("steam://run/");
+  const gameIdFromPost = isSteamActivity ? post.deepLinkURI.split("/").pop() : null;
+  const userOwnsGame = gameIdFromPost && userLibrary?.has(String(gameIdFromPost));
 
   return (
     <div className="flex flex-col items-start gap-4 p-5 relative self-stretch w-full bg-plasma-slate rounded-xl border border-white/5 cursor-pointer transition-all hover:border-white/20 hover:bg-plasma-slate/80 group/card">
@@ -138,10 +169,24 @@ function PostCard({ post, currentUserId, onToggleLike, onDelete, onEdit, onShare
       </div>
 
       {/* Body */}
-      <div className="block w-full z-10 pointer-events-none">
+      <div className="block w-full z-10 pointer-events-none flex flex-col gap-4">
         <p className="font-sans text-plasma-text-primary text-[15px] transition-colors group-hover/card:text-white">
           {post.text}
         </p>
+        
+        {/* RUN GAME Button for Activity Updates */}
+        {isSteamActivity && userOwnsGame && !isOwner && (
+          <button
+            onClick={handleRunGameFromPost}
+            className="w-fit flex items-center gap-2 px-6 py-2 rounded-lg font-bold text-xs bg-[#1b2838] text-[#66c0f4] border border-[#66c0f4]/30 hover:bg-[#2a475e] hover:shadow-[0_0_15px_rgba(102,192,244,0.2)] transition-all cursor-pointer pointer-events-auto shadow-lg"
+          >
+            <div className="w-4 h-4 bg-[#66c0f4] rounded-full flex items-center justify-center">
+              <div className="w-0 h-0 border-t-[3px] border-t-transparent border-l-[5px] border-l-[#1b2838] border-b-[3px] border-b-transparent ml-0.5" />
+            </div>
+            RUN GAME
+          </button>
+        )}
+
         {post.image && (
           <div className="relative w-full rounded-2xl overflow-hidden border border-white/10 mt-3 bg-black">
             {post.image.match(/\.(mp4|webm|ogg|mov)$/i) ? (
@@ -202,6 +247,26 @@ export function ActivityFeedTab({ posts, loadingTab, currentUserId, onPostsChang
   const shareModal = useModal();
   const deleteModal = useModal();
   const editModal = useModal();
+  const [userLibrary, setUserLibrary] = useState(new Set());
+
+  // Fetch current user's library to show "Run Game" buttons on posts
+  useEffect(() => {
+    if (!token) return;
+    const fetchMyLibrary = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/library`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setUserLibrary(new Set(data.data.map(g => String(g.gameID))));
+        }
+      } catch (err) {
+        console.error("Failed to fetch library for pulse buttons", err);
+      }
+    };
+    fetchMyLibrary();
+  }, [token]);
 
   const toggleLike = async (postId) => {
     const updated = posts.map((p) =>
@@ -271,6 +336,7 @@ export function ActivityFeedTab({ posts, loadingTab, currentUserId, onPostsChang
               key={post.id}
               post={post}
               currentUserId={currentUserId}
+              userLibrary={userLibrary}
               onToggleLike={toggleLike}
               onDelete={(p) => deleteModal.open(p)}
               onEdit={(p) => editModal.open(p)}
@@ -322,6 +388,7 @@ export function mapActivityPost(p) {
     },
     text: p.content,
     image: p.mediaURL || null,
+    deepLinkURI: p.deepLinkURI || null,
     likes: parseInt(p.reactionCount) || 0,
     comments: parseInt(p.commentCount) || 0,
     time: new Date(p.timestampUTC).toLocaleString(),

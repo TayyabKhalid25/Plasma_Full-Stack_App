@@ -149,7 +149,7 @@ router.get('/posts/:postId', authenticateToken, async (req, res) => {
 
     try {
         const result = await pool.query(`
-            SELECT p."postID", p."type", p."content", p."mediaURL", p."timestampUTC", p."intent",
+            SELECT p."postID", p."type", p."content", p."mediaURL", p."timestampUTC", p."deepLinkURI", p."intent",
                    u."username", u."plasmaUserID", pr."avatarURL",
                    (SELECT COUNT(*) FROM "comments" WHERE "postID" = p."postID") AS "commentCount",
                    (SELECT COUNT(*) FROM "post_reactions" WHERE "postID" = p."postID") AS "reactionCount",

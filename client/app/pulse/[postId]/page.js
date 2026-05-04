@@ -28,6 +28,7 @@ export default function PostPage() {
   const [submitting, setSubmitting] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
   const [openDropdown, setOpenDropdown] = useState(false);
+  const [userLibrary, setUserLibrary] = useState(new Set());
   const shareModal = useModal();
   const deleteModal = useModal();
   const editModal = useModal();
@@ -42,6 +43,24 @@ export default function PostPage() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [openDropdown]);
+
+  useEffect(() => {
+    if (!token) return;
+    const fetchMyLibrary = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/library`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setUserLibrary(new Set(data.data.map(g => String(g.gameID))));
+        }
+      } catch (err) {
+        console.error("Failed to fetch library for post button", err);
+      }
+    };
+    fetchMyLibrary();
+  }, [token]);
 
   useEffect(() => {
     if (!token || !postId) return;
@@ -64,6 +83,8 @@ export default function PostPage() {
         if (postData.success) {
           setPost({
             id: postData.data.postID,
+            type: postData.data.type,
+            deepLinkURI: postData.data.deepLinkURI,
             userID: postData.data.plasmaUserID,
             username: postData.data.username,
             avatar: getAvatarUrl(postData.data.avatarURL, postData.data.username),
@@ -98,6 +119,36 @@ export default function PostPage() {
 
     fetchData();
   }, [token, postId]);
+
+  const handleRunGameFromPost = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!post?.deepLinkURI) return;
+
+    const gameId = post.deepLinkURI.split("/").pop();
+    if (!gameId) return;
+
+    // Launch Steam
+    window.location.href = post.deepLinkURI;
+
+    // Update status to "playing" for this user
+    try {
+      await fetch(`${API_BASE}/api/library/${gameId}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ isCurrentlyPlaying: true }),
+      });
+    } catch (err) {
+      console.error("Failed to set playing status from post detail", err);
+    }
+  };
+
+  const isSteamActivity = post?.deepLinkURI?.startsWith("steam://run/");
+  const gameIdFromPost = isSteamActivity ? post.deepLinkURI.split("/").pop() : null;
+  const userOwnsGame = gameIdFromPost && userLibrary.has(String(gameIdFromPost));
 
   const toggleLike = async () => {
     if (!post) return;
@@ -298,10 +349,23 @@ export default function PostPage() {
           </div>
 
           {/* Content */}
-          <div className="px-6 md:px-8 pb-4">
+          <div className="px-6 md:px-8 pb-4 space-y-6">
             <p className="text-lg md:text-xl text-plasma-text-primary leading-relaxed whitespace-pre-wrap">
               {post.content}
             </p>
+
+            {/* RUN GAME Button for Activity Updates */}
+            {isSteamActivity && userOwnsGame && post.userID !== user?.id && (
+              <button
+                onClick={handleRunGameFromPost}
+                className="w-fit flex items-center gap-3 px-8 py-3 rounded-xl font-bold text-sm bg-[#1b2838] text-[#66c0f4] border border-[#66c0f4]/30 hover:bg-[#2a475e] hover:shadow-[0_0_20px_rgba(102,192,244,0.3)] transition-all cursor-pointer shadow-lg group/btn"
+              >
+                <div className="w-5 h-5 bg-[#66c0f4] rounded-full flex items-center justify-center group-hover/btn:scale-110 transition-transform">
+                  <div className="w-0 h-0 border-t-[4px] border-t-transparent border-l-[6px] border-l-[#1b2838] border-b-[4px] border-b-transparent ml-0.5" />
+                </div>
+                RUN GAME
+              </button>
+            )}
           </div>
 
           {/* Media */}

@@ -114,6 +114,50 @@ export default function RallyDetail({ params }) {
         }
     };
 
+    const [userLibrary, setUserLibrary] = useState(new Set());
+
+    // Fetch current user's library to show "Play Game" button
+    useEffect(() => {
+        if (!token) return;
+        const fetchMyLibrary = async () => {
+            try {
+                const res = await fetch(`${API_BASE}/api/library`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    setUserLibrary(new Set(data.data.map(g => String(g.gameID))));
+                }
+            } catch (err) {
+                console.error("Failed to fetch library for rally button", err);
+            }
+        };
+        fetchMyLibrary();
+    }, [token]);
+
+    const handleRunGame = async () => {
+        if (!rally?.gameID || rally.platform !== 'STEAM') return;
+        
+        // Launch Steam
+        window.location.href = `steam://run/${rally.gameID}`;
+
+        // Update status
+        try {
+            await fetch(`${API_BASE}/api/library/${rally.gameID}/status`, {
+                method: "PUT",
+                headers: { 
+                    "Content-Type": "application/json", 
+                    Authorization: `Bearer ${token}` 
+                },
+                body: JSON.stringify({ isCurrentlyPlaying: true })
+            });
+        } catch (err) {
+            console.error("Failed to set playing status from rally", err);
+        }
+    };
+
+    const userOwnsGame = rally?.gameID && userLibrary.has(String(rally.gameID));
+
     if (loading) {
         return (
             <DashboardLayout>
@@ -223,7 +267,7 @@ export default function RallyDetail({ params }) {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-6 mt-10">
+                                    <div className="flex flex-wrap items-center gap-4 mt-10">
                                         <button
                                             onClick={toggleRSVP}
                                             className={`px-10 py-4 rounded-2xl font-bold text-sm tracking-widest transition-all flex items-center justify-center gap-3 active:scale-[0.98] cursor-pointer shadow-xl ${rally.hasRsvpd
@@ -241,7 +285,19 @@ export default function RallyDetail({ params }) {
                                             )}
                                         </button>
 
-                                        <div className="flex flex-col">
+                                        {userOwnsGame && rally.platform === 'STEAM' && (
+                                            <button
+                                                onClick={handleRunGame}
+                                                className="px-8 py-4 rounded-2xl font-bold text-sm tracking-widest bg-[#1b2838] text-[#66c0f4] border border-[#66c0f4]/30 hover:bg-[#2a475e] hover:shadow-[0_0_20px_rgba(102,192,244,0.3)] transition-all flex items-center justify-center gap-3 active:scale-[0.98] cursor-pointer shadow-xl"
+                                            >
+                                                <div className="w-5 h-5 bg-[#66c0f4] rounded-full flex items-center justify-center">
+                                                    <div className="w-0 h-0 border-t-[4px] border-t-transparent border-l-[6px] border-l-[#1b2838] border-b-[4px] border-b-transparent ml-0.5" />
+                                                </div>
+                                                PLAY GAME
+                                            </button>
+                                        )}
+
+                                        <div className="flex flex-col ml-2">
                                             <span className="text-[10px] font-black text-plasma-text-secondary uppercase tracking-[0.2em] mb-1">Availability</span>
                                             <span className="text-lg font-display font-bold text-plasma-text-primary">{rally.currentAttendees} / {rally.maxCapacity} Slots Filled</span>
                                         </div>

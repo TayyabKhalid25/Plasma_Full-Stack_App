@@ -83,7 +83,7 @@ export default function Library() {
           title: g.title,
           image: getHighResImage(g.appID, g.coverArtURL, g.platform),
           nowPlaying: g.isCurrentlyPlaying || false,
-          platform: g.platform?.toLowerCase() || "non-steam",
+          platform: g.platform,
           iconName: g.platform === "STEAM" ? "Cloud" : "Gamepad2"
         }));
         setGames(mapped);
@@ -333,15 +333,25 @@ export default function Library() {
                         {/* Hover Overlay */}
                         <div className="absolute inset-0 bg-plasma-bg/80 backdrop-blur-[6px] flex flex-col items-center justify-center gap-4 px-4 opacity-0 group-hover:opacity-100 transition-all duration-300 z-[30] pointer-events-auto">
                           <button
-                            onClick={(e) => togglePlaying(game.id, e, game.nowPlaying)}
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const isSteam = game.platform === "STEAM";
+                              if (isSteam && !game.nowPlaying) {
+                                window.location.href = `steam://run/${game.id}`;
+                              }
+                              await togglePlaying(game.id, e, game.nowPlaying);
+                            }}
                             className={`flex items-center justify-between w-full px-3 py-2 rounded-lg transition-colors border ${
                               game.nowPlaying 
                                 ? "bg-plasma-secondary/20 border-plasma-secondary/50 text-white" 
-                                : "bg-plasma-slate-hover border-white/5 text-plasma-text-primary hover:bg-white/10"
+                                : game.platform === "STEAM"
+                                  ? "bg-[#1b2838]/80 border-[#66c0f4]/30 text-[#66c0f4] hover:bg-[#2a475e]"
+                                  : "bg-plasma-slate-hover border-white/5 text-plasma-text-primary hover:bg-white/10"
                             }`}
                           >
                             <span className="text-[12px] font-bold uppercase tracking-wider">
-                              {game.nowPlaying ? "Stop Playing" : "Set Playing"}
+                              {game.nowPlaying ? "Stop Playing" : game.platform === "STEAM" ? "Run Game" : "Set Playing"}
                             </span>
                             <div className={`w-8 h-4 rounded-full relative transition-colors ${game.nowPlaying ? "bg-plasma-secondary" : "bg-white/10"}`}>
                               <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all duration-300 shadow-sm ${game.nowPlaying ? "translate-x-4" : "translate-x-0.5"}`}></div>

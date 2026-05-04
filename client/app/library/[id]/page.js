@@ -134,7 +134,7 @@ export default function GameDetailPage({ params }) {
             id: g.appID,
             title: g.title,
             image: getHeroImage(g.appID, g.coverArtURL, g.platform),
-            platform: g.platform === "STEAM" ? "Steam" : "Non-Steam",
+            platform: g.platform,
             hoursPlayed: g.hoursPlayed || 0,
             lastPlayed: formatLastPlayed(g.lastPlayedAt),
             nowPlaying: g.isCurrentlyPlaying,
@@ -345,25 +345,39 @@ export default function GameDetailPage({ params }) {
                   >
                     Remove
                   </button>
-                  {game.platform === "Steam" && !String(id).startsWith("igdb_") && !String(id).startsWith("custom_") && (
-                    <a
-                      href={`steam://run/${id}`}
-                      className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm bg-[#1b2838] text-[#66c0f4] border border-[#66c0f4]/20 hover:bg-[#2a475e] hover:shadow-[0_0_15px_rgba(102,192,244,0.2)] transition-all cursor-pointer"
+                  {game.platform === "STEAM" && !String(id).startsWith("igdb_") && !String(id).startsWith("custom_") ? (
+                    <button
+                      onClick={async () => {
+                        if (!isPlaying) {
+                          // Launch steam
+                          window.location.href = `steam://run/${id}`;
+                          // If not already playing, toggle it on
+                          await togglePlaying();
+                        } else {
+                          // If already playing, this acts as the "Stop Playing" toggle
+                          await togglePlaying();
+                        }
+                      }}
+                      className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer ${isPlaying
+                        ? "bg-plasma-secondary text-white shadow-[0_0_25px_rgba(255,42,122,0.4)]"
+                        : "bg-[#1b2838] text-[#66c0f4] border border-[#66c0f4]/20 hover:bg-[#2a475e] hover:shadow-[0_0_15px_rgba(102,192,244,0.3)]"
+                        }`}
                     >
-                      <ExternalLink className="w-4 h-4" />
-                      Launch Game
-                    </a>
+                      <Play className={`w-4 h-4 ${isPlaying ? "fill-white" : ""}`} />
+                      {isPlaying ? "STOP PLAYING" : "RUN GAME"}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={togglePlaying}
+                      className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer ${isPlaying
+                        ? "bg-plasma-secondary text-white shadow-[0_0_25px_rgba(255,42,122,0.4)]"
+                        : "bg-primary-gradient text-white hover:shadow-card-glow hover:scale-[1.02]"
+                        }`}
+                    >
+                      <Play className={`w-4 h-4 ${isPlaying ? "fill-white" : ""}`} />
+                      {isPlaying ? "NOW PLAYING" : "Set Playing"}
+                    </button>
                   )}
-                  <button
-                    onClick={togglePlaying}
-                    className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer ${isPlaying
-                      ? "bg-plasma-secondary text-white shadow-[0_0_25px_rgba(255,42,122,0.4)]"
-                      : "bg-primary-gradient text-white hover:shadow-card-glow hover:scale-[1.02]"
-                      }`}
-                  >
-                    <Play className={`w-4 h-4 ${isPlaying ? "fill-white" : ""}`} />
-                    {isPlaying ? "NOW PLAYING" : "Set Playing"}
-                  </button>
                 </>
               )}
             </div>
