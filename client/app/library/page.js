@@ -21,6 +21,7 @@ import {
   CheckCircle2
 } from "lucide-react";
 import Link from "next/link";
+import { useModal } from "@/hooks/useModal";
 import { SearchIGDBGameModal } from "@/components/modals/SearchIGDBGameModal";
 import { SteamPrivacyWarning } from "@/components/ui/SteamPrivacyWarning";
 
