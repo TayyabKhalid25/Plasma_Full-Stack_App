@@ -12,6 +12,7 @@ import { AchievementIcon } from "@/components/ui/AchievementIcon";
 import { getIntentStyle } from "@/lib/intentStyles";
 import { getRarityProps, getAvatarUrl } from "@/lib/utils";
 import { ActivityFeedTab, mapActivityPost } from "@/components/ui/ActivityFeedTab";
+import { SteamPrivacyWarning } from "@/components/ui/SteamPrivacyWarning";
 
 import { useModal } from "@/hooks/useModal";
 import { EditHallOfFameModal } from "@/components/modals/EditHallOfFameModal";
@@ -67,6 +68,7 @@ export default function Profile() {
   const [gamesProgress, setGamesProgress] = useState([]);
   const [expandedGames, setExpandedGames] = useState({});
   const [loadingTab, setLoadingTab] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const editHofModal = useModal();
 
   // Fetch profile + prestige on mount
@@ -298,6 +300,26 @@ export default function Profile() {
     { label: "Library", value: String(libraryGames.length) },
   ] : [];
 
+  const syncSteam = async () => {
+    if (!token) return;
+    setSyncing(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/steam/sync/library`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Refresh profile data
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   return (
     <DashboardLayout showRightRail={false}>
       <div className="pb-20 animate-fade-in min-h-screen">
@@ -350,9 +372,19 @@ export default function Profile() {
           </header>
         )}
 
+        {user?.isSteamProfilePrivate && (
+          <div className="px-8 md:px-20 pt-8">
+            <SteamPrivacyWarning 
+              isPrivate={true} 
+              onSync={syncSteam}
+              syncing={syncing}
+            />
+          </div>
+        )}
+
         {/* HALL OF FAME ROW */}
         {!loading && (
-          <section className="px-8 md:px-20 py-8 relative z-10 overflow-visible">
+          <section className="px-8 md:px-20 py-8 relative z-50 overflow-visible">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-plasma-text-secondary font-sans font-bold text-[10px] tracking-[0.2em] uppercase">Hall of Fame</h3>
               <button
@@ -376,7 +408,7 @@ export default function Profile() {
 
         {/* CONTENT TABS */}
         {!loading && (
-          <section className="px-8 md:px-20 mt-2 relative z-20">
+          <section className="px-8 md:px-20 mt-2 relative z-10">
             <div className="flex gap-8 border-b border-white/5 overflow-x-auto hide-scrollbar">
               {["Activity", "Library", "Achievements", "Squad", "Rallies"].map(tab => (
                 <button

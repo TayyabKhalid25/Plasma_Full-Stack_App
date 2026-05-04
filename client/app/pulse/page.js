@@ -32,7 +32,10 @@ export const ActivityFeedSection = () => {
   useEffect(() => {
     if (!token) return;
     const fetchFeed = async () => {
-      setLoadingFeed(true);
+      // Only show skeletons if we don't have any posts yet
+      const isInitialLoad = posts.length === 0;
+      if (isInitialLoad) setLoadingFeed(true);
+
       try {
         const res = await fetch(`${API_BASE}/api/feed?filter=${activeFilter}`, {
           headers: { Authorization: `Bearer ${token}` },
