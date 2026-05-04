@@ -1,6 +1,7 @@
 const express = require('express');
 const { connectToDatabase, pool } = require('./config/dbConfig'); // Import database connection + pool for health check
 const app = express();
+app.set('trust proxy', 1); // Trust first proxy (e.g. Vercel, Heroku, Nginx)
 const cors = require('cors'); // Import CORS middleware
 require('dotenv').config(); // Load environment variables from .env file
 const port = parseInt(process.env.PORT, 10) || 5000; // Convert environment variable to integer or default to 5000
