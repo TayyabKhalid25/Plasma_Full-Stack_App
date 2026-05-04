@@ -14,6 +14,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'avatars.steamstatic.com' },
       { protocol: 'https', hostname: 'images.igdb.com' },
       { protocol: 'https', hostname: 'media.rawg.io' },
+      { protocol: 'https', hostname: 'm.media-amazon.com' },
     ],
   },
 };

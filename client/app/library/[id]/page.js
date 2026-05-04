@@ -275,7 +275,14 @@ export default function GameDetailPage({ params }) {
         {/* Hero Banner */}
         <div className="relative w-full h-[320px] rounded-2xl overflow-hidden mb-8 shadow-2xl border border-white/5">
           {game.image ? (
-            <Image src={game.image} alt={game.title} fill className="object-cover transition-transform duration-700 hover:scale-105" priority sizes="100vw" />
+            <Image 
+              src={game.image} 
+              alt={game.title} 
+              fill 
+              className="object-cover transition-transform duration-700 hover:scale-105" 
+              priority 
+              sizes="(max-width: 1024px) 100vw, 1024px" 
+            />
           ) : (
             <div className="absolute inset-0 bg-plasma-slate flex items-center justify-center">
               <Play className="w-20 h-20 text-white/5" />
