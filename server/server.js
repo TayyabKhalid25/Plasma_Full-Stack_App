@@ -38,8 +38,13 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json()); // Middleware to parse JSON request bodies
-app.use(express.urlencoded({ extended: true })); // For parsing application/x-www-form-urlencoded
+// ── Body Parsing ─────────────────────────────────────────────────────────────
+// Specific parser for profile updates (2MB) - Must be defined BEFORE global routes
+app.use('/api/users/me/profile', express.json({ limit: '2mb' }));
+
+// Global parser for all other routes (100KB)
+app.use(express.json({ limit: '100kb' }));
+app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
 // ── Rate Limiting ────────────────────────────────────────────────────────────
 // Global limiter is applied to every route. Tier-specific limiters are applied

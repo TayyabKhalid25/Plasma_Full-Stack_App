@@ -124,8 +124,8 @@ export const Sidebar = ({ onOpenDrawer }) => {
                   <div className="font-sans font-medium text-sm truncate text-plasma-text-primary">
                     {member.name}
                   </div>
-                  <div className="font-sans text-plasma-text-secondary text-[11px] truncate w-full">
-                    {getIntentStyle(member.intent).label}
+                  <div className={`font-sans text-[11px] truncate w-full font-bold ${getIntentStyle(member.intent).border.replace('border-', 'text-')}`}>
+                    {member.playingGame ? `Playing: ${member.playingGame}` : getIntentStyle(member.intent).label}
                   </div>
                 </div>
               </Link>

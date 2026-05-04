@@ -1,6 +1,7 @@
 const express = require('express');
 const { pool } = require('../config/dbConfig');
 const { authenticateToken } = require('../middleware/authMiddleware');
+const { isOnline } = require('../ws/presence');
 
 const router = express.Router();
 
@@ -259,11 +260,10 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/pulse/trending
-// Calculates which games are "trending" based on mutual friends' current play status
 router.get('/trending', authenticateToken, async (req, res) => {
     const myId = req.userId;
     try {
+        // 1. Fetch all mutual friends currently "playing" a game according to the DB
         const result = await pool.query(`
             WITH mutual_friends AS (
                 SELECT DISTINCT
@@ -274,24 +274,39 @@ router.get('/trending', authenticateToken, async (req, res) => {
                 FROM "follow_relationships"
                 WHERE ("followerID" = $1 OR "followedID" = $1)
                   AND "isMutual" = TRUE
-            ),
-            friend_activity AS (
-                SELECT 
-                    le."appID",
-                    g."title",
-                    COUNT(*) as "playingCount"
-                FROM "library_entries" le
-                JOIN mutual_friends mf ON le."userID" = mf."friendID"
-                JOIN "games" g ON le."appID" = g."appID"
-                WHERE le."isCurrentlyPlaying" = TRUE
-                GROUP BY le."appID", g."title"
             )
-            SELECT * FROM friend_activity
-            ORDER BY "playingCount" DESC
-            LIMIT 3
+            SELECT 
+                le."appID",
+                le."userID",
+                g."title"
+            FROM "library_entries" le
+            JOIN mutual_friends mf ON le."userID" = mf."friendID"
+            JOIN "games" g ON le."appID" = g."appID"
+            WHERE le."isCurrentlyPlaying" = TRUE
         `, [myId]);
 
-        res.json({ success: true, data: result.rows });
+        // 2. Filter the results in memory to only include friends who are actually online
+        const onlinePlayingData = result.rows.filter(row => isOnline(row.userID));
+
+        // 3. Aggregate the counts by appID/title
+        const gameCounts = {};
+        onlinePlayingData.forEach(row => {
+            if (!gameCounts[row.appID]) {
+                gameCounts[row.appID] = {
+                    appID: row.appID,
+                    title: row.title,
+                    playingCount: 0
+                };
+            }
+            gameCounts[row.appID].playingCount += 1;
+        });
+
+        // 4. Sort by count and take top 3
+        const trending = Object.values(gameCounts)
+            .sort((a, b) => b.playingCount - a.playingCount)
+            .slice(0, 3);
+
+        res.json({ success: true, data: trending });
     } catch (error) {
         console.error('Error fetching trending games:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });

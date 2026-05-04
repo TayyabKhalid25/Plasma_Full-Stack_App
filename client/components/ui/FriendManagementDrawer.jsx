@@ -244,7 +244,9 @@ export function FriendManagementDrawer({ isOpen, onClose }) {
                             <img src={getAvatarUrl(req.avatar, req.name)} alt="" className="w-10 h-10 rounded-full border border-white/10" />
                             <div>
                               <p className="text-sm font-bold text-white">{req.name}</p>
-                              <p className="text-[11px] text-plasma-text-secondary">{req.intent || "Unknown"}</p>
+                              <p className={`text-[11px] font-bold ${req.intent === 'COMPETITIVE' || req.intent === 'COMP' ? 'text-plasma-secondary' : 'text-plasma-success'}`}>
+                                {req.playingGame ? `Playing: ${req.playingGame}` : req.intent || "Unknown"}
+                              </p>
                             </div>
                           </Link>
                           <div className="flex gap-2">
@@ -295,7 +297,9 @@ export function FriendManagementDrawer({ isOpen, onClose }) {
                                   <div className="absolute left-5 bottom-0 w-2.5 h-2.5 bg-plasma-success rounded-full border-2 border-plasma-bg" />
                                   <div>
                                     <p className="text-sm font-medium text-white">{friend.name}</p>
-                                    <p className="text-[10px] text-plasma-primary">{friend.intent === "COMPETITIVE" ? "Competitive" : "Chill"}</p>
+                                    <p className={`text-[10px] font-bold ${friend.intent === 'COMPETITIVE' || friend.intent === 'COMP' ? 'text-plasma-secondary' : 'text-plasma-success'}`}>
+                                      {friend.playingGame ? `Playing: ${friend.playingGame}` : (friend.intent === "COMPETITIVE" ? "Competitive" : "Chill")}
+                                    </p>
                                   </div>
                                 </Link>
                                 <div className="relative">
