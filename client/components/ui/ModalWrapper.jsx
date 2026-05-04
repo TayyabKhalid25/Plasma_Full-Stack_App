@@ -4,10 +4,10 @@ import { useEffect } from "react";
 import { X } from "lucide-react";
 import { createPortal } from "react-dom";
 
-export function ModalWrapper({ isOpen, onClose, title, children, footer, maxWidth = "max-w-md" }) {
+export function ModalWrapper({ isOpen, onClose, title, children, footer, maxWidth = "max-w-md", closeOnOutsideClick = true }) {
   useEffect(() => {
     const handleEscape = (e) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape" && closeOnOutsideClick) onClose();
     };
 
     if (isOpen) {
@@ -28,7 +28,7 @@ export function ModalWrapper({ isOpen, onClose, title, children, footer, maxWidt
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
-        onClick={onClose}
+        onClick={() => closeOnOutsideClick && onClose()}
         aria-hidden="true"
       />
 

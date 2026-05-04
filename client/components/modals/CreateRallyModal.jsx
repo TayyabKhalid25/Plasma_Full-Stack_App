@@ -4,9 +4,17 @@ import { Loader2, Plus, X } from "lucide-react";
 import { apiService } from "@/services/apiService";
 import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 import { useAuth, API_BASE } from "@/context/AuthContext";
+import DatePicker from "react-datepicker";
+import { format, parse, isValid as isDateValid } from "date-fns";
+import { Calendar, Clock, ChevronDown } from "lucide-react";
+import dynamic from "next/dynamic";
+import * as Popover from "@radix-ui/react-popover";
+
+const Timekeeper = dynamic(() => import("react-timekeeper"), { ssr: false });
 
 export function CreateRallyModal({ isOpen, onClose, onRallyCreated, initialData = null }) {
   const { token } = useAuth();
+  const [isMounted, setIsMounted] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     gameId: "",
@@ -22,6 +30,10 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated, initialData 
   const [loading, setLoading] = useState(false);
   const [games, setGames] = useState([]);
   const [loadingGames, setLoadingGames] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (initialData && isOpen) {
@@ -168,7 +180,7 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated, initialData 
 
   return (
     <>
-      <ModalWrapper isOpen={isOpen} onClose={onClose} title={initialData ? "Edit Rally" : "Create Rally"} footer={footer} maxWidth="max-w-xl">
+      <ModalWrapper isOpen={isOpen} onClose={onClose} title={initialData ? "Edit Rally" : "Create Rally"} footer={footer} maxWidth="max-w-xl" closeOnOutsideClick={false}>
       <div className="space-y-5">
         {errors.main && <div className="p-3 bg-plasma-error/10 border border-plasma-error/30 rounded-lg text-plasma-error text-sm">{errors.main}</div>}
         
@@ -216,22 +228,54 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated, initialData 
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-bold text-plasma-text-secondary uppercase tracking-wider mb-2 block">Date</label>
-            <input 
-              type="date" 
-              value={formData.date}
-              onChange={e => setFormData({...formData, date: e.target.value})}
-              className={`w-full bg-plasma-bg border ${errors.date ? 'border-plasma-error' : 'border-white/10'} rounded-lg px-4 py-2 text-sm text-plasma-text-primary outline-none focus:border-plasma-primary`}
-            />
+            <div className="relative">
+              <DatePicker
+                selected={formData.date ? parse(formData.date, "yyyy-MM-dd", new Date()) : null}
+                onChange={date => {
+                  if (date && isDateValid(date)) {
+                    setFormData({ ...formData, date: format(date, "yyyy-MM-dd") });
+                  }
+                }}
+                minDate={new Date()}
+                dateFormat="MMM d, yyyy"
+                placeholderText="Select date"
+                className={`w-full bg-plasma-bg border ${errors.date ? 'border-plasma-error' : 'border-white/10'} rounded-lg pl-10 pr-4 py-2 text-sm text-plasma-text-primary outline-none focus:border-plasma-primary cursor-pointer transition-all hover:border-white/20`}
+              />
+              <Calendar className="w-4 h-4 text-plasma-text-secondary absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
             {errors.date && <span className="text-xs text-plasma-error mt-1">{errors.date}</span>}
           </div>
           <div>
             <label className="text-xs font-bold text-plasma-text-secondary uppercase tracking-wider mb-2 block">Time</label>
-            <input 
-              type="time" 
-              value={formData.time}
-              onChange={e => setFormData({...formData, time: e.target.value})}
-              className={`w-full bg-plasma-bg border ${errors.time ? 'border-plasma-error' : 'border-white/10'} rounded-lg px-4 py-2 text-sm text-plasma-text-primary outline-none focus:border-plasma-primary`}
-            />
+            <Popover.Root>
+              <Popover.Trigger asChild>
+                <button
+                  type="button"
+                  className={`relative w-full bg-plasma-bg border ${errors.time ? 'border-plasma-error' : 'border-white/10'} rounded-lg pl-10 pr-4 py-2 text-sm text-plasma-text-primary outline-none focus:border-plasma-primary cursor-pointer transition-all hover:border-white/20 flex items-center justify-between text-left`}
+                >
+                  <Clock className="w-4 h-4 text-plasma-text-secondary absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <span>{formData.time ? format(parse(formData.time, "HH:mm", new Date()), "h:mm aa") : "Select time"}</span>
+                  <ChevronDown className="w-3 h-3 text-plasma-text-secondary" />
+                </button>
+              </Popover.Trigger>
+              <Popover.Portal>
+                <Popover.Content 
+                  className="z-[100] animate-in fade-in zoom-in duration-200" 
+                  sideOffset={5}
+                  align="end"
+                >
+                  <div className="bg-plasma-slate border border-plasma-primary/40 rounded-2xl overflow-hidden shadow-2xl w-[260px]">
+                    {isMounted && (
+                      <Timekeeper
+                        time={formData.time || "12:00"}
+                        onChange={(data) => setFormData({ ...formData, time: data.formatted24 })}
+                        switchToMinuteOnHourSelect
+                      />
+                    )}
+                  </div>
+                </Popover.Content>
+              </Popover.Portal>
+            </Popover.Root>
             {errors.time && <span className="text-xs text-plasma-error mt-1">{errors.time}</span>}
           </div>
         </div>

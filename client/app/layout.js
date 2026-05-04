@@ -1,4 +1,5 @@
 import { Inter, Rajdhani, JetBrains_Mono } from "next/font/google";
+import "react-datepicker/dist/react-datepicker.css";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { SocketProvider } from "@/context/SocketContext";

@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, Suspense } from "react";
-import { AlertCircle, CheckCircle2, Steam, ArrowRight, ShieldCheck, Zap, Eye, EyeOff } from "lucide-react";
+import { AlertCircle, CheckCircle2, Steam, ArrowRight, ShieldCheck, Zap, Eye, EyeOff, Calendar } from "lucide-react";
+import DatePicker from "react-datepicker";
+import { format, parse, isValid as isDateValid } from "date-fns";
 import Image from "next/image";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -255,13 +257,24 @@ const SectionLeftSideSubsection = () => {
                 <Label htmlFor="dateOfBirth" className="font-sans font-medium text-plasma-text-muted text-[13px]">
                   Date of Birth
                 </Label>
-                <Input
-                  id="dateOfBirth"
-                  type="date"
-                  value={formData.dateOfBirth}
-                  onChange={handleInputChange}
-                  className="w-full bg-plasma-slate/50 text-white rounded-xl border-plasma-text-muted/25 [color-scheme:dark]"
-                />
+                <div className="relative">
+                  <DatePicker
+                    selected={formData.dateOfBirth ? parse(formData.dateOfBirth, "yyyy-MM-dd", new Date()) : null}
+                    onChange={(date) => {
+                      if (date && isDateValid(date)) {
+                        setFormData(prev => ({ ...prev, dateOfBirth: format(date, "yyyy-MM-dd") }));
+                      }
+                    }}
+                    maxDate={new Date()}
+                    showYearDropdown
+                    scrollableYearDropdown
+                    yearDropdownItemNumber={100}
+                    dateFormat="MMMM d, yyyy"
+                    placeholderText="Select your birthday"
+                    className="w-full h-9 flex bg-plasma-slate/50 text-white rounded-xl border border-plasma-text-muted/25 pl-10 pr-4 text-sm focus-visible:outline-none focus-visible:border-plasma-primary cursor-pointer transition-all hover:border-white/20"
+                  />
+                  <Calendar className="w-4 h-4 text-plasma-text-secondary absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
               </div>
 
               <Button

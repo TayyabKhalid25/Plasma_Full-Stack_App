@@ -368,3 +368,209 @@
     transform: translateY(calc(-100% - var(--gap)));
   }
 }
+
+/* React Datepicker Custom Styling */
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+.react-datepicker {
+  background-color: var(--color-plasma-bg) !important;
+  border: 1px solid rgba(86, 56, 149, 0.4) !important;
+  border-radius: 12px !important;
+  font-family: var(--font-sans) !important;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  color: var(--color-plasma-text-primary) !important;
+}
+
+.react-datepicker__header {
+  background-color: var(--color-plasma-slate) !important;
+  border-bottom: 1px solid rgba(86, 56, 149, 0.2) !important;
+  padding-top: 12px !important;
+}
+
+.react-datepicker__current-month, 
+.react-datepicker__day-name, 
+.react-datepicker-time__header {
+  color: var(--color-plasma-text-primary) !important;
+  font-family: var(--font-display) !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.react-datepicker__month-container {
+  background-color: var(--color-plasma-bg) !important;
+}
+
+.react-datepicker__day {
+  color: var(--color-plasma-text-muted) !important;
+  border-radius: 6px !important;
+  transition: all 0.2s;
+}
+
+.react-datepicker__day:hover {
+  background-color: var(--color-plasma-primary) !important;
+  color: white !important;
+}
+
+.react-datepicker__day--selected, 
+.react-datepicker__day--keyboard-selected {
+  background: var(--background-image-primary-gradient) !important;
+  color: white !important;
+}
+
+.react-datepicker__day--outside-month {
+  color: rgba(138, 134, 156, 0.3) !important;
+}
+
+.react-datepicker__time-container {
+  border-left: 1px solid rgba(86, 56, 149, 0.2) !important;
+  background-color: var(--color-plasma-bg) !important;
+  width: 100px !important;
+}
+
+.react-datepicker__time {
+  background-color: var(--color-plasma-bg) !important;
+}
+
+.react-datepicker__time-box {
+  width: 100px !important;
+  border-radius: 0 !important;
+}
+
+.react-datepicker__time-list-item {
+  color: var(--color-plasma-text-muted) !important;
+  background-color: transparent !important;
+  transition: all 0.2s !important;
+  padding: 10px 5px !important;
+  height: auto !important;
+}
+
+.react-datepicker__time-list-item:hover {
+  background-color: var(--color-plasma-slate-hover) !important;
+  color: white !important;
+}
+
+.react-datepicker__time-list-item--selected {
+  background: var(--background-image-primary-gradient) !important;
+  color: white !important;
+  font-weight: 700 !important;
+}
+
+.react-datepicker__navigation--next,
+.react-datepicker__navigation--previous {
+  top: 10px !important;
+}
+
+.react-datepicker__navigation-icon::before {
+  border-color: var(--color-plasma-text-secondary) !important;
+}
+
+.react-datepicker__day--disabled {
+  color: rgba(138, 134, 156, 0.1) !important;
+  cursor: not-allowed !important;
+}
+
+.react-datepicker__day--today {
+  font-weight: 700 !important;
+  color: var(--color-plasma-primary) !important;
+}
+
+/* Dropdowns (for Birthdate) */
+.react-datepicker__month-read-view--down-arrow,
+.react-datepicker__year-read-view--down-arrow {
+  border-color: var(--color-plasma-text-secondary) !important;
+}
+
+.react-datepicker__month-dropdown,
+.react-datepicker__year-dropdown {
+  background-color: var(--color-plasma-slate) !important;
+  border: 1px solid rgba(86, 56, 149, 0.4) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+}
+
+.react-datepicker__month-option,
+.react-datepicker__year-option {
+  color: var(--color-plasma-text-muted) !important;
+  padding: 5px 10px !important;
+  transition: all 0.2s !important;
+}
+
+.react-datepicker__month-option:hover,
+.react-datepicker__year-option:hover {
+  background-color: var(--color-plasma-primary) !important;
+  color: white !important;
+}
+
+.react-datepicker__month-option--selected_month,
+.react-datepicker__year-option--selected_year {
+  background-color: var(--color-plasma-primary) !important;
+  color: white !important;
+  font-weight: 700 !important;
+}
+
+/* Popper Triangle */
+.react-datepicker__triangle::before {
+  border-bottom-color: rgba(86, 56, 149, 0.4) !important;
+  border-top-color: rgba(86, 56, 149, 0.4) !important;
+}
+
+.react-datepicker__triangle::after {
+  border-bottom-color: var(--color-plasma-slate) !important;
+  border-top-color: var(--color-plasma-slate) !important;
+}
+
+/* React Timekeeper Custom Styling (Dark Mode) */
+.react-timekeeper {
+  box-shadow: none !important;
+  border: none !important;
+  font-family: var(--font-sans) !important;
+  background-color: var(--color-plasma-bg) !important;
+}
+
+.react-timekeeper__top-bar {
+  background-color: var(--color-plasma-slate) !important;
+}
+
+.react-timekeeper__clock-wrapper {
+  background-color: var(--color-plasma-bg) !important;
+}
+
+/* Timekeeper uses CSS variables for theming */
+:root {
+  --main-bg: var(--color-plasma-bg);
+  --top-bg: var(--color-plasma-slate);
+  --top-text-color: var(--color-plasma-text-secondary);
+  --top-selected-color: var(--color-plasma-text-primary);
+  --clock-bg: var(--color-plasma-slate);
+  --clock-number-color: var(--color-plasma-text-muted);
+  --clock-number-active-color: #ffffff;
+  --hand-color: var(--color-plasma-primary);
+  --hand-circle-center: var(--color-plasma-primary);
+  --hand-circle-outer: var(--color-plasma-primary);
+  --meridiem-bg: var(--color-plasma-slate);
+  --meridiem-text-color: var(--color-plasma-text-secondary);
+  --meridiem-selected-bg: var(--color-plasma-primary);
+  --meridiem-selected-text-color: #ffffff;
+}
+
+/* More specific overrides if variables aren't enough */
+.react-timekeeper__clock-hand {
+  stroke: var(--color-plasma-primary) !important;
+}
+
+.react-timekeeper__hand-circle-outer {
+  fill: var(--color-plasma-primary) !important;
+}
+
+.react-timekeeper__hand-circle-inner {
+  fill: var(--color-plasma-secondary) !important;
+}
+
+.react-timekeeper__meridiem-toggle {
+  background-color: var(--color-plasma-slate) !important;
+  border: 1px solid rgba(86, 56, 149, 0.2) !important;
+}
