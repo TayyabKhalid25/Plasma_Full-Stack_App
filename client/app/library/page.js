@@ -61,7 +61,7 @@ export default function Library() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [toast, setToast] = useState(null);
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const addGameModal = useModal();
 
   // Show toast with auto-dismiss
