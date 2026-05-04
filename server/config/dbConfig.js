@@ -21,13 +21,20 @@ const pool = new Pool({
 
 // Function to verify the database connection on startup
 const connectToDatabase = async () => {
-    try {
-        const client = await pool.connect();
-        console.log('Connected to Neon PostgreSQL Database!');
-        client.release();
-    } catch (err) {
-        console.error('Database connection failed:', err.message);
-        throw err;
+    const maxRetries = 2;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const client = await pool.connect();
+            console.log('Connected to Neon PostgreSQL Database!');
+            client.release();
+            return; // Exit function on success
+        } catch (err) {
+            console.error(`Database connection attempt ${attempt} failed: ${err.message}`);
+            if (attempt === maxRetries) throw err; // Re-throw if it's the last attempt
+            
+            console.log(`Retrying in 2 seconds...`);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+        }
     }
 };
 
