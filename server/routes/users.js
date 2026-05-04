@@ -65,7 +65,9 @@ router.get('/:userId', authenticateToken, async (req, res) => {
                 p."lastLogoff",
                 p."steamMemberSince",
                 p."countryCode",
-                p."isSteamProfilePrivate"
+                p."isSteamProfilePrivate",
+                (SELECT g."title" FROM "library_entries" le JOIN "games" g ON le."appID" = g."appID" WHERE le."userID" = u."plasmaUserID" AND le."isCurrentlyPlaying" = TRUE LIMIT 1) as "playingGame",
+                (SELECT le."lastPlayedAt" FROM "library_entries" le WHERE le."userID" = u."plasmaUserID" AND le."isCurrentlyPlaying" = TRUE LIMIT 1) as "playingSince"
             FROM "users" u
             LEFT JOIN "profiles" p ON u."plasmaUserID" = p."plasmaUserID"
             WHERE u."plasmaUserID" = $1

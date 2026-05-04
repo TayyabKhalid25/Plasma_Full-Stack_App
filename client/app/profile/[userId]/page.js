@@ -14,6 +14,37 @@ import { ActivityFeedTab, mapActivityPost } from "@/components/ui/ActivityFeedTa
 
 const iconMap = { Trophy, Swords, Shield, Target, Medal, Gem, Lock };
 
+function SessionTimer({ startTime }) {
+  const [time, setTime] = useState("");
+
+  useEffect(() => {
+    if (!startTime) return;
+    const update = () => {
+      const now = new Date();
+      const start = new Date(startTime);
+      const diff = Math.floor((now - start) / 1000);
+      if (diff < 0) {
+        setTime("0s");
+        return;
+      }
+      
+      const h = Math.floor(diff / 3600);
+      const m = Math.floor((diff % 3600) / 60);
+      const s = diff % 60;
+      
+      if (h > 0) setTime(`${h}h ${m}m ${s}s`);
+      else if (m > 0) setTime(`${m}m ${s}s`);
+      else setTime(`${s}s`);
+    };
+
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [startTime]);
+
+  return <span>{time}</span>;
+}
+
 function ProfileHeaderSkeleton() {
   return (
     <header className="relative min-h-[280px] w-full flex items-center px-8 md:px-20 overflow-hidden py-10 md:py-0">
@@ -113,6 +144,8 @@ export default function UserProfile({ params }) {
             intent: p.intent || "CHILL",
             bio: p.bio || "",
             totalPlasmaXP: p.totalPlasmaXP || 0,
+            playingGame: p.playingGame,
+            playingSince: p.playingSince
           });
           setIsFollowing(userData.data.isFollowing);
           setIsMutual(userData.data.isMutual);
@@ -329,6 +362,19 @@ export default function UserProfile({ params }) {
                         <p className="text-plasma-text-secondary text-[11px] font-medium mt-1 uppercase tracking-tighter">{stat.label}</p>
                       </div>
                     ))}
+                    
+                    {profileData.playingGame && (
+                      <div className="bg-plasma-secondary/10 backdrop-blur-md rounded-lg px-4 py-3 min-w-[160px] border border-plasma-secondary/30 flex flex-col justify-center animate-pulse">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-2 h-2 bg-plasma-secondary rounded-full animate-ping" />
+                          <p className="text-plasma-secondary text-[11px] font-bold uppercase tracking-tighter">Now Playing</p>
+                        </div>
+                        <p className="text-plasma-text-primary text-[14px] font-bold truncate leading-tight">{profileData.playingGame}</p>
+                        <p className="text-plasma-text-secondary text-[10px] font-mono mt-0.5">
+                          Session: <SessionTimer startTime={profileData.playingSince} />
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

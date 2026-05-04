@@ -27,12 +27,15 @@ export const RightRail = () => {
     async function fetchUser() {
       try {
         const token = typeof window !== "undefined" ? localStorage.getItem("plasma_token") : null;
-        const res = await fetch("http://localhost:5000/api/prestige/me", {
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000";
+        const res = await fetch(`${apiBase}/api/prestige/me`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         const data = await res.json();
         if (data.success) setUser(data.data);
-      } catch {}
+      } catch (err) {
+        console.error("Failed to fetch prestige summary:", err);
+      }
     }
     setLoading(true);
     Promise.all([

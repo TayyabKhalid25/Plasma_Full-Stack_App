@@ -123,15 +123,15 @@ function setupWebSocket(server) {
                 const remaining = set.size;
                 if (remaining === 0) {
                     clients.delete(userId);
-                    console.log(`WS: User ${userId} disconnected (0 connections left). Starting 5-min grace period.`);
+                    console.log(`WS: User ${userId} disconnected (0 connections left). Starting 15-second grace period.`);
                     
-                    // Start 5-minute grace period before cleaning up activity
+                    // Start 15-second grace period before cleaning up activity
                     const timeoutId = setTimeout(async () => {
                         console.log(`WS: Grace period expired for user ${userId}. Cleaning up...`);
                         setOffline(userId); // Mark user as offline only after grace period
                         await stopAllUserActivity(userId);
                         cleanupTimeouts.delete(userId);
-                    }, 5 * 60 * 1000); // 5 minutes
+                    }, 15 * 1000); // 15 seconds
                     
                     cleanupTimeouts.set(userId, timeoutId);
                 } else {
