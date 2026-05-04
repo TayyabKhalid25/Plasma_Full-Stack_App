@@ -264,7 +264,7 @@ export function CreateRallyModal({ isOpen, onClose, onRallyCreated, initialData 
                   sideOffset={5}
                   align="end"
                 >
-                  <div className="bg-plasma-slate border border-plasma-primary/40 rounded-2xl overflow-hidden shadow-2xl w-[260px]">
+                  <div className="bg-plasma-slate border border-plasma-primary/40 rounded-2xl overflow-hidden shadow-2xl">
                     {isMounted && (
                       <Timekeeper
                         time={formData.time || "12:00"}
