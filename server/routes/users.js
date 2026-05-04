@@ -1,6 +1,7 @@
 const express = require('express');
 const { pool } = require('../config/dbConfig');
 const { authenticateToken } = require('../middleware/authMiddleware');
+const { isOnline } = require('../ws/presence');
 
 const router = express.Router();
 
@@ -285,7 +286,7 @@ router.delete('/:userId/follow', authenticateToken, async (req, res) => {
     }
 });
 
-const { isOnline } = require('../ws/presence');
+
 
 // GET /api/users/:userId/followers
 router.get('/:userId/followers', authenticateToken, async (req, res) => {
