@@ -119,8 +119,8 @@ export default function Prestige() {
               description: item.description,
               iconName: item.iconName,
               xp: `${item.plasmaXP} XP`,
-              unlockedAt: (item.unlockedAt && item.unlockedAt !== "NULL" && item.unlockedAt !== "null") 
-                ? new Date(item.unlockedAt).toLocaleDateString() 
+              unlockedAt: (item.unlockedAt && item.unlockedAt !== "NULL" && item.unlockedAt !== "null")
+                ? new Date(item.unlockedAt).toLocaleDateString()
                 : null,
               unlocked: true,
               ...rarityProps
@@ -161,8 +161,8 @@ export default function Prestige() {
                 description: ach.description,
                 iconName: ach.iconName,
                 xp: `${ach.plasmaXP} XP`,
-                unlockedAt: (ach.unlockedAt && ach.unlockedAt !== "NULL" && ach.unlockedAt !== "null") 
-                  ? new Date(ach.unlockedAt).toLocaleDateString() 
+                unlockedAt: (ach.unlockedAt && ach.unlockedAt !== "NULL" && ach.unlockedAt !== "null")
+                  ? new Date(ach.unlockedAt).toLocaleDateString()
                   : null,
                 unlocked: !!ach.unlockedAt,
                 gameTitle: game.gameTitle,
@@ -224,25 +224,25 @@ export default function Prestige() {
       // Refresh prestige data
       const res = await fetch(`${API_BASE}/api/prestige/me`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
-        if (data.success) {
-          setPrestigeData(data.data);
-          const hofItems = data.data.hallOfFame.map((item) => {
-            const rarityProps = getRarityProps(item.rarityWeight);
-            return {
-              id: item.achievementID,
-              gameId: item.appID,
-              gameTitle: item.gameTitle,
-              title: item.title,
-              description: item.description,
-              iconName: item.iconName,
-              xp: `${item.plasmaXP} XP`,
-              unlockedAt: (item.unlockedAt && item.unlockedAt !== "NULL") ? new Date(item.unlockedAt).toLocaleDateString() : null,
-              unlocked: true,
-              ...rarityProps
-            };
-          });
-          setHof(hofItems);
-        }
+      if (data.success) {
+        setPrestigeData(data.data);
+        const hofItems = data.data.hallOfFame.map((item) => {
+          const rarityProps = getRarityProps(item.rarityWeight);
+          return {
+            id: item.achievementID,
+            gameId: item.appID,
+            gameTitle: item.gameTitle,
+            title: item.title,
+            description: item.description,
+            iconName: item.iconName,
+            xp: `${item.plasmaXP} XP`,
+            unlockedAt: (item.unlockedAt && item.unlockedAt !== "NULL") ? new Date(item.unlockedAt).toLocaleDateString() : null,
+            unlocked: true,
+            ...rarityProps
+          };
+        });
+        setHof(hofItems);
+      }
     } catch (err) {
       console.error("Failed to update Hall of Fame", err);
     }
@@ -258,7 +258,7 @@ export default function Prestige() {
       const data = await res.json();
       if (data.success) {
         showToast(`Synced ${data.syncedAchievements} achievements across ${data.gamesProcessed} games!`, "success");
-        
+
         // Manual re-fetch to update UI after sync
         const [prestigeRes, achievementsRes] = await Promise.all([
           fetch(`${API_BASE}/api/prestige/me`, { headers: { Authorization: `Bearer ${token}` } }),
@@ -378,14 +378,14 @@ export default function Prestige() {
             </div>
           </div>
 
-          <SteamPrivacyWarning 
-            isPrivate={user?.isSteamProfilePrivate} 
+          <SteamPrivacyWarning
+            isPrivate={user?.isSteamProfilePrivate}
             onSync={syncAchievements}
             syncing={syncing}
           />
 
           {/* HALL OF FAME */}
-          <section className="mt-6 relative z-50">
+          <section className="mt-6 relative z-30 hover:z-50 transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-[11px] font-bold text-plasma-text-secondary tracking-[0.2em] uppercase">HALL OF FAME</h2>
               <button
@@ -435,7 +435,7 @@ export default function Prestige() {
 
           {/* Achievement Grid */}
           {loading ? <AchievementGridSkeleton /> : (
-            <div className="space-y-10 py-6 relative z-10">
+            <div className="space-y-10 py-6 relative z-20 hover:z-50 transition-all duration-300">
               {gamesProgress.length > 0 ? (
                 gamesProgress.map((game, index) => {
                   const isExpanded = expandedGames[index];
@@ -465,10 +465,10 @@ export default function Prestige() {
                           <AchievementIcon key={aIdx} achievement={ach} />
                         ))}
                       </div>
-                      </div>
-                    );
-                  })
-                ) : (
+                    </div>
+                  );
+                })
+              ) : (
                 <div className="text-center py-12">
                   <p className="text-plasma-text-secondary text-sm">No achievements in this category yet.</p>
                 </div>
