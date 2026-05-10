@@ -1,6 +1,9 @@
 # Plasma_Full-Stack_App
 Created by Wahaj, Saad, Ibrahim and I, Plasma acts as a specialized "Second Screen" web application that aggregates a user's entire gaming identity, both automatic (Steam) and manual (everything else), into a rich, community-focused social hub. 
 
+## App Demo / Guided Walkthrough
+[![Watch the video on youtube](https://img.youtube.com/vi/BFx05nVJKQI/0.jpg)](https://www.youtube.com/watch?v=BFx05nVJKQI)
+
 ## [Plasma Figma Design Link](https://www.figma.com/design/46jGV38kP26hGm0blEZoyh/Plasma?node-id=15-33&t=fR8LKhfQBYdGhBHZ-1)
 
 ## Getting Started
@@ -79,4 +82,4 @@ npm run encrypt --prefix server
 
 For information on terms of service, privacy policies, and licensing, please see:
 - [LEGAL.md](LEGAL.md)
-- [LICENSE](LICENSE)
+- [LICENSE](LICENSE)
