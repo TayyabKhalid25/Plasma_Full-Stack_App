@@ -127,8 +127,7 @@ async function syncSteamLibrary(userId) {
             INSERT INTO "games" ("appID", "title", "platform", "coverArtURL")
             SELECT id, title, 'STEAM', cover
             FROM unnest($1::text[], $2::text[], $3::text[]) AS t(id, title, cover)
-            ON CONFLICT ("appID") DO UPDATE SET
-                "coverArtURL" = EXCLUDED."coverArtURL"
+            ON CONFLICT ("appID") DO NOTHING
         `, [appIds, titles, coverArts]);
 
         // Batch insert/update user library entries
@@ -269,12 +268,7 @@ async function syncSteamAchievements(userId) {
             INSERT INTO "achievements" ("achievementID", "appID", "title", "description", "rarityWeight", "plasmaXP", "globalPercentage")
             SELECT id, app, title, descr, rarity, xp, gpct
             FROM unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::numeric[], $6::integer[], $7::real[]) AS t(id, app, title, descr, rarity, xp, gpct)
-            ON CONFLICT ("achievementID") DO UPDATE SET
-                "title"             = EXCLUDED."title",
-                "description"       = EXCLUDED."description",
-                "rarityWeight"      = EXCLUDED."rarityWeight",
-                "plasmaXP"          = EXCLUDED."plasmaXP",
-                "globalPercentage"  = EXCLUDED."globalPercentage"
+            ON CONFLICT ("achievementID") DO NOTHING
         `, [achIds, appIds2, titles, descriptions, rarities, xps, globalPcts]);
 
         // Only insert user_achievements if there are unlocked ones

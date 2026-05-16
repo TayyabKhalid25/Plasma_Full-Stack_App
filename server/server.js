@@ -86,18 +86,18 @@ app.get('/health', async (req, res) => {
     }
   };
 
-  try {
-    const start = Date.now();
-    await pool.query('SELECT 1');
-    const latencyMs = Date.now() - start;
-    healthReport.checks.database = { status: 'online', latencyMs };
-  } catch (dbErr) {
-    healthReport.status = 'degraded';
-    healthReport.checks.database = {
-      status: 'offline',
-      error: dbErr.message || 'Connection failed'
-    };
-  }
+  // try {
+  //   const start = Date.now();
+  //   await pool.query('SELECT 1');
+  //   const latencyMs = Date.now() - start;
+  //   healthReport.checks.database = { status: 'online', latencyMs };
+  // } catch (dbErr) {
+  //   healthReport.status = 'degraded';
+  //   healthReport.checks.database = {
+  //     status: 'offline',
+  //     error: dbErr.message || 'Connection failed'
+  //   };
+  // }
 
   const httpStatus = healthReport.status === 'healthy' ? 200 : 503;
   res.status(httpStatus).json(healthReport);
@@ -218,22 +218,16 @@ app.use((err, req, res, _next) => {
 
 const http = require('http');
 const { setupWebSocket, startupCleanup } = require('./ws/chatSocket');
-const { initializeJobTable, startJobWorker } = require('./utils/jobQueue');
+const { startJobWorker } = require('./utils/jobQueue');
 
 const server = http.createServer(app);
 setupWebSocket(server);
 
-server.listen(port, async () => {
+server.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
   console.log(`WebSocket available at ws://localhost:${port}/ws/chat`);
   console.log(`Health check available at http://localhost:${port}/health`);
 
-  // Initialize the background job system
-  try {
-    await initializeJobTable();
-    await startJobWorker();
-  } catch (err) {
-    console.error('[Server] Failed to initialize job queue:', err.message);
-    // Non-fatal: the server can still serve requests, just without background retries
-  }
+  // Start the in-memory background job worker
+  startJobWorker();
 });

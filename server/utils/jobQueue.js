@@ -1,96 +1,71 @@
 // =============================================================================
-// BACKGROUND JOB QUEUE — Postgres-backed, Zero-Cloud job processing
+// BACKGROUND JOB QUEUE — In-Memory, Zero-Database job processing
 // =============================================================================
-// This module provides a lightweight job queue that uses the existing Postgres
-// database instead of requiring external infrastructure (Redis, RabbitMQ, etc.).
+// This module provides a lightweight job queue that runs entirely in server
+// memory. No external infrastructure required (no Postgres table, no Redis).
 //
 // Architecture:
-//   1. Jobs are inserted into the "background_jobs" table with a scheduled time.
+//   1. Jobs are pushed onto an in-memory array with a scheduled time.
 //   2. A worker runs every 60 seconds, picks up due jobs, and executes them.
 //   3. Failed jobs are retried with exponential backoff (5min → 15min → 60min).
-//   4. Permanently failed jobs (403 Private Profile, max retries) are marked and
-//      not retried.
-//   5. A cleanup task runs every 6 hours, deleting completed/failed jobs older
-//      than 24 hours to prevent table bloat.
+//   4. Permanently failed jobs (403 Private Profile, max retries) are discarded.
+//   5. Completed/failed jobs are immediately removed from memory — no cleanup
+//      task needed.
 //   6. If any external API returns 429 (Rate Limited), ALL jobs are paused for
 //      15 minutes to protect API keys from being banned.
+//
+// Trade-off: Jobs are lost on server restart. This is acceptable because:
+//   - Jobs are only enqueued on login/register (user triggers again next visit)
+//   - User-initiated syncs call syncSteamLibrary directly, not through the queue
 //
 // Supported Job Types:
 //   - STEAM_LIBRARY_SYNC:       Full library + profile sync for a user.
 //   - STEAM_ACHIEVEMENT_SYNC:   Full achievement sync for a user.
-//   - STEAM_ACHIEVEMENT_RETRY:  Retry achievements for specific failed games.
 // =============================================================================
 
-const { pool } = require('../config/dbConfig');
 const {
     syncSteamLibrary,
     syncSteamAchievements
 } = require('./steamSyncService');
+
+// ── In-Memory Job Store ──────────────────────────────────────────────────────
+const jobQueue = [];
+let jobIdCounter = 0;
 
 // ── Global API Cooldown ──────────────────────────────────────────────────────
 // When an external API returns 429, we set this timestamp to prevent all jobs
 // from hammering the API further. The worker skips processing until cooldown expires.
 let apiCooldownUntil = null;
 
-// ── Worker interval references (for graceful shutdown if needed) ─────────────
+// ── Worker interval reference (for graceful shutdown if needed) ──────────────
 let workerInterval = null;
-let cleanupInterval = null;
-
-// =============================================================================
-// TABLE INITIALIZATION
-// =============================================================================
-
-/**
- * Creates the background_jobs table if it doesn't exist.
- * Called once during server startup.
- */
-async function initializeJobTable() {
-    await pool.query(`
-        CREATE TABLE IF NOT EXISTS "background_jobs" (
-            "jobID"       UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-            "jobType"     VARCHAR(50)  NOT NULL,
-            "payload"     JSONB        NOT NULL DEFAULT '{}',
-            "status"      VARCHAR(20)  NOT NULL DEFAULT 'PENDING',
-            "retries"     INTEGER      NOT NULL DEFAULT 0,
-            "maxRetries"  INTEGER      NOT NULL DEFAULT 3,
-            "lastError"   TEXT,
-            "errorCode"   VARCHAR(10),
-            "nextRunAt"   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-            "createdAt"   TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-            "completedAt" TIMESTAMP WITH TIME ZONE,
-            "updatedAt"   TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-        );
-    `);
-
-    // Partial index: only index PENDING jobs, since those are the only ones
-    // the worker ever queries. This keeps the index tiny and fast.
-    await pool.query(`
-        CREATE INDEX IF NOT EXISTS "idx_background_jobs_pending"
-        ON "background_jobs" ("nextRunAt")
-        WHERE "status" = 'PENDING';
-    `);
-
-    console.log('[JobQueue] background_jobs table ready.');
-}
 
 // =============================================================================
 // ENQUEUE
 // =============================================================================
 
 /**
- * Inserts a new job into the queue.
+ * Adds a new job to the in-memory queue.
  *
- * @param {string} jobType - One of: STEAM_LIBRARY_SYNC, STEAM_ACHIEVEMENT_SYNC, STEAM_ACHIEVEMENT_RETRY
- * @param {object} payload - Job-specific data (e.g., { userId }, { userId, appIds })
+ * @param {string} jobType - One of: STEAM_LIBRARY_SYNC, STEAM_ACHIEVEMENT_SYNC
+ * @param {object} payload - Job-specific data (e.g., { userId })
  * @param {number} [delayMs=0] - How many milliseconds from now the job should first run.
  */
 async function enqueueJob(jobType, payload, delayMs = 0) {
     const nextRunAt = new Date(Date.now() + delayMs);
-    await pool.query(`
-        INSERT INTO "background_jobs" ("jobType", "payload", "nextRunAt")
-        VALUES ($1, $2, $3)
-    `, [jobType, JSON.stringify(payload), nextRunAt]);
-    console.log(`[JobQueue] Enqueued ${jobType} job (runs at ${nextRunAt.toISOString()})`);
+    const job = {
+        jobID: ++jobIdCounter,
+        jobType,
+        payload,
+        status: 'PENDING',
+        retries: 0,
+        maxRetries: 3,
+        lastError: null,
+        errorCode: null,
+        nextRunAt
+    };
+    jobQueue.push(job);
+    console.log(`[JobQueue] Enqueued ${jobType} job #${job.jobID} (runs at ${nextRunAt.toISOString()})`);
 }
 
 // =============================================================================
@@ -130,9 +105,8 @@ const JOB_HANDLERS = {
 // =============================================================================
 
 /**
- * Picks up to `batchSize` due jobs and executes them sequentially.
- * Uses SELECT ... FOR UPDATE SKIP LOCKED to prevent duplicate processing
- * if multiple workers ever exist.
+ * Picks up to `batchSize` due jobs from the in-memory queue and executes them
+ * sequentially. Single-threaded Node.js guarantees no duplicate processing.
  */
 async function processJobs(batchSize = 5) {
     // Check global API cooldown — if active, skip this entire cycle
@@ -141,21 +115,16 @@ async function processJobs(batchSize = 5) {
     }
     apiCooldownUntil = null; // Cooldown expired, clear it
 
-    // Atomically claim a batch of due jobs by setting them to RUNNING
-    const result = await pool.query(`
-        UPDATE "background_jobs"
-        SET "status" = 'RUNNING', "updatedAt" = NOW()
-        WHERE "jobID" IN (
-            SELECT "jobID" FROM "background_jobs"
-            WHERE "status" = 'PENDING' AND "nextRunAt" <= NOW()
-            ORDER BY "nextRunAt" ASC
-            LIMIT $1
-            FOR UPDATE SKIP LOCKED
-        )
-        RETURNING *
-    `, [batchSize]);
+    const now = Date.now();
 
-    for (const job of result.rows) {
+    // Find due PENDING jobs, sorted by nextRunAt (earliest first)
+    const dueJobs = jobQueue
+        .filter(j => j.status === 'PENDING' && j.nextRunAt.getTime() <= now)
+        .sort((a, b) => a.nextRunAt - b.nextRunAt)
+        .slice(0, batchSize);
+
+    for (const job of dueJobs) {
+        job.status = 'RUNNING';
         await executeJob(job);
     }
 }
@@ -166,18 +135,18 @@ async function processJobs(batchSize = 5) {
 async function executeJob(job) {
     const handler = JOB_HANDLERS[job.jobType];
     if (!handler) {
-        await markPermanentlyFailed(job.jobID,
-            `Unknown job type: "${job.jobType}". No handler registered.`);
+        removeJob(job.jobID);
+        console.warn(`[JobQueue] Job #${job.jobID} permanently failed: Unknown job type "${job.jobType}". No handler registered.`);
         return;
     }
 
     try {
-        console.log(`[JobQueue] Executing ${job.jobType} (attempt ${job.retries + 1}/${job.maxRetries})`);
+        console.log(`[JobQueue] Executing ${job.jobType} #${job.jobID} (attempt ${job.retries + 1}/${job.maxRetries})`);
         await handler(job.payload);
-        await markCompleted(job.jobID);
-        console.log(`[JobQueue] ${job.jobType} completed successfully.`);
+        removeJob(job.jobID);
+        console.log(`[JobQueue] ${job.jobType} #${job.jobID} completed successfully.`);
     } catch (err) {
-        await handleJobFailure(job, err);
+        handleJobFailure(job, err);
     }
 }
 
@@ -185,11 +154,11 @@ async function executeJob(job) {
 // FAILURE HANDLING — Smart categorization + exponential backoff
 // =============================================================================
 
-async function handleJobFailure(job, err) {
+function handleJobFailure(job, err) {
     const errorCode = err.response?.status?.toString() || null;
     const errorMessage = err.message || 'Unknown error';
 
-    console.error(`[JobQueue] ${job.jobType} failed (attempt ${job.retries + 1}): ${errorMessage}`);
+    console.error(`[JobQueue] ${job.jobType} #${job.jobID} failed (attempt ${job.retries + 1}): ${errorMessage}`);
 
     // ── 429: Rate Limited ─────────────────────────────────────────────────
     // External API is telling us to slow down. Pause ALL jobs globally for
@@ -198,43 +167,26 @@ async function handleJobFailure(job, err) {
         apiCooldownUntil = Date.now() + 15 * 60 * 1000;
         console.warn(`[JobQueue] 429 Rate Limited! Global cooldown until ${new Date(apiCooldownUntil).toISOString()}`);
 
-        await pool.query(`
-            UPDATE "background_jobs"
-            SET "status" = 'PENDING',
-                "nextRunAt" = $1,
-                "lastError" = $2,
-                "errorCode" = $3,
-                "updatedAt" = NOW()
-            WHERE "jobID" = $4
-        `, [
-            new Date(apiCooldownUntil),
-            `Rate limited by external API. Global cooldown active.`,
-            errorCode,
-            job.jobID
-        ]);
+        job.status = 'PENDING';
+        job.nextRunAt = new Date(apiCooldownUntil);
+        job.lastError = 'Rate limited by external API. Global cooldown active.';
+        job.errorCode = errorCode;
         return;
     }
 
     // ── 403: Forbidden / Private Profile ──────────────────────────────────
-    // No amount of retrying will fix a private Steam profile. Mark as
-    // permanently failed so we don't waste resources.
+    // No amount of retrying will fix a private Steam profile. Discard job.
     if (errorCode === '403') {
-        await markPermanentlyFailed(
-            job.jobID,
-            `Access denied (HTTP 403). The user's Steam profile may be private. Change Steam privacy settings and retry manually.`,
-            errorCode
-        );
+        console.warn(`[JobQueue] Job #${job.jobID} permanently failed: Access denied (HTTP 403). The user's Steam profile may be private.`);
+        removeJob(job.jobID);
         return;
     }
 
     // ── All other errors: Retry with exponential backoff ──────────────────
     const newRetries = job.retries + 1;
     if (newRetries >= job.maxRetries) {
-        await markPermanentlyFailed(
-            job.jobID,
-            `Max retries (${job.maxRetries}) exceeded. Last error: ${errorMessage}`,
-            errorCode
-        );
+        console.warn(`[JobQueue] Job #${job.jobID} permanently failed: Max retries (${job.maxRetries}) exceeded. Last error: ${errorMessage}`);
+        removeJob(job.jobID);
         return;
     }
 
@@ -243,77 +195,26 @@ async function handleJobFailure(job, err) {
     const delayMs = backoffDelays[Math.min(newRetries - 1, backoffDelays.length - 1)];
     const nextRunAt = new Date(Date.now() + delayMs);
 
-    console.log(`[JobQueue] Scheduling retry ${newRetries}/${job.maxRetries} at ${nextRunAt.toISOString()}`);
+    console.log(`[JobQueue] Scheduling retry ${newRetries}/${job.maxRetries} for job #${job.jobID} at ${nextRunAt.toISOString()}`);
 
-    await pool.query(`
-        UPDATE "background_jobs"
-        SET "status" = 'PENDING',
-            "retries" = $1,
-            "nextRunAt" = $2,
-            "lastError" = $3,
-            "errorCode" = $4,
-            "updatedAt" = NOW()
-        WHERE "jobID" = $5
-    `, [newRetries, nextRunAt, errorMessage, errorCode, job.jobID]);
+    job.status = 'PENDING';
+    job.retries = newRetries;
+    job.nextRunAt = nextRunAt;
+    job.lastError = errorMessage;
+    job.errorCode = errorCode;
 }
 
 // =============================================================================
-// STATUS UPDATES
-// =============================================================================
-
-async function markCompleted(jobID) {
-    await pool.query(`
-        UPDATE "background_jobs"
-        SET "status" = 'COMPLETED', "completedAt" = NOW(), "updatedAt" = NOW()
-        WHERE "jobID" = $1
-    `, [jobID]);
-}
-
-async function markPermanentlyFailed(jobID, errorMessage, errorCode = null) {
-    console.warn(`[JobQueue] Job ${jobID} permanently failed: ${errorMessage}`);
-    await pool.query(`
-        UPDATE "background_jobs"
-        SET "status" = 'PERMANENTLY_FAILED',
-            "lastError" = $1,
-            "errorCode" = $2,
-            "completedAt" = NOW(),
-            "updatedAt" = NOW()
-        WHERE "jobID" = $3
-    `, [errorMessage, errorCode, jobID]);
-}
-
-// =============================================================================
-// CLEANUP — Prevent infinite table growth
+// QUEUE HELPERS
 // =============================================================================
 
 /**
- * Deletes completed and permanently failed jobs older than 24 hours.
- * This runs on a separate 6-hour interval to keep the table lean.
+ * Removes a job from the in-memory queue by its ID.
  */
-async function cleanupOldJobs() {
-    const result = await pool.query(`
-        DELETE FROM "background_jobs"
-        WHERE ("status" = 'COMPLETED' OR "status" = 'PERMANENTLY_FAILED')
-        AND "updatedAt" < NOW() - INTERVAL '24 hours'
-    `);
-    if (result.rowCount > 0) {
-        console.log(`[JobQueue] Cleaned up ${result.rowCount} old jobs.`);
-    }
-}
-
-/**
- * Recovers jobs that were stuck in RUNNING state (e.g., server crashed mid-execution).
- * Resets them to PENDING so the worker picks them up again.
- * Called once during server startup.
- */
-async function recoverStuckJobs() {
-    const result = await pool.query(`
-        UPDATE "background_jobs"
-        SET "status" = 'PENDING', "updatedAt" = NOW()
-        WHERE "status" = 'RUNNING'
-    `);
-    if (result.rowCount > 0) {
-        console.log(`[JobQueue] Recovered ${result.rowCount} stuck jobs from RUNNING → PENDING.`);
+function removeJob(jobID) {
+    const idx = jobQueue.findIndex(j => j.jobID === jobID);
+    if (idx !== -1) {
+        jobQueue.splice(idx, 1);
     }
 }
 
@@ -322,16 +223,10 @@ async function recoverStuckJobs() {
 // =============================================================================
 
 /**
- * Starts the background worker timers.
- * - Job processor: every 60 seconds
- * - Job cleanup: every 6 hours
- * Also recovers any jobs stuck in RUNNING from a previous crash.
+ * Starts the background worker timer.
+ * Processes due jobs every 60 seconds.
  */
-async function startJobWorker() {
-    // Recover any jobs stuck from a previous crash
-    await recoverStuckJobs();
-
-    // Process jobs every 60 seconds
+function startJobWorker() {
     workerInterval = setInterval(async () => {
         try {
             await processJobs(5);
@@ -340,20 +235,10 @@ async function startJobWorker() {
         }
     }, 60 * 1000);
 
-    // Clean up old jobs every 6 hours
-    cleanupInterval = setInterval(async () => {
-        try {
-            await cleanupOldJobs();
-        } catch (err) {
-            console.error('[JobQueue] Cleanup cycle error:', err.message);
-        }
-    }, 6 * 60 * 60 * 1000);
-
-    console.log('[JobQueue] Background job worker started (processing every 60s, cleanup every 6h).');
+    console.log('[JobQueue] In-memory job worker started (processing every 60s).');
 }
 
 module.exports = {
-    initializeJobTable,
     enqueueJob,
     startJobWorker
 };
