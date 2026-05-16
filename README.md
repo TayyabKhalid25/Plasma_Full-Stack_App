@@ -51,16 +51,16 @@ Copy the example files and fill in your actual values:
 - `server/.env.example` → `server/.env`
 
 ### Automated Setup (Secrets Vault)
-The server environment variables can be managed using the built-in vault system, which uses `server/secrets.enc` to securely store configuration.
+The environment variables for both the client and server can be managed using the built-in vault system, which uses `client/secrets.enc` and `server/secrets.enc` to securely store configuration.
 
-To automatically create your `.env` file from the encrypted secrets:
+To automatically create both `.env.local` (client) and `.env` (server) files from the encrypted secrets:
 ```bash
-npm run decrypt --prefix server
+npm run decrypt:all
 ```
 
-To update the encrypted secrets with your current `.env` values:
+To update the encrypted secrets with your current environment values:
 ```bash
-npm run encrypt --prefix server
+npm run encrypt:all
 ```
 
 
