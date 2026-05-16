@@ -1,5 +1,10 @@
 import { X } from "lucide-react";
 
+/**
+ * LegalModal Component
+ * @component
+ * @param {object} props
+ */
 export default function LegalModal({ isOpen, onClose, type }) {
   if (!isOpen) return null;
 

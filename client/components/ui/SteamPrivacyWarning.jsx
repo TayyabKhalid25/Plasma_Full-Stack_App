@@ -1,5 +1,10 @@
 import { ShieldAlert, RefreshCcw } from "lucide-react";
 
+/**
+ * SteamPrivacyWarning Component
+ * @component
+ * @param {object} props
+ */
 export function SteamPrivacyWarning({ isPrivate, onSync, syncing }) {
   if (!isPrivate) return null;
 

@@ -7,7 +7,15 @@ const { enqueueJob } = require('../utils/jobQueue');
 
 const router = express.Router();
 
-// GET /api/steam/friends/status
+/**
+ * GET /api/steam/friends/status
+ * Fetches real-time Steam presence (online, in-game) for all mutual friends
+ * who have linked their Steam accounts.
+ *
+ * @requires authenticateToken
+ * @returns {{ success: boolean, data: SteamPlayerSummary[] }}
+ * @throws {500} Internal server error
+ */
 router.get('/friends/status', authenticateToken, async (req, res) => {
     try {
         // Find steamID64 of friends
@@ -43,7 +51,18 @@ router.get('/friends/status', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/steam/player/:steamId64
+/**
+ * GET /api/steam/player/:steamId64
+ * Fetches a single Steam player's summary (avatar, persona name, state).
+ * Handles private profiles gracefully.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.steamId64 - The SteamID64 of the player
+ * @returns {{ success: boolean, data: SteamPlayerSummary }}
+ * @throws {403} User's profile is private
+ * @throws {404} Player not found on Steam
+ * @throws {500} Internal server error
+ */
 router.get('/player/:steamId64', authenticateToken, async (req, res) => {
     const { steamId64 } = req.params;
 
@@ -76,7 +95,17 @@ router.get('/player/:steamId64', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/steam/achievements/:appId
+/**
+ * GET /api/steam/achievements/:appId
+ * Fetches the authenticated user's Steam achievements for a specific game.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.appId - The Steam AppID
+ * @returns {{ success: boolean, data: Object }}
+ * @throws {400} Steam not linked
+ * @throws {403} User's profile is private
+ * @throws {500} Internal server error
+ */
 router.get('/achievements/:appId', authenticateToken, async (req, res) => {
     const { appId } = req.params;
 
@@ -102,9 +131,17 @@ router.get('/achievements/:appId', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/steam/sync/achievements
-// Syncs Steam achievements for all games in user's library into DB.
-// Designed to be called by a cron job or manually.
+/**
+ * POST /api/steam/sync/achievements
+ * Syncs Steam achievements for all games in the user's library into the DB.
+ * Designed to be called by a cron job or manually.
+ *
+ * @requires authenticateToken
+ * @returns {{ success: boolean, message: string, syncedAchievements: number, gamesProcessed: number, failedGames: string[] }}
+ * @throws {400} Steam account not linked
+ * @throws {403} User's profile is private
+ * @throws {500} Failed to sync achievements
+ */
 router.post('/sync/achievements', authenticateToken, async (req, res) => {
     try {
         const result = await syncSteamAchievements(req.userId);
@@ -133,7 +170,17 @@ router.post('/sync/achievements', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/steam/sync/library (Unified Library Sync)
+/**
+ * POST /api/steam/sync/library
+ * Performs a unified sync of the user's Steam library.
+ * Enqueues a background job for achievement sync.
+ *
+ * @requires authenticateToken
+ * @returns {{ success: boolean, message: string, syncedGames: number, isPrivate: boolean }}
+ * @throws {400} Steam account not linked
+ * @throws {403} User's profile is private
+ * @throws {500} Failed to sync with Steam
+ */
 router.post('/sync/library', authenticateToken, async (req, res) => {
     try {
         const result = await syncSteamLibrary(req.userId);
@@ -161,8 +208,15 @@ router.post('/sync/library', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/steam/sync/avatar-force (Destructive Profile Update)
-// Specifically overwrites the user's avatar with their current Steam avatar.
+/**
+ * POST /api/steam/sync/avatar-force
+ * Overwrites the user's local profile avatar with their current Steam avatar.
+ *
+ * @requires authenticateToken
+ * @returns {{ success: boolean, message: string, isPrivate: boolean }}
+ * @throws {400} Steam account not linked
+ * @throws {500} Failed to fetch Steam profile
+ */
 router.post('/sync/avatar-force', authenticateToken, async (req, res) => {
     try {
         // 1. Get user's steamId64

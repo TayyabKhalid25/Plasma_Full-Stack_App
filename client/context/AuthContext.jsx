@@ -2,10 +2,12 @@
 
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { API_BASE } from "@/services/httpClient";
 
 const AuthContext = createContext(null);
 
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000";
+// Re-export for backward compatibility (SocketContext imports from here)
+export { API_BASE };
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);

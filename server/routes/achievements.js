@@ -1,6 +1,8 @@
 const express = require('express');
 const { pool } = require('../config/dbConfig');
 const { authenticateToken } = require('../middleware/authMiddleware');
+const { enforcePrivacy } = require('../utils/privacyCheck');
+const { fetchHallOfFame } = require('../utils/hallOfFameService');
 
 const router = express.Router();
 
@@ -84,32 +86,25 @@ async function fetchUserAchievements(userId, options = {}) {
     return gameOrder.map(key => gamesProgressMap[key]);
 }
 
-// GET /api/achievements
-// Query Params: ?type= (steam, manual, all)
+/**
+ * GET /api/achievements
+ * Fetches the authenticated user's achievements grouped by game,
+ * along with their pinned Hall of Fame achievements.
+ *
+ * @requires authenticateToken
+ * @param {string} [req.query.type='all'] - Filter by platform ('steam', 'manual', 'all')
+ * @param {string} [req.query.orderBy='unlockedAt'] - Sorting field
+ * @param {string} [req.query.direction='DESC'] - Sorting direction
+ * @returns {{ success: boolean, data: { hallOfFame: Achievement[], gamesProgress: GameProgress[] } }}
+ * @throws {500} Internal server error
+ */
 router.get('/', authenticateToken, async (req, res) => {
     const userId = req.userId;
     const { type = 'all', orderBy, direction } = req.query;
 
     try {
         // 1. Fetch Hall of Fame (isPinned = true)
-        const hallOfFameResult = await pool.query(`
-            SELECT 
-                a."achievementID",
-                a."appID",
-                a."title",
-                a."description",
-                a."rarityWeight",
-                a."plasmaXP",
-                ua."unlockedAt",
-                COALESCE(g."title", 'Unknown Game') AS "gameTitle",
-                g."coverArtURL"
-            FROM "user_achievements" ua
-            JOIN "achievements" a ON ua."achievementID" = a."achievementID"
-            LEFT JOIN "games" g ON a."appID" = g."appID"
-            WHERE ua."userID" = $1 AND ua."isPinned" = TRUE
-            ORDER BY ua."unlockedAt" DESC
-            LIMIT 5
-        `, [userId]);
+        const hallOfFame = await fetchHallOfFame(userId);
 
         // 2. Fetch games progress using shared function
         const gamesProgress = await fetchUserAchievements(userId, { type, orderBy, direction });
@@ -117,7 +112,7 @@ router.get('/', authenticateToken, async (req, res) => {
         res.json({
             success: true,
             data: {
-                hallOfFame: hallOfFameResult.rows,
+                hallOfFame: hallOfFame,
                 gamesProgress: gamesProgress
             }
         });
@@ -127,36 +122,28 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/achievements/:userId
-// Fetches achievements for a specific user (does NOT include Hall of Fame)
+/**
+ * GET /api/achievements/:userId
+ * Fetches achievements for a specific user, subject to privacy checks.
+ * Does not include Hall of Fame.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.userId - UUID of the target user
+ * @param {string} [req.query.type='all'] - Filter by platform ('steam', 'manual', 'all')
+ * @param {string} [req.query.orderBy] - Sorting field
+ * @param {string} [req.query.direction] - Sorting direction
+ * @returns {{ success: boolean, data: { gamesProgress: GameProgress[] } }}
+ * @throws {403} Access denied by privacy settings
+ * @throws {500} Internal server error
+ */
 router.get('/:userId', authenticateToken, async (req, res) => {
     const { userId } = req.params;
     const { type = 'all', orderBy, direction } = req.query;
 
     try {
-        // 1. Privacy Check
-        if (userId !== req.userId) {
-            const privacyCheck = await pool.query(`
-                SELECT p."isSteamProfilePrivate", fr."isMutual"
-                FROM "profiles" p
-                LEFT JOIN "follow_relationships" fr ON (
-                    (fr."followerID" = $1 AND fr."followedID" = $2) OR
-                    (fr."followerID" = $2 AND fr."followedID" = $1)
-                ) AND fr."isMutual" = TRUE
-                WHERE p."plasmaUserID" = $2
-            `, [req.userId, userId]);
-
-            if (privacyCheck.rows.length > 0) {
-                const { isSteamProfilePrivate, isMutual } = privacyCheck.rows[0];
-                if (isSteamProfilePrivate && !isMutual) {
-                    return res.status(403).json({ 
-                        success: false, 
-                        message: 'This user profile is private.', 
-                        isPrivate: true 
-                    });
-                }
-            }
-        }
+        // Centralized privacy enforcement
+        const denied = await enforcePrivacy(req.userId, userId, res);
+        if (denied) return;
 
         const gamesProgress = await fetchUserAchievements(userId, { type, orderBy, direction });
 
@@ -172,36 +159,26 @@ router.get('/:userId', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/achievements/game/:appID
-// Returns all achievements for a game, indicating which ones the target user has unlocked
+/**
+ * GET /api/achievements/game/:appID
+ * Returns all achievements for a specific game, indicating which ones
+ * the requesting user (or target user) has unlocked.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.appID - App ID of the game
+ * @param {string} [req.query.userId] - Optional UUID of target user (defaults to self)
+ * @returns {{ success: boolean, data: { game: GameMetadata, achievements: AchievementStatus[] } }}
+ * @throws {403} Access denied by privacy settings
+ * @throws {500} Internal server error
+ */
 router.get('/game/:appID', authenticateToken, async (req, res) => {
     const { appID } = req.params;
     const userId = req.query.userId || req.userId;
 
     try {
-        // 1. Privacy Check
-        if (userId !== req.userId) {
-            const privacyCheck = await pool.query(`
-                SELECT p."isSteamProfilePrivate", fr."isMutual"
-                FROM "profiles" p
-                LEFT JOIN "follow_relationships" fr ON (
-                    (fr."followerID" = $1 AND fr."followedID" = $2) OR
-                    (fr."followerID" = $2 AND fr."followedID" = $1)
-                ) AND fr."isMutual" = TRUE
-                WHERE p."plasmaUserID" = $2
-            `, [req.userId, userId]);
-
-            if (privacyCheck.rows.length > 0) {
-                const { isSteamProfilePrivate, isMutual } = privacyCheck.rows[0];
-                if (isSteamProfilePrivate && !isMutual) {
-                    return res.status(403).json({ 
-                        success: false, 
-                        message: 'This user profile is private.', 
-                        isPrivate: true 
-                    });
-                }
-            }
-        }
+        // Centralized privacy enforcement
+        const denied = await enforcePrivacy(req.userId, userId, res);
+        if (denied) return;
 
         // 2. Get Game Metadata
         const gameResult = await pool.query(`
@@ -243,8 +220,15 @@ router.get('/game/:appID', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/achievements/game/:appID/friends
-// Returns friends who have unlocked achievements in this game
+/**
+ * GET /api/achievements/game/:appID/friends
+ * Returns mutual friends who have unlocked achievements in a specific game.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.appID - App ID of the game
+ * @returns {{ success: boolean, data: FriendAchievementProgress[] }}
+ * @throws {500} Internal server error
+ */
 router.get('/game/:appID/friends', authenticateToken, async (req, res) => {
     const { appID } = req.params;
     const userId = req.userId;

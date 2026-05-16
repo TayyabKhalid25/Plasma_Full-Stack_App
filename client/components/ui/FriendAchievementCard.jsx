@@ -2,6 +2,11 @@ import Link from "next/link";
 import { Trophy } from "lucide-react";
 import { getAvatarUrl, getRarityProps } from "@/lib/utils";
 
+/**
+ * FriendAchievementCard Component
+ * @component
+ * @param {object} props
+ */
 export function FriendAchievementCard({ friend }) {
   return (
     <div className="p-5 rounded-3xl bg-plasma-slate/60 backdrop-blur-md border border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-6 hover:border-white/10 transition-colors">

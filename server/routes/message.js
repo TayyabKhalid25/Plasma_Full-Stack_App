@@ -3,22 +3,19 @@ const { pool } = require('../config/dbConfig');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { isOnline } = require('../ws/presence');
 const { sendToUser } = require('../ws/chatSocket');
+const { checkMutualFriendship } = require('../utils/friendshipUtils');
 
 const router = express.Router();
 
-// Helper to check BR-2 Double Opt-In
-async function checkMutualFollow(userA, userB) {
-    const result = await pool.query(`
-        SELECT "isMutual" FROM "follow_relationships"
-        WHERE ("followerID" = $1 AND "followedID" = $2)
-           OR ("followerID" = $2 AND "followedID" = $1)
-    `, [userA, userB]);
-    
-    return result.rows.some(row => row.isMutual === true);
-}
-
-// GET /api/messages
-// Retrieves inbox (latest message from all active conversations + unread counts + online status)
+/**
+ * GET /api/messages
+ * Retrieves the user's inbox, containing the latest message from all active conversations,
+ * unread message counts, and the online status of the contact.
+ *
+ * @requires authenticateToken
+ * @returns {{ success: boolean, data: Conversation[] }}
+ * @throws {500} Internal server error on DB failure
+ */
 router.get('/', authenticateToken, async (req, res) => {
     const myId = req.userId;
     try {
@@ -82,8 +79,15 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 });
 
-// PUT /api/messages/:userId/read
-// Marks all messages from a specific user as read
+/**
+ * PUT /api/messages/:userId/read
+ * Marks all direct messages from a specific user as read in the database.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.userId - UUID of the user whose messages are being marked read
+ * @returns {{ success: boolean, message: string }}
+ * @throws {500} Internal server error on DB failure
+ */
 router.put('/:userId/read', authenticateToken, async (req, res) => {
     const friendId = req.params.userId;
     const myId = req.userId;
@@ -102,14 +106,23 @@ router.put('/:userId/read', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/messages/:userId
-// Retrieves conversation with another user
+/**
+ * GET /api/messages/:userId
+ * Retrieves the direct message conversation history with another user.
+ * Both users must be mutual friends.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.userId - UUID of the mutual friend
+ * @returns {{ success: boolean, data: DirectMessage[] }}
+ * @throws {403} Forbidden if users are not mutual friends
+ * @throws {500} Internal server error on DB failure
+ */
 router.get('/:userId', authenticateToken, async (req, res) => {
     const friendId = req.params.userId;
     const myId = req.userId;
     
     try {
-        const isMutual = await checkMutualFollow(myId, friendId);
+        const isMutual = await checkMutualFriendship(myId, friendId);
         if (!isMutual) {
             return res.status(403).json({ success: false, message: 'You must mutually follow each other to access direct messages.' });
         }
@@ -132,8 +145,23 @@ router.get('/:userId', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/messages/:userId
-// Sends a new DM, with lobby invite and media support
+/**
+ * POST /api/messages/:userId
+ * Sends a new direct message to a mutual friend. Supports text, lobby invites, and media.
+ * Triggers real-time WebSocket events to both sender and receiver.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.userId - UUID of the receiver
+ * @param {string} [req.body.content] - Text content of the message
+ * @param {boolean} [req.body.isLobbyInvite] - Flag indicating if this is a game lobby invite
+ * @param {string} [req.body.lobbyLink] - URL/URI for the lobby invite
+ * @param {string} [req.body.mediaURL] - URL of attached media
+ * @param {string} [req.body.parentMessageID] - UUID of the message being replied to
+ * @returns {{ success: boolean, data: Object, message: string }}
+ * @throws {400} Bad request if message is completely empty
+ * @throws {403} Forbidden if users are not mutual friends
+ * @throws {500} Internal server error on DB failure
+ */
 router.post('/:userId', authenticateToken, async (req, res) => {
     const friendId = req.params.userId;
     const myId = req.userId;
@@ -144,7 +172,7 @@ router.post('/:userId', authenticateToken, async (req, res) => {
     }
     
     try {
-        const isMutual = await checkMutualFollow(myId, friendId);
+        const isMutual = await checkMutualFriendship(myId, friendId);
         if (!isMutual) {
             return res.status(403).json({ success: false, message: 'You must mutually follow each other to send direct messages.' });
         }

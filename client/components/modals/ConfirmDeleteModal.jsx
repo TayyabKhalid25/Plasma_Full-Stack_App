@@ -2,6 +2,11 @@ import { useState } from "react";
 import { ModalWrapper } from "../ui/ModalWrapper";
 import { Loader2, AlertTriangle } from "lucide-react";
 
+/**
+ * ConfirmDeleteModal Component
+ * @component
+ * @param {object} props
+ */
 export function ConfirmDeleteModal({ isOpen, onClose, onConfirm, title = "Delete Post", message = "Are you sure you want to delete this post? This action cannot be undone." }) {
   const [loading, setLoading] = useState(false);
 

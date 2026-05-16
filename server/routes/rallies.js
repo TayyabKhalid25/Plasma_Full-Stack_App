@@ -3,40 +3,26 @@ const { pool } = require('../config/dbConfig');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { isOnline } = require('../ws/presence');
 const { getSteamPlayerSummaries } = require('../utils/externalApis');
+const { checkMutualFriendship } = require('../utils/friendshipUtils');
+const { buildEnrichedRallyQuery } = require('../utils/rallyQueryBuilder');
 
 const router = express.Router();
 
-// GET /api/rallies
-// Query Params: ?view= (calendar, list)
+/**
+ * GET /api/rallies
+ * Retrieves a list of all future rallies.
+ *
+ * @requires authenticateToken
+ * @param {string} [req.query.view] - View mode ('calendar' or 'list')
+ * @returns {{ success: boolean, data: RallyEvent[] }}
+ * @throws {500} Internal server error on DB failure
+ */
 router.get('/', authenticateToken, async (req, res) => {
     const userId = req.userId;
 
     try {
-        const result = await pool.query(`
-            SELECT 
-                e."eventID", 
-                e."title", 
-                e."description", 
-                e."scheduledStartUTC", 
-                e."maxCapacity", 
-                e."requiredIntent",
-                e."gameID",
-                e."roles",
-                g."title" AS "gameTitle",
-                g."coverArtURL",
-                u."username" AS "organizerName",
-                u."plasmaUserID" AS "organizerID",
-                (SELECT COUNT(*) FROM "rsvps" r WHERE r."eventID" = e."eventID" AND r."status" = 'CONFIRMED') AS "currentAttendees",
-                (SELECT JSONB_OBJECT_AGG(COALESCE(r."declaredRole", 'Open Slots'), count_role) 
-                 FROM (SELECT "declaredRole", COUNT(*) as count_role FROM "rsvps" WHERE "eventID" = e."eventID" AND "status" = 'CONFIRMED' GROUP BY "declaredRole") r
-                ) AS "roleCounts",
-                (SELECT COUNT(*) > 0 FROM "rsvps" r WHERE r."eventID" = e."eventID" AND r."userID" = $1 AND r."status" = 'CONFIRMED') AS "hasRsvpd"
-            FROM "rally_events" e
-            JOIN "users" u ON e."organizerID" = u."plasmaUserID"
-            LEFT JOIN "games" g ON e."gameID" = g."appID"
-            WHERE e."scheduledStartUTC" > CURRENT_TIMESTAMP
-            ORDER BY e."scheduledStartUTC" ASC
-        `, [userId]);
+        const query = buildEnrichedRallyQuery('list', userId);
+        const result = await pool.query(query.text, query.values);
 
         res.json({ success: true, data: result.rows });
 
@@ -46,8 +32,15 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/rallies/upcoming
-// Returns the next 2 upcoming rallies for the right-rail widget
+/**
+ * GET /api/rallies/upcoming
+ * Returns the next 2 upcoming rallies for the right-rail widget on the dashboard.
+ * Includes rallies the user is organizing or has confirmed RSVP for.
+ *
+ * @requires authenticateToken
+ * @returns {{ success: boolean, data: RallyEvent[] }}
+ * @throws {500} Internal server error on DB failure
+ */
 router.get('/upcoming', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query(`
@@ -72,8 +65,22 @@ router.get('/upcoming', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/rallies
-// Create a new rally event
+/**
+ * POST /api/rallies
+ * Creates a new rally event and broadcasts a post to the feed.
+ *
+ * @requires authenticateToken
+ * @param {string} req.body.title - Title of the rally
+ * @param {string} [req.body.description] - Rally description
+ * @param {string} req.body.scheduledStartUTC - UTC timestamp of start time
+ * @param {number} req.body.maxCapacity - Max attendees allowed
+ * @param {string} [req.body.requiredIntent='CHILL'] - Intent tag
+ * @param {string} [req.body.gameId] - App ID of the game
+ * @param {Object[]} [req.body.roles] - Array of role definitions
+ * @returns {{ success: boolean, data: RallyEvent }}
+ * @throws {400} Missing required fields
+ * @throws {500} Internal server error on DB failure
+ */
 router.post('/', authenticateToken, async (req, res) => {
     const userId = req.userId;
     const { title, description, scheduledStartUTC, maxCapacity, requiredIntent, gameId, roles } = req.body;
@@ -111,22 +118,8 @@ router.post('/', authenticateToken, async (req, res) => {
 
 
         // Fetch the enriched rally object to return (consistent with GET /api/rallies)
-        const enrichedResult = await pool.query(`
-            SELECT 
-                e."eventID", e."title", e."description", e."scheduledStartUTC", e."maxCapacity", e."requiredIntent", e."gameID", e."roles",
-                g."title" AS "gameTitle", g."coverArtURL",
-                u."username" AS "organizerName",
-                u."plasmaUserID" AS "organizerID",
-                (SELECT COUNT(*) FROM "rsvps" r WHERE r."eventID" = e."eventID" AND r."status" = 'CONFIRMED') AS "currentAttendees",
-                (SELECT JSONB_OBJECT_AGG(COALESCE(r."declaredRole", 'Open Slots'), count_role) 
-                 FROM (SELECT "declaredRole", COUNT(*) as count_role FROM "rsvps" WHERE "eventID" = e."eventID" AND "status" = 'CONFIRMED' GROUP BY "declaredRole") r
-                ) AS "roleCounts",
-                (SELECT COUNT(*) > 0 FROM "rsvps" r WHERE r."eventID" = e."eventID" AND r."userID" = $1 AND r."status" = 'CONFIRMED') AS "hasRsvpd"
-            FROM "rally_events" e
-            JOIN "users" u ON e."organizerID" = u."plasmaUserID"
-            LEFT JOIN "games" g ON e."gameID" = g."appID"
-            WHERE e."eventID" = $2
-        `, [userId, newRally.eventID]);
+        const enrichedQuery = buildEnrichedRallyQuery('detail', userId, newRally.eventID);
+        const enrichedResult = await pool.query(enrichedQuery.text, enrichedQuery.values);
 
         res.status(201).json({ success: true, data: enrichedResult.rows[0] });
 
@@ -136,7 +129,18 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/rallies/:eventId
+/**
+ * GET /api/rallies/:eventId
+ * Retrieves detailed information about a specific rally, including attendees
+ * and real-time Steam presence (if applicable).
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.eventId - UUID of the rally
+ * @returns {{ success: boolean, data: RallyEvent }}
+ * @throws {400} Invalid Event ID format
+ * @throws {404} Rally not found
+ * @throws {500} Internal server error on DB failure
+ */
 router.get('/:eventId', authenticateToken, async (req, res) => {
     const { eventId } = req.params;
 
@@ -229,7 +233,17 @@ router.get('/:eventId', authenticateToken, async (req, res) => {
     }
 });
 
-// PUT /api/rallies/:eventId
+/**
+ * PUT /api/rallies/:eventId
+ * Updates an existing rally. If capacity is reduced or roles removed, kicks excess attendees.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.eventId - UUID of the rally
+ * @returns {{ success: boolean, message: string, data: RallyEvent }}
+ * @throws {403} Not authorized (not organizer)
+ * @throws {404} Rally not found
+ * @throws {500} Internal server error on DB failure
+ */
 router.put('/:eventId', authenticateToken, async (req, res) => {
     const { eventId } = req.params;
     const { title, description, scheduledStartUTC, maxCapacity, requiredIntent, gameId, roles } = req.body;
@@ -336,31 +350,8 @@ router.put('/:eventId', authenticateToken, async (req, res) => {
         `, [postContent, updatedRally.requiredIntent, `/rallies`, req.userId]);
 
         // 6. Fetch the enriched rally object to return (with profiles join for avatars)
-        const enrichedResult = await pool.query(`
-            SELECT 
-                e."eventID", e."title", e."description", e."scheduledStartUTC", e."maxCapacity", e."requiredIntent", e."gameID", e."roles",
-                g."title" AS "gameTitle", g."coverArtURL",
-                u."username" AS "organizerName", u."plasmaUserID" AS "organizerID", p."avatarURL" AS "organizerAvatar",
-                (SELECT COUNT(*) FROM "rsvps" r WHERE r."eventID" = e."eventID" AND r."status" = 'CONFIRMED') AS "currentAttendees",
-                (SELECT JSONB_OBJECT_AGG(COALESCE(r."declaredRole", 'Open Slots'), count_role) 
-                 FROM (SELECT "declaredRole", COUNT(*) as count_role FROM "rsvps" WHERE "eventID" = e."eventID" AND "status" = 'CONFIRMED' GROUP BY "declaredRole") r
-                ) AS "roleCounts",
-                (SELECT COUNT(*) > 0 FROM "rsvps" r WHERE r."eventID" = e."eventID" AND r."userID" = $1 AND r."status" = 'CONFIRMED') AS "hasRsvpd",
-                (SELECT JSONB_AGG(jsonb_build_object(
-                    'userID', r."userID",
-                    'username', ru."username",
-                    'avatarURL', rp."avatarURL",
-                    'role', r."declaredRole"
-                )) FROM "rsvps" r 
-                JOIN "users" ru ON r."userID" = ru."plasmaUserID"
-                JOIN "profiles" rp ON r."userID" = rp."plasmaUserID"
-                WHERE r."eventID" = e."eventID" AND r."status" = 'CONFIRMED') AS "attendees"
-            FROM "rally_events" e
-            JOIN "users" u ON e."organizerID" = u."plasmaUserID"
-            JOIN "profiles" p ON e."organizerID" = p."plasmaUserID"
-            LEFT JOIN "games" g ON e."gameID" = g."appID"
-            WHERE e."eventID" = $2
-        `, [req.userId, updatedRally.eventID]);
+        const enrichedQuery = buildEnrichedRallyQuery('detail', req.userId, updatedRally.eventID);
+        const enrichedResult = await pool.query(enrichedQuery.text, enrichedQuery.values);
 
         res.json({ success: true, message: 'Rally updated and roster managed.', data: enrichedResult.rows[0] });
     } catch (error) {
@@ -526,15 +517,8 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
 
     try {
         if (req.userId !== userId) {
-            // Mutual friend check
-            const friendCheck = await pool.query(`
-                SELECT "isMutual" FROM "follow_relationships"
-                WHERE ("followerID" = $1 AND "followedID" = $2)
-                   OR ("followerID" = $2 AND "followedID" = $1)
-                LIMIT 1
-            `, [req.userId, userId]);
-
-            if (friendCheck.rows.length === 0 || !friendCheck.rows[0].isMutual) {
+            const isMutual = await checkMutualFriendship(req.userId, userId);
+            if (!isMutual) {
                 return res.status(403).json({ success: false, message: 'Rallies are only visible to mutual friends' });
             }
         }

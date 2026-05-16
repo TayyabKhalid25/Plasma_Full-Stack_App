@@ -2,6 +2,11 @@ import * as SeparatorPrimitive from "@radix-ui/react-separator";
 import * as React from "react";
 import { cn } from "../../lib/utils";
 
+/**
+ * Separator Component
+ * @component
+ * @param {object} props
+ */
 const Separator = React.forwardRef(
   (
     { className, orientation = "horizontal", decorative = true, ...props },

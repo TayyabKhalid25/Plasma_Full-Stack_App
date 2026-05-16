@@ -1,37 +1,12 @@
 /**
  * PLASMA — Service Abstraction Layer
  * 
- * All data fetching goes through here. Each function tries the real API first.
+ * All data fetching goes through here. Each function calls the real API
+ * via the shared httpClient.
  */
 
-import * as dummy from "@/data/dummy";
+import { apiFetch } from "./httpClient";
 
-const rawApiBase = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000";
-const API_BASE = rawApiBase.endsWith("/") ? rawApiBase.slice(0, -1) : rawApiBase;
-
-// Simulates network latency for realistic loading states (dummy fallback only)
-const delay = (ms = 200) => new Promise((r) => setTimeout(r, ms));
-
-// Shared fetch helper — attaches JWT and handles errors
-async function apiFetch(endpoint, options = {}) {
-  const token = typeof window !== "undefined" ? localStorage.getItem("plasma_token") : null;
-
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `API error ${res.status}`);
-  }
-
-  return res.json();
-}
 
 // ─── AUTH ────────────────────────────────────────────────────
 export async function getUser() {
@@ -51,7 +26,13 @@ export async function getFeed(filter = "all") {
 }
 
 export function getFeedFilters() {
-  return dummy.feedFilters;
+  return [
+    { id: "all", label: "All" },
+    { id: "friends", label: "Friends Activity" },
+    { id: "my-posts", label: "My Posts" },
+    { id: "comp", label: "Comp Only" },
+    { id: "chill", label: "Chill Only" },
+  ];
 }
 
 // ─── LIBRARY / GAMES ─────────────────────────────────────────
@@ -62,7 +43,14 @@ export async function getGames(filter = "all", search = "") {
 }
 
 export function getGameFilters() {
-  return dummy.gameFilters;
+  return [
+    { id: "all", label: "All" },
+    { id: "playing", label: "Currently Playing" },
+    { id: "steam", label: "Steam" },
+    { id: "non-steam", label: "Non-Steam" },
+    { id: "playstation", label: "PlayStation" },
+    { id: "xbox", label: "Xbox" },
+  ];
 }
 
 // ─── PRESTIGE / ACHIEVEMENTS ─────────────────────────────────
@@ -93,7 +81,7 @@ export async function getSquad() {
 }
 
 export async function getFriends() {
-  const data = await apiFetch("/api/friends");
+  const data = await apiFetch("/api/users/friends");
   if (data.success) return data.data;
   throw new Error("Failed");
 }

@@ -33,6 +33,11 @@ const buttonVariants = cva(
   }
 );
 
+/**
+ * Button Component
+ * @component
+ * @param {object} props
+ */
 const Button = React.forwardRef(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";

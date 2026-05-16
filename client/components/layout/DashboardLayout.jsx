@@ -8,6 +8,11 @@ import { FloatingMessages } from "../ui/FloatingMessages";
 import { FriendManagementDrawer } from "../ui/FriendManagementDrawer";
 import { useState } from "react";
 
+/**
+ * DashboardLayout Component
+ * @component
+ * @param {object} props
+ */
 export const DashboardLayout = ({ children, showRightRail = true }) => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 

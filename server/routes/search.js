@@ -4,8 +4,15 @@ const { authenticateToken } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-// GET /api/search
-// Returns combined results for users and local games
+/**
+ * GET /api/search
+ * Returns combined results for users and local games matching the query.
+ *
+ * @requires authenticateToken
+ * @param {string} req.query.q - The search query string (min length 2)
+ * @returns {{ success: boolean, data: { users: User[], games: Game[] } }}
+ * @throws {500} Internal server error on DB failure
+ */
 router.get('/', authenticateToken, async (req, res) => {
     const { q } = req.query;
     if (!q || q.trim().length < 2) {

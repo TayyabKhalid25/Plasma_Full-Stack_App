@@ -1,6 +1,8 @@
 const express = require('express');
 const { pool } = require('../config/dbConfig');
 const { authenticateToken } = require('../middleware/authMiddleware');
+const { enforcePrivacy } = require('../utils/privacyCheck');
+const { fetchHallOfFame } = require('../utils/hallOfFameService');
 
 const router = express.Router();
 
@@ -26,22 +28,7 @@ async function fetchPrestige(userId) {
         WHERE ua."userID" = $1
     `, [userId]);
 
-    const hallOfFame = await pool.query(`
-        SELECT 
-            a."achievementID", 
-            a."appID", 
-            a."title", 
-            a."description", 
-            a."plasmaXP", 
-            a."rarityWeight", 
-            a."iconName",
-            ua."unlockedAt",
-            COALESCE(g."title", 'Unknown Game') AS "gameTitle"
-        FROM "user_achievements" ua
-        JOIN "achievements" a ON ua."achievementID" = a."achievementID"
-        LEFT JOIN "games" g ON a."appID" = g."appID"
-        WHERE ua."userID" = $1 AND ua."isPinned" = TRUE
-    `, [userId]);
+    const hallOfFame = await fetchHallOfFame(userId);
 
     // Level Calculation (1000 XP per level)
     const level = Math.floor(totalPlasmaXP / 1000) + 1;
@@ -57,11 +44,18 @@ async function fetchPrestige(userId) {
         nextLevelXP: nextLevelXP,
         progressPercentage: progressPercentage,
         unlockedCount: parseInt(summary.rows[0].earned) || 0,
-        hallOfFame: hallOfFame.rows
+        hallOfFame: hallOfFame
     };
 }
 
-// GET /api/prestige/me
+/**
+ * GET /api/prestige/me
+ * Retrieves the authenticated user's prestige profile (level, rank, pinned achievements).
+ *
+ * @requires authenticateToken
+ * @returns {{ success: boolean, data: PrestigeProfile }}
+ * @throws {500} Internal server error
+ */
 router.get('/me', authenticateToken, async (req, res) => {
     try {
         const data = await fetchPrestige(req.userId);
@@ -72,34 +66,23 @@ router.get('/me', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/prestige/:userId
+/**
+ * GET /api/prestige/:userId
+ * Retrieves another user's prestige profile. Subject to privacy checks.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.userId - UUID of the target user
+ * @returns {{ success: boolean, data: PrestigeProfile }}
+ * @throws {403} Access denied by privacy settings
+ * @throws {500} Internal server error
+ */
 router.get('/:userId', authenticateToken, async (req, res) => {
     try {
         const { userId } = req.params;
-        const currentUserId = req.userId;
 
-        // 1. Fetch target user's privacy status
-        const userQuery = await pool.query('SELECT "isSteamProfilePrivate" FROM "profiles" WHERE "plasmaUserID" = $1', [userId]);
-        if (userQuery.rows.length === 0) return res.status(404).json({ success: false, message: 'User not found' });
-
-        const isPrivate = userQuery.rows[0].isSteamProfilePrivate;
-
-        // 2. If private, check if they are mutual friends
-        if (isPrivate && userId !== currentUserId) {
-            const friendshipQuery = await pool.query(`
-                SELECT 1 FROM "follow_relationships" 
-                WHERE (("followerID" = $1 AND "followedID" = $2) OR ("followerID" = $2 AND "followedID" = $1))
-                  AND "isMutual" = TRUE
-            `, [currentUserId, userId]);
-
-            if (friendshipQuery.rows.length === 0) {
-                return res.status(403).json({ 
-                    success: false, 
-                    message: 'This profile is private. You must be mutual friends to view prestige data.',
-                    isPrivate: true 
-                });
-            }
-        }
+        // Centralized privacy enforcement
+        const denied = await enforcePrivacy(req.userId, userId, res);
+        if (denied) return;
 
         const data = await fetchPrestige(userId);
         res.json({ success: true, data });
@@ -109,7 +92,16 @@ router.get('/:userId', authenticateToken, async (req, res) => {
     }
 });
 
-// PUT /api/prestige/me/hall-of-fame
+/**
+ * PUT /api/prestige/me/hall-of-fame
+ * Updates the user's pinned achievements (Hall of Fame) up to a max of 5.
+ *
+ * @requires authenticateToken
+ * @param {string[]} req.body.achievementIds - Array of up to 5 achievement IDs
+ * @returns {{ success: boolean, message: string }}
+ * @throws {400} Too many IDs provided
+ * @throws {500} Internal server error
+ */
 router.put('/me/hall-of-fame', authenticateToken, async (req, res) => {
     const { achievementIds } = req.body; // Array of IDs up to 5
 
@@ -136,7 +128,19 @@ router.put('/me/hall-of-fame', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/prestige/milestones
+/**
+ * POST /api/prestige/milestones
+ * Creates a custom manual milestone achievement for the user, granting them XP.
+ *
+ * @requires authenticateToken
+ * @param {string} req.body.title - Milestone title
+ * @param {string} [req.body.description] - Description of the milestone
+ * @param {string} [req.body.gameId] - Optional associated game
+ * @param {string} [req.body.proofUrl] - Optional URL proof
+ * @returns {{ success: boolean, message: string, milestoneId: string }}
+ * @throws {400} Title is required
+ * @throws {500} Internal server error
+ */
 router.post('/milestones', authenticateToken, async (req, res) => {
     const { title, description, gameId, proofUrl } = req.body;
 
@@ -144,10 +148,10 @@ router.post('/milestones', authenticateToken, async (req, res) => {
 
     try {
         const result = await pool.query(`
-            INSERT INTO "achievements" ("achievementID", "appID", "title", "description", "rarityWeight", "plasmaXP")
-            VALUES (gen_random_uuid(), $1, $2, $3, 1.0, 100)
+            INSERT INTO "achievements" ("achievementID", "appID", "title", "description", "proofURL", "rarityWeight", "plasmaXP")
+            VALUES (gen_random_uuid(), $1, $2, $3, $4, 1.0, 100)
             RETURNING "achievementID"
-        `, [gameId || 'custom_milestone', title, description, proofUrl]);
+        `, [gameId || 'custom_milestone', title, description, proofUrl || null]);
 
         await pool.query(`
             INSERT INTO "user_achievements" ("userID", "achievementID", "unlockedAt")
@@ -168,7 +172,14 @@ router.post('/milestones', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/prestige/milestones/:milestoneId/endorse
+/**
+ * POST /api/prestige/milestones/:milestoneId/endorse
+ * Endorses another user's manual milestone (BR-3 stub).
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.milestoneId - UUID of the milestone
+ * @returns {{ success: boolean, message: string }}
+ */
 router.post('/milestones/:milestoneId/endorse', authenticateToken, async (req, res) => {
     // Stub for peer endorsement logic BR-3
     res.json({ success: true, message: 'Endorsement recorded successfully' });

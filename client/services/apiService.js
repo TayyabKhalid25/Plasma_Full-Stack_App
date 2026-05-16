@@ -1,23 +1,12 @@
+/**
+ * PLASMA — API Service Layer
+ * 
+ * Provides validated wrappers for API mutations (POST/PUT/DELETE).
+ * Utilizes validationService for pre-flight checks and httpClient for requests.
+ */
+
 import { validationService } from "./validationService";
-
-const rawApiBase = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000";
-const API_BASE = rawApiBase.endsWith("/") ? rawApiBase.slice(0, -1) : rawApiBase;
-
-function getToken() {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("plasma_token");
-  }
-  return null;
-}
-
-function authHeaders() {
-  const token = getToken();
-  return {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
-
+import { API_BASE, authHeaders } from "./httpClient";
 export const apiService = {
   createRally: async (payload) => {
     const { isValid, errors, sanitized } = validationService.validateRallyData(payload);

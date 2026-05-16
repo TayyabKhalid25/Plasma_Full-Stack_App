@@ -4,12 +4,20 @@ const { authenticateToken } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-// GET /api/feed
-// Query Params: ?filter= (all, friends, my-posts, comp, chill) &userId= (optional, for profile timeline)
+/**
+ * GET /api/feed
+ * Returns the social feed filtered by intent, user, or relationship scope.
+ *
+ * @requires authenticateToken
+ * @query {string} [filter=all]  - One of: all, friends, my-posts, comp, chill
+ * @query {string} [intent]      - Independent intent filter (CHILL, COMP, COMPETITIVE)
+ * @query {string} [userId]      - Optional target user ID for profile timeline view
+ * @returns {{ success: boolean, data: Post[] }}
+ */
 router.get('/', authenticateToken, async (req, res) => {
     const userId = req.userId;
     const filter = req.query.filter || 'all';
-    const intentFilter = req.query.intent; // New: support intent filter from Postman
+    const intentFilter = req.query.intent;
     const profileUserId = req.query.userId !== 'undefined' ? req.query.userId : null;
 
     try {
@@ -28,6 +36,7 @@ router.get('/', authenticateToken, async (req, res) => {
                 pr."avatarURL",
                 (SELECT COUNT(*) FROM "comments" WHERE "postID" = p."postID") AS "commentCount",
                 (SELECT COUNT(*) FROM "post_reactions" WHERE "postID" = p."postID") AS "reactionCount",
+                -- Determines if the requesting user has already reacted to this post
                 (SELECT EXISTS (SELECT 1 FROM "post_reactions" WHERE "postID" = p."postID" AND "userID" = $1)) AS "hasReacted"
             FROM "posts" p
             JOIN "users" u ON p."userID" = u."plasmaUserID"
@@ -38,7 +47,6 @@ router.get('/', authenticateToken, async (req, res) => {
         const queryParams = [userId];
         let paramIndex = 2;
 
-        // If a specific user's timeline is requested, filter by their userId
         if (profileUserId) {
             baseQuery += ` AND p."userID" = $${paramIndex}`;
             queryParams.push(profileUserId);
@@ -57,7 +65,7 @@ router.get('/', authenticateToken, async (req, res) => {
             paramIndex++;
         }
         
-        // Apply independent intent filter if provided (Postman Sync)
+        // Apply independent intent filter if provided
         if (intentFilter) {
             let dbIntent = intentFilter.toUpperCase();
             if (dbIntent === 'COMP') dbIntent = 'COMPETITIVE';
@@ -78,63 +86,7 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/feed/posts
-// Create a new post
-router.post('/posts', authenticateToken, async (req, res) => {
-    const userId = req.userId;
-    const { content, mediaURL, type } = req.body;
-
-    if (!content && !mediaURL) {
-        return res.status(400).json({ success: false, message: 'Post must have content or media' });
-    }
-
-    const postType = type || 'MOMENT';
-    const validTypes = ['MOMENT', 'ACHIEVEMENT_UNLOCK', 'ACTIVITY_UPDATE', 'RALLY_BROADCAST'];
-    if (!validTypes.includes(postType)) {
-        return res.status(400).json({ success: false, message: `Invalid post type. Must be one of: ${validTypes.join(', ')}` });
-    }
-
-    try {
-        // Fetch user's current intent to capture it with the post
-        const userRes = await pool.query('SELECT "intent" FROM "users" WHERE "plasmaUserID" = $1', [userId]);
-        const currentIntent = userRes.rows[0]?.intent || 'CHILL';
-
-        const result = await pool.query(`
-            INSERT INTO "posts" ("userID", "type", "content", "mediaURL", "intent")
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING "postID", "type", "content", "mediaURL", "timestampUTC", "intent"
-        `, [userId, postType, content || null, mediaURL || null, currentIntent]);
-
-        res.status(201).json({ success: true, data: result.rows[0] });
-
-    } catch (error) {
-        console.error('Error creating post:', error);
-        res.status(500).json({ success: false, message: 'Internal server error' });
-    }
-});
-
-// DELETE /api/feed/posts/:postId
-// Delete a post (only own posts)
-router.delete('/posts/:postId', authenticateToken, async (req, res) => {
-    const userId = req.userId;
-    const { postId } = req.params;
-
-    try {
-        const result = await pool.query(`
-            DELETE FROM "posts" WHERE "postID" = $1 AND "userID" = $2
-            RETURNING "postID"
-        `, [postId, userId]);
-
-        if (result.rowCount === 0) {
-            return res.status(404).json({ success: false, message: 'Post not found or not authorized' });
-        }
-
-        res.json({ success: true, message: 'Post deleted' });
-
-    } catch (error) {
-        console.error('Error deleting post:', error);
-        res.status(500).json({ success: false, message: 'Internal server error' });
-    }
-});
+// NOTE: Post creation (POST) and deletion (DELETE) are handled by
+// the /api/pulse/posts endpoints. See routes/pulse.js.
 
 module.exports = router;

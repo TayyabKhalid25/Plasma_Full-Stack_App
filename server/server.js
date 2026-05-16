@@ -1,9 +1,9 @@
+require('dotenv').config(); // Load environment variables from .env file
 const express = require('express');
 const { connectToDatabase, pool } = require('./config/dbConfig'); // Import database connection + pool for health check
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy (e.g. Vercel, Heroku, Nginx)
 const cors = require('cors'); // Import CORS middleware
-require('dotenv').config(); // Load environment variables from .env file
 const port = parseInt(process.env.PORT, 10) || 5000; // Convert environment variable to integer or default to 5000
 
 // ── Global Error Guard ────────────────────────────────────────────────────────
@@ -86,18 +86,27 @@ app.get('/health', async (req, res) => {
     }
   };
 
-  // try {
-  //   const start = Date.now();
-  //   await pool.query('SELECT 1');
-  //   const latencyMs = Date.now() - start;
-  //   healthReport.checks.database = { status: 'online', latencyMs };
-  // } catch (dbErr) {
-  //   healthReport.status = 'degraded';
-  //   healthReport.checks.database = {
-  //     status: 'offline',
-  //     error: dbErr.message || 'Connection failed'
-  //   };
-  // }
+  // Throttled DB probe — max once every 30 seconds to avoid unnecessary load
+  const now = Date.now();
+  if (!app._lastHealthProbe || now - app._lastHealthProbe > 30000) {
+    app._lastHealthProbe = now;
+    try {
+      const start = Date.now();
+      await pool.query('SELECT 1');
+      const latencyMs = Date.now() - start;
+      app._lastDbHealth = { status: 'online', latencyMs };
+    } catch (dbErr) {
+      app._lastDbHealth = {
+        status: 'offline',
+        error: dbErr.message || 'Connection failed'
+      };
+    }
+  }
+
+  healthReport.checks.database = app._lastDbHealth || { status: 'unknown' };
+  if (healthReport.checks.database.status === 'offline') {
+    healthReport.status = 'degraded';
+  }
 
   const httpStatus = healthReport.status === 'healthy' ? 200 : 503;
   res.status(httpStatus).json(healthReport);
@@ -115,7 +124,6 @@ const achievementsRoutes = require('./routes/achievements');
 const leaderboardRoutes = require('./routes/leaderboard');
 const ralliesRoutes = require('./routes/rallies');
 const squadRoutes = require('./routes/squad');
-const friendsRoutes = require('./routes/friends');
 const settingsRoutes = require('./routes/settings');
 const pulseRoutes = require('./routes/pulse');
 const steamRoutes = require('./routes/steam');
@@ -137,7 +145,6 @@ app.use('/api/achievements', achievementsRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/rallies', ralliesRoutes);
 app.use('/api/squad', squadRoutes);
-app.use('/api/friends', friendsRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/pulse', pulseRoutes);
 // Steam and Library sync routes get a strict sync limiter to prevent
@@ -227,6 +234,9 @@ server.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
   console.log(`WebSocket available at ws://localhost:${port}/ws/chat`);
   console.log(`Health check available at http://localhost:${port}/health`);
+
+  // Clear stale 'isCurrentlyPlaying' records from previous server sessions
+  startupCleanup();
 
   // Start the in-memory background job worker
   startJobWorker();

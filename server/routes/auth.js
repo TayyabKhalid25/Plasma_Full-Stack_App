@@ -34,8 +34,22 @@ passport.use(new SteamStrategy({
 // NEW AUTHENTICATION SYSTEM (TRADITIONAL & UUID SCHEMA)
 // ==========================================
 
-// POST /api/auth/register
-// Traditional Registration (requires pre-validated Steam Token)
+/**
+ * POST /api/auth/register
+ * Traditional Registration requiring a pre-validated Steam Token.
+ * Creates user and profile, then initiates background Steam syncs.
+ *
+ * @param {string} req.body.username - Desired username
+ * @param {string} req.body.email - Valid email address
+ * @param {string} req.body.password - Raw password
+ * @param {string} [req.body.dateOfBirth] - User DOB
+ * @param {string} req.body.steamToken - JWT linking token from Steam Auth
+ * @returns {{ success: boolean, message: string, token: string, user: Object }}
+ * @throws {400} Missing fields
+ * @throws {401} Invalid or expired Steam linking session
+ * @throws {409} Email or Username already in use
+ * @throws {500} Internal server error
+ */
 router.post('/register', async (req, res) => {
     const { username, email, password, dateOfBirth, steamToken } = req.body;
 
@@ -106,8 +120,20 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// POST /api/auth/login
-// Traditional Login (Username/Email and Password)
+/**
+ * POST /api/auth/login
+ * Traditional Login using Username or Email and Password.
+ * Generates JWT and triggers background sync.
+ *
+ * @param {string} req.body.username - Username (optional if email provided)
+ * @param {string} req.body.email - Email (optional if username provided)
+ * @param {string} req.body.password - Raw password
+ * @returns {{ success: boolean, message: string, token: string, user: Object }}
+ * @throws {400} Email/Username and password required
+ * @throws {401} Incorrect password or Steam-only account
+ * @throws {404} Account not found
+ * @throws {500} Internal server error
+ */
 router.post('/login', async (req, res) => {
     const { username, email, password } = req.body;
     const identifier = email || username;
@@ -227,8 +253,13 @@ router.post('/dev-login', async (req, res) => {
 });
 */
 
-// GET /api/auth/steam
-// Redirects the browser to Valve's OpenID 2.0 endpoint
+/**
+ * GET /api/auth/steam
+ * Redirects the browser to Valve's OpenID 2.0 endpoint for Steam Login/Link.
+ *
+ * @returns {void} Redirects browser
+ * @throws {503} Missing or invalid STEAM_API_KEY
+ */
 router.get('/steam', (req, res, next) => {
     if (!process.env.STEAM_API_KEY || process.env.STEAM_API_KEY === 'YOUR_STEAM_API_KEY_HERE' || process.env.STEAM_API_KEY === 'MISSING') {
         return res.status(503).json({ 
@@ -239,8 +270,14 @@ router.get('/steam', (req, res, next) => {
     next();
 }, passport.authenticate('steam', { failureRedirect: '/' }));
 
-// GET /api/auth/steam/callback
-// Valve redirects here after login to validate assertion, issue JWT
+/**
+ * GET /api/auth/steam/callback
+ * Valve redirects here after OpenID login. Issues JWT if existing user,
+ * or redirect token for registration if new user.
+ *
+ * @returns {void} Redirects to frontend with token or error
+ * @throws {503} Missing or invalid STEAM_API_KEY
+ */
 router.get('/steam/callback', (req, res, next) => {
     if (!process.env.STEAM_API_KEY || process.env.STEAM_API_KEY === 'YOUR_STEAM_API_KEY_HERE' || process.env.STEAM_API_KEY === 'MISSING') {
         return res.status(503).json({ 
@@ -283,13 +320,26 @@ router.get('/steam/callback', (req, res, next) => {
     }
 });
 
-// POST /api/auth/logout
+/**
+ * POST /api/auth/logout
+ * Logs out the user. Primarily handled client-side by discarding JWT.
+ *
+ * @requires authenticateToken
+ * @returns {{ success: boolean, message: string }}
+ */
 router.post('/logout', authenticateToken, (req, res) => {
     return res.json({ success: true, message: 'Logged out successfully. Please discard your token.' });
 });
 
-// GET /api/auth/me
-// Returns the currently authenticated user's profile
+/**
+ * GET /api/auth/me
+ * Returns the currently authenticated user's profile and account settings.
+ *
+ * @requires authenticateToken
+ * @returns {{ success: boolean, data: UserProfile }}
+ * @throws {404} User not found
+ * @throws {500} Internal server error
+ */
 router.get('/me', authenticateToken, async (req, res) => {
     const userId = req.userId;
 
@@ -331,12 +381,30 @@ router.get('/me', authenticateToken, async (req, res) => {
     }
 });
 
-// Route to Verify JWT token validity
+/**
+ * GET /api/auth/verify
+ * Verifies JWT token validity.
+ *
+ * @requires authenticateToken
+ * @returns {{ success: boolean, message: string }}
+ */
 router.get('/verify', authenticateToken, (req, res) => {
     return res.json({ success: true, message: 'Token is valid' });
 });
 
-// PUT /api/auth/change-password
+/**
+ * PUT /api/auth/change-password
+ * Changes the user's password given their current password.
+ *
+ * @requires authenticateToken
+ * @param {string} req.body.currentPassword - Current valid password
+ * @param {string} req.body.newPassword - New desired password
+ * @returns {{ success: boolean, message: string }}
+ * @throws {400} Current and new passwords are required, or Steam-only account
+ * @throws {401} Current password incorrect
+ * @throws {404} User not found
+ * @throws {500} Internal server error
+ */
 router.put('/change-password', authenticateToken, async (req, res) => {
     const { currentPassword, newPassword } = req.body;
     const userId = req.userId;

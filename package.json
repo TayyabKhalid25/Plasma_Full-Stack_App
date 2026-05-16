@@ -13,7 +13,9 @@
     "encrypt:client": "npm run encrypt --prefix client",
     "decrypt:client": "npm run decrypt --prefix client",
     "encrypt:server": "npm run encrypt --prefix server",
-    "decrypt:server": "npm run decrypt --prefix server"
+    "decrypt:server": "npm run decrypt --prefix server",
+    "encrypt:all": "node scripts/vault.js encrypt",
+    "decrypt:all": "node scripts/vault.js decrypt"
   },
   "keywords": [],
   "author": "",

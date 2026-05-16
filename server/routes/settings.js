@@ -4,7 +4,14 @@ const { authenticateToken } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-// GET /api/settings
+/**
+ * GET /api/settings
+ * Fetches the user's application settings. Returns defaults if not explicitly set.
+ *
+ * @requires authenticateToken
+ * @returns {{ success: boolean, data: { notificationsEnabled: boolean, timezone: string, privacy: string } }}
+ * @throws {500} Internal server error on DB failure
+ */
 router.get('/', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query(`
@@ -26,7 +33,17 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 });
 
-// PUT /api/settings
+/**
+ * PUT /api/settings
+ * Updates the user's application settings using an upsert operation.
+ *
+ * @requires authenticateToken
+ * @param {boolean} req.body.notificationsEnabled - Toggle for push/email notifications
+ * @param {string} [req.body.timezone] - User's preferred timezone (default 'UTC')
+ * @param {string} [req.body.privacy] - Profile privacy level (default 'Public')
+ * @returns {{ success: boolean, message: string, data: Object }}
+ * @throws {500} Internal server error on DB failure
+ */
 router.put('/', authenticateToken, async (req, res) => {
     const { notificationsEnabled, timezone, privacy } = req.body;
     

@@ -4,8 +4,15 @@ const { authenticateToken } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-// GET /api/leaderboard
-// Query Params: ?scope= (global, friends)
+/**
+ * GET /api/leaderboard
+ * Retrieves the global or friends-only leaderboard ranked by total Plasma XP.
+ *
+ * @requires authenticateToken
+ * @param {string} [req.query.scope='friends'] - Leaderboard scope ('global' or 'friends')
+ * @returns {{ success: boolean, data: LeaderboardEntry[] }}
+ * @throws {500} Internal server error on DB failure
+ */
 router.get('/', authenticateToken, async (req, res) => {
     const userId = req.userId;
     const scope = req.query.scope || 'friends';
@@ -16,6 +23,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
         if (scope === 'global') {
             query = `
+                -- Common Table Expression (CTE) to pre-calculate global ranks for all users
                 WITH ranked_profiles AS (
                     SELECT
                         p."plasmaUserID",
@@ -32,6 +40,7 @@ router.get('/', authenticateToken, async (req, res) => {
                     rp."totalPlasmaXP",
                     rp."globalRank"
                 FROM "users" u
+                -- Join the pre-calculated ranks with the user details
                 JOIN ranked_profiles rp ON u."plasmaUserID" = rp."plasmaUserID"
                 ORDER BY rp."totalPlasmaXP" DESC NULLS LAST
                 LIMIT 100
@@ -39,6 +48,7 @@ router.get('/', authenticateToken, async (req, res) => {
         } else {
             // Friends scope
             query = `
+                -- Common Table Expression (CTE) to pre-calculate global ranks for all users
                 WITH ranked_profiles AS (
                     SELECT
                         p."plasmaUserID",
@@ -55,10 +65,13 @@ router.get('/', authenticateToken, async (req, res) => {
                     rp."totalPlasmaXP",
                     rp."globalRank"
                 FROM "users" u
+                -- Join the pre-calculated ranks with the user details
                 JOIN ranked_profiles rp ON u."plasmaUserID" = rp."plasmaUserID"
                 WHERE u."plasmaUserID" IN (
+                    -- Subquery to get all mutual friends of the requesting user
                     SELECT "followedID" FROM "follow_relationships" WHERE "followerID" = $1 AND "isMutual" = TRUE
                     UNION
+                    -- Include the requesting user themselves in the friends leaderboard
                     SELECT $1::uuid
                 )
                 ORDER BY rp."totalPlasmaXP" DESC NULLS LAST

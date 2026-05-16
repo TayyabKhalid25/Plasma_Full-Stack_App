@@ -2,11 +2,19 @@ const express = require('express');
 const { pool } = require('../config/dbConfig');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { searchIgdbGames, fetchHighResCover, getIgdbGameById } = require('../utils/externalApis');
+const { enforcePrivacy } = require('../utils/privacyCheck');
+const { stopOtherGames } = require('../utils/activityUtils');
 
 const router = express.Router();
 
-// GET /api/library
-// Get current user's library
+/**
+ * GET /api/library
+ * Retrieves the current user's game library.
+ *
+ * @requires authenticateToken
+ * @returns {{ success: boolean, data: LibraryEntry[] }}
+ * @throws {500} Internal server error
+ */
 router.get('/', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query(`
@@ -26,7 +34,16 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 
-// GET /api/library/igdb/search
+/**
+ * GET /api/library/igdb/search
+ * Searches the IGDB database for games matching the query.
+ *
+ * @requires authenticateToken
+ * @param {string} req.query.q - Search query
+ * @returns {{ success: boolean, data: GameSearchInfo[] }}
+ * @throws {400} Query string required
+ * @throws {500} IGDB Search Route Error
+ */
 router.get('/igdb/search', authenticateToken, async (req, res) => {
     const { q } = req.query;
 
@@ -50,7 +67,16 @@ router.get('/igdb/search', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/library/igdb/:id
+/**
+ * GET /api/library/igdb/:id
+ * Fetches detailed info about a specific game from IGDB.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.id - IGDB ID of the game
+ * @returns {{ success: boolean, data: GameDetail }}
+ * @throws {404} Game not found in IGDB
+ * @throws {500} IGDB Detail Route Error
+ */
 router.get('/igdb/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     try {
@@ -63,7 +89,19 @@ router.get('/igdb/:id', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/library/manual
+/**
+ * POST /api/library/manual
+ * Manually adds a game to the user's library.
+ *
+ * @requires authenticateToken
+ * @param {string} [req.body.gameId] - App ID of the game
+ * @param {string} req.body.title - Title of the game
+ * @param {string} req.body.coverArtURL - URL of the game cover art
+ * @param {boolean} req.body.isCurrentlyPlaying - Whether the user is playing the game right now
+ * @returns {{ success: boolean, message: string }}
+ * @throws {400} Game ID or Title is required
+ * @throws {500} Internal server error
+ */
 router.post('/manual', authenticateToken, async (req, res) => {
     let { gameId, title, coverArtURL, isCurrentlyPlaying } = req.body;
 
@@ -144,34 +182,26 @@ router.post('/manual', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/library/user/:userId/:gameId
+/**
+ * GET /api/library/user/:userId/:gameId
+ * Retrieves details about a specific game in another user's library.
+ * Access is restricted by privacy settings (mutual friends check).
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.userId - UUID of the target user
+ * @param {string} req.params.gameId - App ID of the game
+ * @returns {{ success: boolean, data: LibraryEntry }}
+ * @throws {403} Access denied by privacy settings
+ * @throws {404} Game not found in user library
+ * @throws {500} Internal server error
+ */
 router.get('/user/:userId/:gameId', authenticateToken, async (req, res) => {
     const { userId, gameId } = req.params;
 
     try {
-        // 1. Privacy Check
-        if (userId !== req.userId) {
-            const privacyCheck = await pool.query(`
-                SELECT p."isSteamProfilePrivate", fr."isMutual"
-                FROM "profiles" p
-                LEFT JOIN "follow_relationships" fr ON (
-                    (fr."followerID" = $1 AND fr."followedID" = $2) OR
-                    (fr."followerID" = $2 AND fr."followedID" = $1)
-                ) AND fr."isMutual" = TRUE
-                WHERE p."plasmaUserID" = $2
-            `, [req.userId, userId]);
-
-            if (privacyCheck.rows.length > 0) {
-                const { isSteamProfilePrivate, isMutual } = privacyCheck.rows[0];
-                if (isSteamProfilePrivate && !isMutual) {
-                    return res.status(403).json({ 
-                        success: false, 
-                        message: 'This user profile is private.', 
-                        isPrivate: true 
-                    });
-                }
-            }
-        }
+        // Centralized privacy enforcement
+        const denied = await enforcePrivacy(req.userId, userId, res);
+        if (denied) return;
 
         const result = await pool.query(`
             SELECT 
@@ -198,7 +228,16 @@ router.get('/user/:userId/:gameId', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/library/user/:userId
+/**
+ * GET /api/library/user/:userId
+ * Retrieves the full game library of another user.
+ * Access is typically checked via frontend, but could use privacy checks here too.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.userId - UUID of the target user
+ * @returns {{ success: boolean, data: LibraryEntry[] }}
+ * @throws {500} Internal server error
+ */
 router.get('/user/:userId', authenticateToken, async (req, res) => {
     const { userId } = req.params;
 
@@ -219,7 +258,16 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/library/:gameId
+/**
+ * GET /api/library/:gameId
+ * Retrieves details about a specific game in the authenticated user's library.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.gameId - App ID of the game
+ * @returns {{ success: boolean, data: LibraryEntry }}
+ * @throws {404} Game not found in library
+ * @throws {500} Internal server error
+ */
 router.get('/:gameId', authenticateToken, async (req, res) => {
     const { gameId } = req.params;
 
@@ -249,7 +297,16 @@ router.get('/:gameId', authenticateToken, async (req, res) => {
     }
 });
 
-// DELETE /api/library/:gameId
+/**
+ * DELETE /api/library/:gameId
+ * Removes a game from the authenticated user's library.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.gameId - App ID of the game to remove
+ * @returns {{ success: boolean, message: string }}
+ * @throws {404} Game not found in library
+ * @throws {500} Internal server error
+ */
 router.delete('/:gameId', authenticateToken, async (req, res) => {
     const { gameId } = req.params;
 
@@ -270,7 +327,20 @@ router.delete('/:gameId', authenticateToken, async (req, res) => {
     }
 });
 
-// PUT /api/library/:gameId/status
+/**
+ * PUT /api/library/:gameId/status
+ * Toggles the 'isCurrentlyPlaying' status for a game. If starting to play,
+ * stops all other active games. If stopping, calculates and updates hours played.
+ * Broadcasts an ACTIVITY_UPDATE post to the feed when starting a game.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.gameId - App ID of the game
+ * @param {boolean} req.body.isCurrentlyPlaying - The new play status
+ * @returns {{ success: boolean, message: string }}
+ * @throws {400} isCurrentlyPlaying boolean flag is required
+ * @throws {404} Game not found in library
+ * @throws {500} Internal server error
+ */
 router.put('/:gameId/status', authenticateToken, async (req, res) => {
     const { gameId } = req.params;
     const { isCurrentlyPlaying } = req.body;
@@ -296,26 +366,8 @@ router.put('/:gameId/status', authenticateToken, async (req, res) => {
 
         // 2. Logic for starting/stopping and calculating playtime
         if (isCurrentlyPlaying && !wasPlaying) {
-            // STARTING TO PLAY
-            // Aggressively stop ALL other games that might be marked as playing for this user
-            const activeSessions = await pool.query(
-                'SELECT "appID", "lastPlayedAt" FROM "library_entries" WHERE "userID" = $1 AND "isCurrentlyPlaying" = TRUE',
-                [req.userId]
-            );
-
-            for (const session of activeSessions.rows) {
-                const start = new Date(session.lastPlayedAt);
-                const durationHours = Math.max(0, (now - start) / (1000 * 60 * 60));
-
-                await pool.query(`
-                    UPDATE "library_entries" 
-                    SET 
-                        "isCurrentlyPlaying" = FALSE, 
-                        "hoursPlayed" = "hoursPlayed" + $1,
-                        "lastPlayedAt" = $2
-                    WHERE "userID" = $3 AND "appID" = $4
-                `, [durationHours, now, req.userId, session.appID]);
-            }
+            // STARTING TO PLAY — stop all other active games first
+            await stopOtherGames(req.userId, gameId);
 
             // Start this game
             await pool.query(`

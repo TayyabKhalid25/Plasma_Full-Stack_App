@@ -10,8 +10,18 @@ import { Calendar, Clock, ChevronDown } from "lucide-react";
 import dynamic from "next/dynamic";
 import * as Popover from "@radix-ui/react-popover";
 
+/**
+ * Timekeeper Component
+ * @component
+ * @param {object} props
+ */
 const Timekeeper = dynamic(() => import("react-timekeeper"), { ssr: false });
 
+/**
+ * CreateRallyModal Component
+ * @component
+ * @param {object} props
+ */
 export function CreateRallyModal({ isOpen, onClose, onRallyCreated, initialData = null }) {
   const { token } = useAuth();
   const [isMounted, setIsMounted] = useState(false);

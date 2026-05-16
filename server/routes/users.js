@@ -2,11 +2,19 @@ const express = require('express');
 const { pool } = require('../config/dbConfig');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { isOnline } = require('../ws/presence');
+const { fetchHallOfFame } = require('../utils/hallOfFameService');
 
 const router = express.Router();
 
-// GET /api/users/search?q=
-// Search for users by username
+/**
+ * GET /api/users/search
+ * Searches for users by username (partial match). Excludes the authenticated user.
+ *
+ * @requires authenticateToken
+ * @param {string} req.query.q - Search string
+ * @returns {{ success: boolean, data: UserSearchInfo[] }}
+ * @throws {500} Internal server error
+ */
 router.get('/search', authenticateToken, async (req, res) => {
     const { q } = req.query;
     if (!q || q.trim().length < 1) {
@@ -44,8 +52,77 @@ router.get('/search', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/users/:userId
-// Returns another user's public profile
+/**
+ * GET /api/users/friends
+ * Returns the authenticated user's friends grouped by: requests, online, offline.
+ * Migrated from the deprecated /api/friends endpoint.
+ *
+ * @requires authenticateToken
+ * @returns {{ success: boolean, data: { requests: User[], online: User[], offline: User[] } }}
+ */
+router.get('/friends', authenticateToken, async (req, res) => {
+    const userId = req.userId;
+
+    try {
+        const result = await pool.query(`
+            SELECT DISTINCT ON (u."plasmaUserID")
+                u."plasmaUserID", 
+                u."username", 
+                u."intent", 
+                pr."avatarURL",
+                fr."isMutual",
+                fr."followerID",
+                (SELECT g."title" 
+                 FROM "library_entries" le 
+                 JOIN "games" g ON le."appID" = g."appID" 
+                 WHERE le."userID" = u."plasmaUserID" AND le."isCurrentlyPlaying" = TRUE 
+                 LIMIT 1) as "playingGame"
+            FROM "follow_relationships" fr
+            JOIN "users" u ON (u."plasmaUserID" = fr."followedID" OR u."plasmaUserID" = fr."followerID")
+            LEFT JOIN "profiles" pr ON u."plasmaUserID" = pr."plasmaUserID"
+            WHERE (fr."followerID" = $1 OR fr."followedID" = $1)
+              AND u."plasmaUserID" != $1
+        `, [userId]);
+
+        const friends = { requests: [], online: [], offline: [] };
+
+        result.rows.forEach(row => {
+            const userObj = { 
+                id: row.plasmaUserID, 
+                name: row.username, 
+                intent: row.intent, 
+                avatar: row.avatarURL,
+                playingGame: row.playingGame 
+            };
+            if (!row.isMutual && row.followerID !== userId) {
+                friends.requests.push(userObj);
+            } else if (row.isMutual) {
+                if (isOnline(row.plasmaUserID)) {
+                    friends.online.push(userObj);
+                } else {
+                    friends.offline.push(userObj);
+                }
+            }
+        });
+
+        res.json({ success: true, data: friends });
+
+    } catch (error) {
+        console.error('Error fetching friends:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+/**
+ * GET /api/users/:userId
+ * Retrieves another user's public profile, follow relationships, and Hall of Fame.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.userId - UUID of the target user
+ * @returns {{ success: boolean, data: UserProfileData }}
+ * @throws {404} User not found
+ * @throws {500} Internal server error
+ */
 router.get('/:userId', authenticateToken, async (req, res) => {
     const { userId } = req.params;
     const loggedInUserId = req.userId;
@@ -101,23 +178,7 @@ router.get('/:userId', authenticateToken, async (req, res) => {
         const isFollower = followerCheck.rows.length > 0;
 
         // Fetch Hall of Fame
-        const hallOfFameResult = await pool.query(`
-            SELECT 
-                a."achievementID", 
-                a."title", 
-                a."description", 
-                a."rarityWeight", 
-                a."plasmaXP", 
-                a."iconName",
-                a."appID",
-                ua."unlockedAt",
-                COALESCE(g."title", 'Unknown Game') AS "gameTitle"
-            FROM "user_achievements" ua
-            JOIN "achievements" a ON ua."achievementID" = a."achievementID"
-            LEFT JOIN "games" g ON a."appID" = g."appID"
-            WHERE ua."userID" = $1 AND ua."isPinned" = TRUE
-            LIMIT 5
-        `, [userId]);
+        const hallOfFame = await fetchHallOfFame(userId);
 
         res.json({
             success: true,
@@ -129,7 +190,7 @@ router.get('/:userId', authenticateToken, async (req, res) => {
                 isFollowing,
                 isMutual,
                 isFollower,
-                hallOfFame: hallOfFameResult.rows
+                hallOfFame: hallOfFame
             }
         });
 
@@ -139,15 +200,24 @@ router.get('/:userId', authenticateToken, async (req, res) => {
     }
 });
 
-// PUT /api/users/me/intent
+/**
+ * PUT /api/users/me/intent
+ * Updates the user's current intent mode (e.g., COMPETITIVE, CHILL, OFFLINE).
+ *
+ * @requires authenticateToken
+ * @param {string} req.body.intent - Intent mode
+ * @returns {{ success: boolean, message: string, intent: string }}
+ * @throws {400} Invalid intent mode
+ * @throws {500} Internal server error
+ */
 router.put('/me/intent', authenticateToken, async (req, res) => {
     const { intent } = req.body;
-    const allowedIntents = ['COMPETITIVE', 'CHILL', 'OFFLINE', 'COMP']; 
-    // The Postman spec mentioned "COMP", mapping it to "COMPETITIVE"
-    
+
+    // Map frontend shorthand 'COMP' to DB value 'COMPETITIVE'
     let dbIntent = intent.toUpperCase();
     if (dbIntent === 'COMP') dbIntent = 'COMPETITIVE';
 
+    const allowedIntents = ['COMPETITIVE', 'CHILL', 'OFFLINE'];
     if (!allowedIntents.includes(dbIntent)) {
         return res.status(400).json({ success: false, message: 'Invalid intent mode' });
     }
@@ -164,8 +234,17 @@ router.put('/me/intent', authenticateToken, async (req, res) => {
     }
 });
 
-// PUT /api/users/me/profile
-// Sync with Postman: Update username, bio, avatarURL, and steamID64
+/**
+ * PUT /api/users/me/profile
+ * Updates the user's customizable profile fields (username, bio, avatarURL).
+ *
+ * @requires authenticateToken
+ * @param {string} [req.body.username] - New username
+ * @param {string} [req.body.bio] - New bio
+ * @param {string} [req.body.avatarURL] - New avatar URL
+ * @returns {{ success: boolean, message: string }}
+ * @throws {500} Internal server error
+ */
 router.put('/me/profile', authenticateToken, async (req, res) => {
     const { username, bio, avatarURL } = req.body;
     const userId = req.userId;
@@ -195,7 +274,14 @@ router.put('/me/profile', authenticateToken, async (req, res) => {
     }
 });
 
-// DELETE /api/users/me -> GDPR Right to be forgotten
+/**
+ * DELETE /api/users/me
+ * Permanently deletes the user's account and associated data. (GDPR Right to be forgotten)
+ *
+ * @requires authenticateToken
+ * @returns {{ success: boolean, message: string }}
+ * @throws {500} Internal server error
+ */
 router.delete('/me', authenticateToken, async (req, res) => {
     try {
         // Cascade delete will handle relationships in the DB if configured correctly
@@ -207,7 +293,20 @@ router.delete('/me', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/users/:userId/follow
+
+
+/**
+ * POST /api/users/:userId/follow
+ * Follows a user. If the target user is already following the requestor, forms a mutual friendship.
+ * Triggers appropriate notifications.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.userId - UUID of the target user
+ * @returns {{ success: boolean, message: string, isMutual: boolean }}
+ * @throws {400} Cannot follow yourself or already following
+ * @throws {404} User not found
+ * @throws {500} Internal server error
+ */
 router.post('/:userId/follow', authenticateToken, async (req, res) => {
     const { userId } = req.params;
     const followerId = req.userId;
@@ -261,7 +360,15 @@ router.post('/:userId/follow', authenticateToken, async (req, res) => {
     }
 });
 
-// DELETE /api/users/:userId/follow
+/**
+ * DELETE /api/users/:userId/follow
+ * Unfollows a user. If a mutual friendship existed, it is broken down to a one-way follow.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.userId - UUID of the target user
+ * @returns {{ success: boolean, message: string }}
+ * @throws {500} Internal server error
+ */
 router.delete('/:userId/follow', authenticateToken, async (req, res) => {
     const { userId } = req.params;
     const followerId = req.userId;
@@ -290,7 +397,15 @@ router.delete('/:userId/follow', authenticateToken, async (req, res) => {
 
 
 
-// GET /api/users/:userId/followers
+/**
+ * GET /api/users/:userId/followers
+ * Retrieves the list of users following the target user.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.userId - UUID of the target user
+ * @returns {{ success: boolean, data: FollowerInfo[] }}
+ * @throws {500} Internal server error
+ */
 router.get('/:userId/followers', authenticateToken, async (req, res) => {
     const { userId } = req.params;
     
@@ -314,7 +429,15 @@ router.get('/:userId/followers', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/users/:userId/following
+/**
+ * GET /api/users/:userId/following
+ * Retrieves the list of users the target user is following.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.userId - UUID of the target user
+ * @returns {{ success: boolean, data: FollowerInfo[] }}
+ * @throws {500} Internal server error
+ */
 router.get('/:userId/following', authenticateToken, async (req, res) => {
     const { userId } = req.params;
     

@@ -3,6 +3,11 @@ import { ModalWrapper } from "../ui/ModalWrapper";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { apiService } from "@/services/apiService";
 
+/**
+ * ConfirmActionModal Component
+ * @component
+ * @param {object} props
+ */
 export function ConfirmActionModal({ isOpen, onClose, title, message, requiredString, onConfirm, actionType = "danger" }) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);

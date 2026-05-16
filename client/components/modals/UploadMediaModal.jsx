@@ -3,6 +3,11 @@ import { ModalWrapper } from "../ui/ModalWrapper";
 import { Upload, X, Loader2 } from "lucide-react";
 import { upload } from '@vercel/blob/client';
 
+/**
+ * UploadMediaModal Component
+ * @component
+ * @param {object} props
+ */
 export function UploadMediaModal({ isOpen, onClose, onUploadComplete }) {
   const inputFileRef = useRef(null);
   const [file, setFile] = useState(null);

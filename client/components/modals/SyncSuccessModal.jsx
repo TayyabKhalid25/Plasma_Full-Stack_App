@@ -3,6 +3,11 @@
 import { ModalWrapper } from "../ui/ModalWrapper";
 import { CheckCircle2, Cloud, Zap } from "lucide-react";
 
+/**
+ * SyncSuccessModal Component
+ * @component
+ * @param {object} props
+ */
 export function SyncSuccessModal({ isOpen, onClose, syncedCount }) {
   const footer = (
     <div className="flex justify-center w-full">

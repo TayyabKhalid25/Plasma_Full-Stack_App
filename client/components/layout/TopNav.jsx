@@ -50,6 +50,11 @@ function getCachedData() {
   return { mode, avatar, name };
 }
 
+/**
+ * TopNav Component
+ * @component
+ * @param {object} props
+ */
 export const TopNav = () => {
   const { user, logout, token, updateIntent } = useAuth();
   const [cachedMode, setCachedMode] = useState("chill"); // SSR Default

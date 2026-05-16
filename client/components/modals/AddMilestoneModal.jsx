@@ -4,6 +4,11 @@ import { Loader2, Plus, Trophy, Upload, X, Link as LinkIcon, ImageIcon } from "l
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { upload } from '@vercel/blob/client';
 
+/**
+ * AddMilestoneModal Component
+ * @component
+ * @param {object} props
+ */
 export function AddMilestoneModal({ isOpen, onClose, onAdded, gameId }) {
   const { token } = useAuth();
   const [title, setTitle] = useState("");

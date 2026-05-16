@@ -3,6 +3,11 @@ import { ModalWrapper } from "../ui/ModalWrapper";
 import { Loader2, UploadCloud, ImageIcon } from "lucide-react";
 import { apiService } from "@/services/apiService";
 
+/**
+ * UploadAvatarModal Component
+ * @component
+ * @param {object} props
+ */
 export function UploadAvatarModal({ isOpen, onClose, currentAvatar, onUpload }) {
   const [selectedImage, setSelectedImage] = useState(null);
   const [preview, setPreview] = useState(null);

@@ -4,7 +4,14 @@ const { authenticateToken } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-// GET /api/notifications
+/**
+ * GET /api/notifications
+ * Retrieves a paginated list of notifications for the authenticated user.
+ *
+ * @requires authenticateToken
+ * @returns {{ success: boolean, data: AppNotification[] }}
+ * @throws {500} Internal server error
+ */
 router.get('/', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query(`
@@ -27,7 +34,16 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 });
 
-// PUT /api/notifications/:notificationId/read
+/**
+ * PUT /api/notifications/:notificationId/read
+ * Marks a specific notification as read.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.notificationId - UUID of the notification
+ * @returns {{ success: boolean, message: string }}
+ * @throws {404} Notification not found
+ * @throws {500} Internal server error
+ */
 router.put('/:notificationId/read', authenticateToken, async (req, res) => {
     const { notificationId } = req.params;
     
@@ -47,7 +63,14 @@ router.put('/:notificationId/read', authenticateToken, async (req, res) => {
     }
 });
 
-// PUT /api/notifications/mark-all-read
+/**
+ * PUT /api/notifications/mark-all-read
+ * Marks all unread notifications for the current user as read.
+ *
+ * @requires authenticateToken
+ * @returns {{ success: boolean, message: string }}
+ * @throws {500} Internal server error
+ */
 router.put('/mark-all-read', authenticateToken, async (req, res) => {
     try {
         await pool.query(`
@@ -63,8 +86,17 @@ router.put('/mark-all-read', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/notifications/subscribe
-// Register a Push API Subscription token (Service Worker)
+/**
+ * POST /api/notifications/subscribe
+ * Registers a Push API Subscription token for the user (Service Worker).
+ *
+ * @requires authenticateToken
+ * @param {string} req.body.endpoint - Push API endpoint URL
+ * @param {Object} req.body.keys - Push API keys (p256dh, auth)
+ * @returns {{ success: boolean, message: string }}
+ * @throws {400} Invalid subscription object
+ * @throws {500} Internal server error
+ */
 router.post('/subscribe', authenticateToken, async (req, res) => {
     const { endpoint, keys } = req.body;
     
@@ -89,8 +121,16 @@ router.post('/subscribe', authenticateToken, async (req, res) => {
     }
 });
 
-// DELETE /api/notifications/subscribe
-// Unregister a Push API token
+/**
+ * DELETE /api/notifications/subscribe
+ * Unregisters a Push API Subscription token.
+ *
+ * @requires authenticateToken
+ * @param {string} req.body.endpoint - Push API endpoint URL to remove
+ * @returns {{ success: boolean, message: string }}
+ * @throws {400} Endpoint is required
+ * @throws {500} Internal server error
+ */
 router.delete('/subscribe', authenticateToken, async (req, res) => {
     const { endpoint } = req.body;
     

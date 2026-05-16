@@ -2,10 +2,20 @@ const express = require('express');
 const { pool } = require('../config/dbConfig');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { isOnline } = require('../ws/presence');
+const { checkMutualFriendship } = require('../utils/friendshipUtils');
 
 const router = express.Router();
 
-// POST /api/pulse/posts
+/**
+ * POST /api/pulse/posts
+ * Creates a new MOMENT post for the authenticated user.
+ *
+ * @requires authenticateToken
+ * @param {string} req.body.content - Text content of the post
+ * @param {string} [req.body.mediaURL] - Optional media attachment
+ * @returns {{ success: boolean, data: Post, message: string }}
+ * @throws {500} Internal server error on DB failure
+ */
 router.post('/posts', authenticateToken, async (req, res) => {
     const { content } = req.body;
     const mediaURL = req.body.mediaURL || req.body.mediaUrl;
@@ -28,7 +38,16 @@ router.post('/posts', authenticateToken, async (req, res) => {
     }
 });
 
-// DELETE /api/pulse/posts/:postId
+/**
+ * DELETE /api/pulse/posts/:postId
+ * Deletes a post if the authenticated user is the author.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.postId - UUID of the post to delete
+ * @returns {{ success: boolean, message: string }}
+ * @throws {403} Not authorized or post does not exist
+ * @throws {500} Internal server error
+ */
 router.delete('/posts/:postId', authenticateToken, async (req, res) => {
     const { postId } = req.params;
 
@@ -49,7 +68,18 @@ router.delete('/posts/:postId', authenticateToken, async (req, res) => {
     }
 });
 
-// PUT /api/pulse/posts/:postId
+/**
+ * PUT /api/pulse/posts/:postId
+ * Updates the content or media of an existing post authored by the user.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.postId - UUID of the post
+ * @param {string} [req.body.content] - New text content
+ * @param {string} [req.body.mediaURL] - New media attachment
+ * @returns {{ success: boolean, data: Post, message: string }}
+ * @throws {403} Not authorized or post does not exist
+ * @throws {500} Internal server error
+ */
 router.put('/posts/:postId', authenticateToken, async (req, res) => {
     const { postId } = req.params;
     const { content } = req.body;
@@ -75,7 +105,16 @@ router.put('/posts/:postId', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/pulse/posts/:postId/react
+/**
+ * POST /api/pulse/posts/:postId/react
+ * Toggles a reaction (e.g., LIKE) on a post. If adding, triggers a notification.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.postId - UUID of the post
+ * @param {string} [req.body.reactionType='LIKE'] - Type of reaction
+ * @returns {{ success: boolean, message: string }}
+ * @throws {500} Internal server error
+ */
 router.post('/posts/:postId/react', authenticateToken, async (req, res) => {
     const { postId } = req.params;
     const { reactionType = 'LIKE' } = req.body;
@@ -108,7 +147,9 @@ router.post('/posts/:postId/react', authenticateToken, async (req, res) => {
                         `, [ownerId, req.userId, `liked your post`, `/pulse`]);
                     }
                 }
-            } catch (notifErr) {}
+            } catch (notifErr) {
+                console.error("Failed to trigger reaction notification:", notifErr.message);
+            }
 
             res.json({ success: true, message: 'Reaction added' });
         }
@@ -118,7 +159,15 @@ router.post('/posts/:postId/react', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/pulse/posts/:postId/comments
+/**
+ * GET /api/pulse/posts/:postId/comments
+ * Retrieves all comments for a specific post, including nested parent comments.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.postId - UUID of the post
+ * @returns {{ success: boolean, data: Comment[] }}
+ * @throws {500} Internal server error
+ */
 router.get('/posts/:postId/comments', authenticateToken, async (req, res) => {
     const { postId } = req.params;
 
@@ -143,7 +192,16 @@ router.get('/posts/:postId/comments', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/pulse/posts/:postId
+/**
+ * GET /api/pulse/posts/:postId
+ * Fetches a single post by ID with engagement metrics and author info.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.postId - UUID of the post
+ * @returns {{ success: boolean, data: Post }}
+ * @throws {404} Post not found
+ * @throws {500} Internal server error
+ */
 router.get('/posts/:postId', authenticateToken, async (req, res) => {
     const { postId } = req.params;
 
@@ -151,10 +209,13 @@ router.get('/posts/:postId', authenticateToken, async (req, res) => {
         const result = await pool.query(`
             SELECT p."postID", p."type", p."content", p."mediaURL", p."timestampUTC", p."deepLinkURI", p."intent",
                    u."username", u."plasmaUserID", pr."avatarURL",
+                   -- Subqueries for engagement metrics
                    (SELECT COUNT(*) FROM "comments" WHERE "postID" = p."postID") AS "commentCount",
                    (SELECT COUNT(*) FROM "post_reactions" WHERE "postID" = p."postID") AS "reactionCount",
+                   -- Determines if the requesting user has already reacted to this post
                    (SELECT EXISTS (SELECT 1 FROM "post_reactions" WHERE "postID" = p."postID" AND "userID" = $2)) AS "hasReacted"
             FROM "posts" p
+            -- Attach author identity
             JOIN "users" u ON p."userID" = u."plasmaUserID"
             LEFT JOIN "profiles" pr ON u."plasmaUserID" = pr."plasmaUserID"
             WHERE p."postID" = $1 AND p."isVisible" = TRUE
@@ -171,7 +232,18 @@ router.get('/posts/:postId', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/pulse/posts/:postId/comments
+/**
+ * POST /api/pulse/posts/:postId/comments
+ * Adds a comment to a post and notifies the post owner.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.postId - UUID of the post
+ * @param {string} req.body.content - Comment text
+ * @param {string} [req.body.parentCommentID] - UUID of parent comment if replying
+ * @returns {{ success: boolean, data: Comment, message: string }}
+ * @throws {400} Content is required
+ * @throws {500} Internal server error
+ */
 router.post('/posts/:postId/comments', authenticateToken, async (req, res) => {
     const { postId } = req.params;
     const { content, parentCommentID } = req.body;
@@ -221,21 +293,25 @@ router.post('/posts/:postId/comments', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/pulse/user/:userId
+/**
+ * GET /api/pulse/user/:userId
+ * Retrieves the timeline of posts for a specific user.
+ * Access is restricted to mutual friends unless viewing one's own profile.
+ *
+ * @requires authenticateToken
+ * @param {string} req.params.userId - UUID of the user whose pulse feed to view
+ * @returns {{ success: boolean, data: Post[] }}
+ * @throws {403} Pulse feed is only visible to mutual friends
+ * @throws {500} Internal server error
+ */
 router.get('/user/:userId', authenticateToken, async (req, res) => {
     const { userId } = req.params;
 
     try {
-        // Check if the requesting user is the same, or if they are mutual friends
+        // Only mutual friends can view each other's pulse feed
         if (req.userId !== userId) {
-            const friendCheck = await pool.query(`
-                SELECT "isMutual" FROM "follow_relationships"
-                WHERE ("followerID" = $1 AND "followedID" = $2)
-                   OR ("followerID" = $2 AND "followedID" = $1)
-                LIMIT 1
-            `, [req.userId, userId]);
-
-            if (friendCheck.rows.length === 0 || !friendCheck.rows[0].isMutual) {
+            const isMutual = await checkMutualFriendship(req.userId, userId);
+            if (!isMutual) {
                 return res.status(403).json({ success: false, message: 'Pulse feed is only visible to mutual friends' });
             }
         }
@@ -243,10 +319,13 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
         const result = await pool.query(`
             SELECT p."postID", p."type", p."content", p."mediaURL", p."timestampUTC", p."deepLinkURI", p."intent",
                    u."username", u."plasmaUserID", pr."avatarURL",
+                   -- Subqueries for engagement metrics
                    (SELECT COUNT(*) FROM "comments" WHERE "postID" = p."postID") AS "commentCount",
                    (SELECT COUNT(*) FROM "post_reactions" WHERE "postID" = p."postID") AS "reactionCount",
+                   -- Determines if the requesting user has already reacted to this post
                    (SELECT EXISTS (SELECT 1 FROM "post_reactions" WHERE "postID" = p."postID" AND "userID" = $2)) AS "hasReacted"
             FROM "posts" p
+            -- Attach author identity
             JOIN "users" u ON p."userID" = u."plasmaUserID"
             LEFT JOIN "profiles" pr ON u."plasmaUserID" = pr."plasmaUserID"
             WHERE p."userID" = $1 AND p."isVisible" = TRUE
@@ -260,6 +339,14 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
     }
 });
 
+/**
+ * GET /api/pulse/trending
+ * Returns the top 3 games currently being played by the user's mutual friends who are online.
+ *
+ * @requires authenticateToken
+ * @returns {{ success: boolean, data: TrendingGame[] }}
+ * @throws {500} Internal server error
+ */
 router.get('/trending', authenticateToken, async (req, res) => {
     const myId = req.userId;
     try {

@@ -5,6 +5,11 @@ import { useAuth, API_BASE } from "@/context/AuthContext";
 import { getAvatarUrl } from "@/lib/utils";
 import Link from "next/link";
 
+/**
+ * PostCommentsModal Component
+ * @component
+ * @param {object} props
+ */
 export function PostCommentsModal({ isOpen, onClose, post, onAddComment, onToggleLike }) {
   const { token, user } = useAuth();
   const [commentText, setCommentText] = useState("");

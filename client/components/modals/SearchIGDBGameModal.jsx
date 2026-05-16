@@ -3,6 +3,11 @@ import { ModalWrapper } from "../ui/ModalWrapper";
 import { Search, Loader2, Gamepad2, Plus } from "lucide-react";
 import { apiService } from "@/services/apiService";
 
+/**
+ * SearchIGDBGameModal Component
+ * @component
+ * @param {object} props
+ */
 export function SearchIGDBGameModal({ isOpen, onClose, onAddGame }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);

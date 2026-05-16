@@ -25,6 +25,11 @@ const featureCards = [
   },
 ];
 
+/**
+ * AuthRightPanel Component
+ * @component
+ * @param {object} props
+ */
 export default function AuthRightPanel() {
   return (
     <div className="hidden lg:flex flex-col items-center justify-center relative flex-1 self-stretch z-0 bg-plasma-slate overflow-hidden">

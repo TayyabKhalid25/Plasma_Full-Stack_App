@@ -15,6 +15,11 @@ const navItems = [
   { id: "/prestige", label: "PRESTIGE", icon: Trophy },
 ];
 
+/**
+ * Sidebar Component
+ * @component
+ * @param {object} props
+ */
 export const Sidebar = ({ onOpenDrawer }) => {
   const pathname = usePathname();
   const { token } = useAuth();
@@ -25,7 +30,7 @@ export const Sidebar = ({ onOpenDrawer }) => {
     if (!token) return;
     const fetchFriends = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/friends`, {
+        const res = await fetch(`${API_BASE}/api/users/friends`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();

@@ -4,6 +4,11 @@ import { Loader2, Search, Link2, UserPlus, Check } from "lucide-react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { getAvatarUrl } from "@/lib/utils";
 
+/**
+ * InviteFriendsModal Component
+ * @component
+ * @param {object} props
+ */
 export function InviteFriendsModal({ isOpen, onClose }) {
   const { token, user } = useAuth();
   const [search, setSearch] = useState("");
@@ -55,7 +60,7 @@ export function InviteFriendsModal({ isOpen, onClose }) {
   const handleInvite = async (userId) => {
     setLoading(true);
     try {
-      await fetch(`${API_BASE}/api/friends/request/${userId}`, {
+      await fetch(`${API_BASE}/api/users/${userId}/follow`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` }
       });

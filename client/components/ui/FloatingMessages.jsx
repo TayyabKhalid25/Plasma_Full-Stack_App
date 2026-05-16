@@ -8,6 +8,11 @@ import { useAuth, API_BASE } from "@/context/AuthContext";
 import { useSocket } from "@/context/SocketContext";
 import { getAvatarUrl } from "@/lib/utils";
 
+/**
+ * FloatingMessages Component
+ * @component
+ * @param {object} props
+ */
 export const FloatingMessages = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [conversations, setConversations] = useState([]);

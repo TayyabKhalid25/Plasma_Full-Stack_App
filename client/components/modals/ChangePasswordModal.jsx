@@ -3,6 +3,11 @@ import { ModalWrapper } from "../ui/ModalWrapper";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { apiService } from "@/services/apiService";
 
+/**
+ * ChangePasswordModal Component
+ * @component
+ * @param {object} props
+ */
 export function ChangePasswordModal({ isOpen, onClose }) {
   const [formData, setFormData] = useState({
     currentPassword: "",

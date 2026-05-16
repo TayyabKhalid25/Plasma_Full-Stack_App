@@ -1,6 +1,11 @@
 import * as React from "react";
 import { cn } from "../../lib/utils";
 
+/**
+ * Card Component
+ * @component
+ * @param {object} props
+ */
 const Card = React.forwardRef(({ className, wrapperClassName, ...props }, ref) => (
   <div className={cn("relative group w-full h-full transition-all duration-700", wrapperClassName)}>
     {/* The glow effect matching the Pulse Dashboard */}
@@ -18,6 +23,11 @@ const Card = React.forwardRef(({ className, wrapperClassName, ...props }, ref) =
 ));
 Card.displayName = "Card";
 
+/**
+ * CardHeader Component
+ * @component
+ * @param {object} props
+ */
 const CardHeader = React.forwardRef(({ className, ...props }, ref) => (
   <div
     ref={ref}
@@ -27,6 +37,11 @@ const CardHeader = React.forwardRef(({ className, ...props }, ref) => (
 ));
 CardHeader.displayName = "CardHeader";
 
+/**
+ * CardTitle Component
+ * @component
+ * @param {object} props
+ */
 const CardTitle = React.forwardRef(({ className, ...props }, ref) => (
   <div
     ref={ref}
@@ -36,6 +51,11 @@ const CardTitle = React.forwardRef(({ className, ...props }, ref) => (
 ));
 CardTitle.displayName = "CardTitle";
 
+/**
+ * CardDescription Component
+ * @component
+ * @param {object} props
+ */
 const CardDescription = React.forwardRef(({ className, ...props }, ref) => (
   <div
     ref={ref}
@@ -45,11 +65,21 @@ const CardDescription = React.forwardRef(({ className, ...props }, ref) => (
 ));
 CardDescription.displayName = "CardDescription";
 
+/**
+ * CardContent Component
+ * @component
+ * @param {object} props
+ */
 const CardContent = React.forwardRef(({ className, ...props }, ref) => (
   <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
 ));
 CardContent.displayName = "CardContent";
 
+/**
+ * CardFooter Component
+ * @component
+ * @param {object} props
+ */
 const CardFooter = React.forwardRef(({ className, ...props }, ref) => (
   <div
     ref={ref}

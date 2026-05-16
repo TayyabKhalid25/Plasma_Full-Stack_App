@@ -5,6 +5,11 @@ import { useAuth, API_BASE } from "@/context/AuthContext";
 import { getAvatarUrl } from "@/lib/utils";
 import Image from "next/image";
 
+/**
+ * NewMessageModal Component
+ * @component
+ * @param {object} props
+ */
 export function NewMessageModal({ isOpen, onClose, onStartChat }) {
   const { token, user } = useAuth();
   const [search, setSearch] = useState("");

@@ -8,6 +8,11 @@ const iconMap = {
   Trophy, Target, Shield, Medal, Sparkles, Zap, Star, Gamepad2, Gem, Swords, Flame, Skull, Crosshair, Leaf, Flag, Activity 
 };
 
+/**
+ * AchievementCard Component
+ * @component
+ * @param {object} props
+ */
 export function AchievementCard({ achievement, isLocked }) {
   const rarity = getRarityProps(achievement.rarityWeight || 10);
   const Icon = iconMap[rarity.iconName] || Trophy;

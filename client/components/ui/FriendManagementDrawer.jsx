@@ -6,6 +6,11 @@ import { useAuth, API_BASE } from "@/context/AuthContext";
 import { getAvatarUrl } from "@/lib/utils";
 import Link from "next/link";
 
+/**
+ * FriendManagementDrawer Component
+ * @component
+ * @param {object} props
+ */
 export function FriendManagementDrawer({ isOpen, onClose }) {
   const { token } = useAuth();
   const [friends, setFriends] = useState({ requests: [], online: [], offline: [] });
@@ -21,7 +26,7 @@ export function FriendManagementDrawer({ isOpen, onClose }) {
   const fetchFriends = async () => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_BASE}/api/friends`, {
+      const res = await fetch(`${API_BASE}/api/users/friends`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -66,7 +71,7 @@ export function FriendManagementDrawer({ isOpen, onClose }) {
   const sendRequest = async (userId) => {
     setActionLoading(userId);
     try {
-      await fetch(`${API_BASE}/api/friends/request/${userId}`, {
+      await fetch(`${API_BASE}/api/users/${userId}/follow`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -82,7 +87,7 @@ export function FriendManagementDrawer({ isOpen, onClose }) {
   const acceptRequest = async (userId) => {
     setActionLoading(userId);
     try {
-      await fetch(`${API_BASE}/api/friends/request/${userId}`, {
+      await fetch(`${API_BASE}/api/users/${userId}/follow`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -97,7 +102,7 @@ export function FriendManagementDrawer({ isOpen, onClose }) {
   const removeFriend = async (userId) => {
     setActionLoading(userId);
     try {
-      await fetch(`${API_BASE}/api/friends/${userId}`, {
+      await fetch(`${API_BASE}/api/users/${userId}/follow`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });

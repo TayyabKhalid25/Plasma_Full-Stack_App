@@ -11,6 +11,11 @@ const iconMap = {
   Trophy, Shield, Target, Medal, Gem, Lock, Sparkles, Zap, Star, Gamepad2, Flame, Skull, Crosshair, Leaf, Flag, Activity, Users 
 };
 
+/**
+ * EditHallOfFameModal Component
+ * @component
+ * @param {object} props
+ */
 export function EditHallOfFameModal({ isOpen, onClose, onUpdate, initialSelectedIds = [] }) {
   const { token } = useAuth();
   const [selectedIds, setSelectedIds] = useState([]);

@@ -1,6 +1,6 @@
 const { Pool, neonConfig } = require('@neondatabase/serverless');
 const ws = require('ws');
-require('dotenv').config(); // Load environment variables from .env file
+// DB connection string is read from process.env, initialized by dotenv in server.js
 
 // Required for Node.js environments (not needed in Vercel Edge Runtime)
 neonConfig.webSocketConstructor = ws;

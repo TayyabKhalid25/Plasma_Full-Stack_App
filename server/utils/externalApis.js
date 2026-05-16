@@ -1,3 +1,11 @@
+// =============================================================================
+// EXTERNAL APIS — Centralized external API interactions (Steam, IGDB)
+// =============================================================================
+// Handles fetching data from third-party APIs (Steam, IGDB). 
+// Implements caching for tokens and rate-limit handling.
+// Used by routes, background jobs, and sync services.
+// =============================================================================
+
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');

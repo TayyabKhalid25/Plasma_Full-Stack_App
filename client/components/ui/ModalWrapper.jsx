@@ -4,6 +4,11 @@ import { useEffect } from "react";
 import { X } from "lucide-react";
 import { createPortal } from "react-dom";
 
+/**
+ * ModalWrapper Component
+ * @component
+ * @param {object} props
+ */
 export function ModalWrapper({ isOpen, onClose, title, children, footer, maxWidth = "max-w-md", closeOnOutsideClick = true }) {
   useEffect(() => {
     const handleEscape = (e) => {

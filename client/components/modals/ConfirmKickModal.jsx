@@ -2,6 +2,11 @@ import { useState } from "react";
 import { ModalWrapper } from "../ui/ModalWrapper";
 import { Loader2, UserMinus } from "lucide-react";
 
+/**
+ * ConfirmKickModal Component
+ * @component
+ * @param {object} props
+ */
 export function ConfirmKickModal({ isOpen, onClose, onConfirm, username }) {
   const [loading, setLoading] = useState(false);
 

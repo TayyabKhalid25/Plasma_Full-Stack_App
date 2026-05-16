@@ -4,14 +4,20 @@ const { authenticateToken } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-// GET /api/squad
+/**
+ * GET /api/squad
+ * Returns mutual friends who are currently online (intent != OFFLINE).
+ * Uses DISTINCT ON to eliminate duplicates at the DB level.
+ *
+ * @requires authenticateToken
+ * @returns {{ success: boolean, data: SquadMember[] }}
+ */
 router.get('/', authenticateToken, async (req, res) => {
     const userId = req.userId;
 
     try {
-        // Squad = Mutual friends who are online (not offline)
         const result = await pool.query(`
-            SELECT 
+            SELECT DISTINCT ON (u."plasmaUserID")
                 u."plasmaUserID", 
                 u."username", 
                 u."intent", 
@@ -25,19 +31,9 @@ router.get('/', authenticateToken, async (req, res) => {
               AND u."intent" != 'OFFLINE'
         `, [userId]);
 
-        // Remove duplicates if the query joins matched both sides
-        const uniqueSquad = [];
-        const seenIds = new Set();
-        result.rows.forEach(row => {
-            if (!seenIds.has(row.plasmaUserID)) {
-                seenIds.add(row.plasmaUserID);
-                uniqueSquad.push(row);
-            }
-        });
-
         res.json({
             success: true,
-            data: uniqueSquad
+            data: result.rows
         });
 
     } catch (error) {
@@ -47,3 +43,4 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 module.exports = router;
+

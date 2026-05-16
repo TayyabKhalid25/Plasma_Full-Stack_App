@@ -7,6 +7,11 @@ const iconMap = {
   Trophy, Swords, Shield, Target, Medal, Skull, Flame, Crosshair, Users, Lock, Sparkles, Leaf, Flag, Gem, Zap, Activity 
 };
 
+/**
+ * AchievementIcon Component
+ * @component
+ * @param {object} props
+ */
 export function AchievementIcon({ achievement, showGameTitle = false, tooltipSide = "top" }) {
   const Icon = iconMap[achievement.iconName] || Trophy;
   

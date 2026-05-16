@@ -4,6 +4,11 @@ import { Copy, Link2, Check, Send, Loader2 } from "lucide-react";
 import { useAuth, API_BASE } from "@/context/AuthContext";
 import { getAvatarUrl } from "@/lib/utils";
 
+/**
+ * ShareModal Component
+ * @component
+ * @param {object} props
+ */
 export function ShareModal({ isOpen, onClose, shareType = "post", shareId }) {
   const { token } = useAuth();
   const [copied, setCopied] = useState(false);
@@ -18,7 +23,7 @@ export function ShareModal({ isOpen, onClose, shareType = "post", shareId }) {
     const fetchFriends = async () => {
       setLoadingFriends(true);
       try {
-        const res = await fetch(`${API_BASE}/api/friends`, {
+        const res = await fetch(`${API_BASE}/api/users/friends`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();

@@ -4,6 +4,11 @@ import { Loader2, ImageIcon, X } from "lucide-react";
 import { UploadMediaModal } from "./UploadMediaModal";
 import { useModal } from "@/hooks/useModal";
 
+/**
+ * EditPostModal Component
+ * @component
+ * @param {object} props
+ */
 export function EditPostModal({ isOpen, onClose, post, onSave }) {
   const [content, setContent] = useState("");
   const [mediaURL, setMediaURL] = useState(null);

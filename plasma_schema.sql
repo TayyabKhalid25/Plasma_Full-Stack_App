@@ -95,6 +95,7 @@ CREATE TABLE "achievements" (
     "appID" VARCHAR(50) NOT NULL REFERENCES "games"("appID") ON DELETE CASCADE,
     "title" VARCHAR(255) NOT NULL,
     "description" TEXT,
+    "proofURL" TEXT DEFAULT NULL,
     "rarityWeight" REAL NOT NULL,
     "plasmaXP" INTEGER NOT NULL,
     "globalPercentage" REAL

@@ -5,6 +5,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getTrending, getUpcomingRallies } from "@/services/api";
 
+/**
+ * RightRail Component
+ * @component
+ * @param {object} props
+ */
 export const RightRail = () => {
   const [trendingGames, setTrendingGames] = useState([]);
   const [upcomingRallies, setUpcomingRallies] = useState([]);
